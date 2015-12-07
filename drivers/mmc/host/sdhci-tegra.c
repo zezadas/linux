@@ -517,6 +517,8 @@ static int sdhci_tegra_probe(struct platform_device *pdev)
 
 	usleep_range(2000, 4000);
 
+	host->mmc->caps |= MMC_CAP_WAIT_WHILE_BUSY;
+
 	rc = sdhci_add_host(host);
 	if (rc)
 		goto err_add_host;
