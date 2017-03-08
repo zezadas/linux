@@ -12,6 +12,7 @@
  *
  */
 
+#include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -20,6 +21,7 @@
 #include <linux/io.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/reset.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/slot-gpio.h>
@@ -49,6 +51,8 @@ struct sdhci_tegra_soc_data {
 struct sdhci_tegra {
 	const struct sdhci_tegra_soc_data *soc_data;
 	struct gpio_desc *power_gpio;
+
+	struct reset_control *rst;
 };
 
 static u16 tegra_sdhci_readw(struct sdhci_host *host, int reg)
@@ -294,6 +298,25 @@ static int sdhci_tegra_probe(struct platform_device *pdev)
 	clk_prepare_enable(clk);
 	pltfm_host->clk = clk;
 
+	tegra_host->rst = devm_reset_control_get(&pdev->dev, "sdhci");
+	if (IS_ERR(tegra_host->rst)) {
+		rc = PTR_ERR(tegra_host->rst);
+		dev_err(&pdev->dev, "failed to get reset control: %d\n", rc);
+		goto err_rst_get;
+	}
+
+	rc = reset_control_assert(tegra_host->rst);
+	if (rc)
+		goto err_rst_get;
+
+	usleep_range(2000, 4000);
+
+	rc = reset_control_deassert(tegra_host->rst);
+	if (rc)
+		goto err_rst_get;
+
+	usleep_range(2000, 4000);
+
 	host->mmc->caps |= MMC_CAP_WAIT_WHILE_BUSY;
 
 	rc = sdhci_add_host(host);
@@ -303,6 +326,8 @@ static int sdhci_tegra_probe(struct platform_device *pdev)
 	return 0;
 
 err_add_host:
+	reset_control_assert(tegra_host->rst);
+err_rst_get:
 	clk_disable_unprepare(pltfm_host->clk);
 err_clk_get:
 err_power_req:
@@ -312,6 +337,23 @@ err_alloc_tegra_host:
 	return rc;
 }
 
+static int sdhci_tegra_remove(struct platform_device *pdev)
+{
+	struct sdhci_host *host = platform_get_drvdata(pdev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_tegra *tegra_host = sdhci_pltfm_priv(pltfm_host);
+
+	sdhci_remove_host(host, 0);
+
+	reset_control_assert(tegra_host->rst);
+	usleep_range(2000, 4000);
+	clk_disable_unprepare(pltfm_host->clk);
+
+	sdhci_pltfm_free(pdev);
+
+	return 0;
+}
+
 static struct platform_driver sdhci_tegra_driver = {
 	.driver		= {
 		.name	= "sdhci-tegra",
@@ -319,7 +361,7 @@ static struct platform_driver sdhci_tegra_driver = {
 		.pm	= SDHCI_PLTFM_PMOPS,
 	},
 	.probe		= sdhci_tegra_probe,
-	.remove		= sdhci_pltfm_unregister,
+	.remove		= sdhci_tegra_remove,
 };
 
 module_platform_driver(sdhci_tegra_driver);
