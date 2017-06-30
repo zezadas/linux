@@ -129,4 +129,6 @@ extern void tegra210_set_sata_pll_seq_sw(bool state);
 extern void tegra210_put_utmipll_in_iddq(void);
 extern void tegra210_put_utmipll_out_iddq(void);
 
+unsigned long tegra_pmc_get_pclk_rate(void);
+
 #endif /* __LINUX_CLK_TEGRA_H_ */

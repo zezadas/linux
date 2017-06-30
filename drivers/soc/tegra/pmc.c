@@ -173,7 +173,6 @@ struct tegra_pmc_soc {
 struct tegra_pmc {
 	struct device *dev;
 	void __iomem *base;
-	struct clk *clk;
 	struct dentry *debugfs;
 
 	const struct tegra_pmc_soc *soc;
@@ -1180,7 +1179,7 @@ void tegra_pmc_enter_suspend_mode(enum tegra_suspend_mode mode)
 		break;
 
 	case TEGRA_SUSPEND_LP2:
-		rate = clk_get_rate(pmc->clk);
+		rate = tegra_pmc_get_pclk_rate();
 		break;
 
 	default:
@@ -1409,13 +1408,6 @@ static int tegra_pmc_probe(struct platform_device *pdev)
 	base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(base))
 		return PTR_ERR(base);
-
-	pmc->clk = devm_clk_get(&pdev->dev, "pclk");
-	if (IS_ERR(pmc->clk)) {
-		err = PTR_ERR(pmc->clk);
-		dev_err(&pdev->dev, "failed to get pclk: %d\n", err);
-		return err;
-	}
 
 	pmc->dev = &pdev->dev;
 
