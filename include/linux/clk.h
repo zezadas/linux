@@ -38,10 +38,16 @@ struct of_phandle_args;
  * POST_RATE_CHANGE - called after the clk rate change has successfully
  *     completed.  Callbacks must always return NOTIFY_DONE or NOTIFY_OK.
  *
+ * PRE_ENABLE_CHANGE - called before clk enable completed.
+ *
+ * POST_DISABLE_CHANGE - called after clk disable completed.
+ *
  */
 #define PRE_RATE_CHANGE			BIT(0)
 #define POST_RATE_CHANGE		BIT(1)
 #define ABORT_RATE_CHANGE		BIT(2)
+#define PRE_ENABLE_CHANGE		BIT(3)
+#define POST_DISABLE_CHANGE		BIT(4)
 
 /**
  * struct clk_notifier - associate a clk with a notifier
