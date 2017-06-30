@@ -126,4 +126,6 @@ extern void tegra210_xusb_pll_hw_sequence_start(void);
 extern void tegra210_sata_pll_hw_control_enable(void);
 extern void tegra210_sata_pll_hw_sequence_start(void);
 
+unsigned long tegra_pmc_get_pclk_rate(void);
+
 #endif /* __LINUX_CLK_TEGRA_H_ */
