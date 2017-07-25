@@ -235,6 +235,7 @@ struct mxt_data {
 	u8 num_touchids;
 	u8 multitouch;
 	struct t7_config t7_cfg;
+	struct gpio_desc *reset_gpio;
 
 	/* Cached parameters from object table */
 	u16 T5_address;
@@ -2834,12 +2835,32 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	init_completion(&data->reset_completion);
 	init_completion(&data->crc_completion);
 
+	data->reset_gpio = devm_gpiod_get_optional(&client->dev,
+						   "reset", GPIOD_OUT_LOW);
+	if (IS_ERR(data->reset_gpio)) {
+		error = PTR_ERR(data->reset_gpio);
+		dev_err(&client->dev, "Failed to get reset gpio: %d\n", error);
+		return error;
+	}
+
 	error = request_threaded_irq(client->irq, NULL, mxt_interrupt,
 				     pdata->irqflags | IRQF_ONESHOT,
 				     client->name, data);
 	if (error) {
 		dev_err(&client->dev, "Failed to register interrupt\n");
 		goto err_free_mem;
+	}
+
+	if (data->reset_gpio) {
+		data->in_bootloader = true;
+		msleep(MXT_RESET_TIME);
+		reinit_completion(&data->bl_completion);
+		gpiod_set_value(data->reset_gpio, 1);
+		error = mxt_wait_for_completion(data, &data->bl_completion,
+						MXT_RESET_TIMEOUT);
+		if (error)
+			return error;
+		data->in_bootloader = false;
 	}
 
 	disable_irq(client->irq);
