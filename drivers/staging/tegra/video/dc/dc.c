@@ -1162,7 +1162,7 @@ static irqreturn_t tegra_dc_irq(int irq, void *ptr)
 			clk_prepare_enable(dc->clk);
 		}
 
-		WARN(1, "IRQ when DC not powered!\n");
+		dev_dbg(&dc->ndev->dev, "IRQ when DC not powered!\n");
 		tegra_dc_io_start(dc);
 		status = tegra_dc_readl(dc, DC_CMD_INT_STATUS);
 		tegra_dc_writel(dc, status, DC_CMD_INT_STATUS);
