@@ -63,3 +63,4 @@ obj-$(CONFIG_SEC_MISC)		+= sec_misc.o
 obj-$(CONFIG_SEC_MISC)	+= stmpe811.o
 obj-$(CONFIG_SAMSUNG_JACK)	+= sec_jack.o
 obj-$(CONFIG_BCM4751_POWER)	+= bcm4751-power.o
+obj-$(CONFIG_BLUEDROID_PM)      += bluedroid_pm.o
