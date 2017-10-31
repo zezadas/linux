@@ -2962,6 +2962,7 @@ CONFIG_LEDS_CLASS=y
 # LED driver for blink(1) USB RGB LED is under Special HID drivers (HID_THINGM)
 #
 # CONFIG_LEDS_BLINKM is not set
+CONFIG_LEDS_ISA1200=y
 
 #
 # LED Triggers
