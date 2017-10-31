@@ -33,61 +33,7 @@
 
 #include "sec_misc.h"
 
-typedef enum
-{
-	USB_SEL_AP_USB = 0,
-	USB_SEL_CP_USB,
-	USB_SEL_ADC
-} usb_path_type;
-
-#define GPIO_USB_SEL1 10
-#define GPIO_USB_SEL2 113
 #define GPIO_IFCONSENSE 118
-
-usb_path_type usb_sel_status = USB_SEL_AP_USB;
-EXPORT_SYMBOL(usb_sel_status);
-
-void p3_set_usb_path(usb_path_type usb_path)
-{
-	if (usb_path == USB_SEL_AP_USB) {
-		gpio_set_value(GPIO_USB_SEL1, 1);
-		gpio_set_value(GPIO_USB_SEL2, 1);
-		usb_sel_status = USB_SEL_AP_USB;
-		}
-	else if (usb_path == USB_SEL_CP_USB) {
-		gpio_set_value(GPIO_USB_SEL1, 0);
-		gpio_set_value(GPIO_USB_SEL2, 0);
-		usb_sel_status = USB_SEL_CP_USB;
-		}
-	else if (usb_path == USB_SEL_ADC) {
-		gpio_set_value(GPIO_USB_SEL1, 0);
-		gpio_set_value(GPIO_USB_SEL2, 1);
-		usb_sel_status = USB_SEL_ADC;
-	}
-}
-
-static __init int p3_usb_path_init(void){
-	int usbsel1, usbsel2;
-
-	pr_info("%s\n", __func__);
-
-	gpio_request(GPIO_USB_SEL1, "GPIO_USB_SEL1");
-	gpio_direction_output(GPIO_USB_SEL1, 0);
-
-	gpio_request(GPIO_USB_SEL2, "GPIO_USB_SEL2");
-	gpio_direction_input(GPIO_USB_SEL2);
-	usbsel2 = gpio_get_value(GPIO_USB_SEL2);
-	gpio_direction_output(GPIO_USB_SEL2, 0);
-
-	if (usbsel2 == 1) {
-		p3_set_usb_path(USB_SEL_AP_USB);
-	} else if (usbsel2 == 0) {
-		p3_set_usb_path(USB_SEL_CP_USB);
-	}
-
-	return 0;
-}
-arch_initcall(p3_usb_path_init);
 
 int check_usb_status = CHARGER_BATTERY;
 
