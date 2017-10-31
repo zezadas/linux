@@ -1876,10 +1876,10 @@ static int p3_bat_probe(struct platform_device *pdev)
 	}
 #endif
 
-	pdata = dev_get_platdata(&pdev->dev);
+	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
 	if (!pdata) {
 		pr_err("%s: no platform data.\n", __func__);
-		return -EINVAL;
+		return -ENOMEM;
 	}
 
 #ifdef CONFIG_OF
