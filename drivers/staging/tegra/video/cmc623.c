@@ -1184,12 +1184,12 @@ static DEVICE_ATTR(lcd_power, 0664, lcd_power_file_cmd_show, lcd_power_file_cmd_
 static ssize_t lcd_type_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
-	char temp[15];
+	char temp[16];
 #if defined(CONFIG_MACH_SAMSUNG_P4) || defined(CONFIG_MACH_SAMSUNG_P4LTE) || \
 defined(CONFIG_MACH_SAMSUNG_P4WIFI) || defined(CONFIG_MACH_SAMSUNG_P3)
-	sprintf(temp, "SEC_LTN101AL01\n");
+	snprintf(temp, sizeof(temp), "SEC_LTN101AL01\n");
 #elif defined(CONFIG_MACH_SAMSUNG_P5)
-	sprintf(temp, "SEC_LTN089AL03\n");
+	snprintf(temp, sizeof(temp), "SEC_LTN089AL03\n");
 #endif
 	strcat(buf, temp);
 	return strlen(buf);
