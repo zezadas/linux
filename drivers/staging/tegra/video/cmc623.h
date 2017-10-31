@@ -139,6 +139,9 @@ struct str_main_tuning {
 extern void cmc623_suspend(void);
 extern void cmc623_resume(void);
 
+#define CMC623_CLK_RATE     (586000000)
+#define CMC623F_CLK_RATE    (570000000)
+
 
 #endif  /*TUNE2CMC623_HEADER*/
 
