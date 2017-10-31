@@ -1702,9 +1702,10 @@ static void p3_bat_gpio_init(struct max8903_charger_data *data)
 	pr_info("%s() Battery GPIO initialized.\n", __func__);
 }
 
-static int p3_bat_parse_dt(struct p3_battery_platform_data *pdata,
-		struct device_node *of_node)
+static int p3_bat_parse_dt(struct platform_device *pdev,
+	struct p3_battery_platform_data *pdata)
 {
+	struct device_node *of_node = pdev->dev.of_node;
 	u32 val;
 
 	val = of_get_named_gpio(of_node, "enable-line", 0);
@@ -1862,7 +1863,6 @@ static void deinit_extcon_dev(struct platform_device *pdev)
 
 static int p3_bat_probe(struct platform_device *pdev)
 {
-	struct device_node *np = pdev->dev.of_node;
 	struct p3_battery_platform_data *pdata = NULL;
 	struct battery_data *battery;
 	int ret;
@@ -1883,15 +1883,13 @@ static int p3_bat_probe(struct platform_device *pdev)
 	}
 
 #ifdef CONFIG_OF
-	if (np) {
-		ret = p3_bat_parse_dt(pdata, np);
-		if (ret < 0) {
-			pr_info("%s error parsing device tree node.\n", __func__);
-			kfree(pdata);
-			return ret;
-		}
-		pr_info("%s parse done.\n", __func__);
+	ret = p3_bat_parse_dt(pdev, pdata);
+	if (ret < 0) {
+		pr_info("%s error parsing device tree node.\n", __func__);
+		kfree(pdata);
+		return ret;
 	}
+	pr_info("%s parse done.\n", __func__);
 #endif
 
 	p3_bat_gpio_init(&pdata->charger);
