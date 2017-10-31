@@ -76,6 +76,8 @@
 #include <linux/gpio.h>
 #include <linux/slab.h>
 
+#include <linux/extcon.h>
+
 /*
  * This is a driver for the Atmel maXTouch Object Protocol
  *
@@ -274,10 +276,23 @@ static void mxt_force_reset(struct mxt_data *mxt)
 }
 #endif
 
+/* state 1 = Charger connected */
+/* state 0 = Charger disconnected*/
+static int mxt_charging_connector_cb(struct notifier_block *notifier,
+				unsigned long event, void *cmd)
 {
+	struct extcon_dev *edev = (struct extcon_dev *)cmd;
+	struct mxt_data *mxt = container_of(notifier, struct mxt_data,
+		charging_connector_nb);
+	u32 state = edev->state;
 
+	pr_info("%s: old_state=%lu state=%u\n", __func__, event, state);
+
+	mxt->set_mode_for_ta = !!state;
 	if (mxt->enabled && !work_pending(&mxt->ta_work))
 		schedule_work(&mxt->ta_work);
+
+	return NOTIFY_DONE;
 }
 
 static void mxt_ta_worker(struct work_struct *work)
@@ -3441,9 +3456,31 @@ static struct attribute_group mxt_attr_group = {
     .attrs = mxt_attrs,
 };
 
+static int init_extcon_notifier(struct i2c_client *client, struct mxt_data *mxt)
 {
+	int error;
+	mxt->extcon_nb_obj = kzalloc(sizeof(struct extcon_specific_cable_nb),
+		GFP_KERNEL);
+	if (!mxt->extcon_nb_obj) {
+		dev_err(&client->dev, "Failed to allocate extcon nb obj.\n");
+		error = -ENOMEM;
+		goto err;
+	}
 
+	mxt->charging_connector_nb.notifier_call = mxt_charging_connector_cb;
+	mxt->charging_connector_nb.priority = INT_MAX;
 
+	error = extcon_register_interest(mxt->extcon_nb_obj,
+		"p4_battery", "USB", &mxt->charging_connector_nb);
+	if (error < 0) {
+		if (error == -ENODEV)
+			error = -EPROBE_DEFER;
+		dev_err(&client->dev, "Error registering extcon interest. error=%d\n", error);
+	}
+
+err:
+	return error;
+}
 
 static int mxt_parse_dt(struct i2c_client *client, struct mxt_data *mxt)
 {
@@ -3511,7 +3548,10 @@ static int mxt_probe(struct i2c_client *client,
 		error = -EINVAL;
 		goto err_parse_dt;
 	}
-	}
+
+	error = init_extcon_notifier(client, mxt);
+	if (error < 0)
+		goto err_init_extcon;
 
 	mxt_init_gpio(mxt);
 
@@ -3713,6 +3753,8 @@ err_pdata:
 	if (input)
 		input_free_device(input);
 err_input_dev_alloc:
+	extcon_unregister_interest(mxt->extcon_nb_obj);
+err_init_extcon:
 	mxt_exit_gpio(client, mxt);
 err_parse_dt:
 	kfree(mxt);

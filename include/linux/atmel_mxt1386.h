@@ -15,6 +15,8 @@
 #ifndef _LINUX_MXT1386_H
 #define _LINUX_MXT1386_H
 
+#include <linux/extcon.h>
+
 #ifdef CONFIG_PM_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -744,6 +746,10 @@ struct mxt_data {
 	struct work_struct fhe_work;
 	struct report_id_map *rid_map;
 	struct mxt_object *object_table;
+
+	struct notifier_block charging_connector_nb;
+	struct extcon_specific_cable_nb *extcon_nb_obj;
+
 	struct mutex mutex;
 #ifdef MXT_CALIBRATE_WORKAROUND
 	struct delayed_work calibrate_dwork;
