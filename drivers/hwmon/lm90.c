@@ -112,9 +112,14 @@
  * SA56004 can have address 0x48 through 0x4F.
  */
 
+#if defined(CONFIG_MACH_SAMSUNG_P4WIFI)
+static const unsigned short normal_i2c[] = {
+	0x4c, I2C_CLIENT_END };
+#else
 static const unsigned short normal_i2c[] = {
 	0x18, 0x19, 0x1a, 0x29, 0x2a, 0x2b, 0x48, 0x49, 0x4a, 0x4b, 0x4c,
 	0x4d, 0x4e, 0x4f, I2C_CLIENT_END };
+#endif
 
 enum chips { lm90, adm1032, lm99, lm86, max6657, max6659, adt7461, max6680,
 	max6646, w83l771, max6696, sa56004, g781, tmp451 };
