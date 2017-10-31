@@ -557,7 +557,7 @@ static bool fast_cache_maint_outer(unsigned long start,
 		unsigned long end, unsigned int op)
 {
 	bool result = false;
-	if (end - start >= FLUSH_CLEAN_BY_SET_WAY_THRESHOLD_OUTER) {
+	if (end - start >= cache_maint_outer_threshold) {
 		if (op == NVMAP_CACHE_OP_WB_INV) {
 			outer_flush_all();
 			result = true;
@@ -579,11 +579,12 @@ static inline bool fast_cache_maint_outer(unsigned long start,
 #endif
 
 #if defined(CONFIG_NVMAP_CACHE_MAINT_BY_SET_WAYS)
+extern size_t cache_maint_inner_threshold;
 static bool fast_cache_maint(struct nvmap_client *client, struct nvmap_handle *h,
 	unsigned long start, unsigned long end, unsigned int op)
 {
 	if ((op == NVMAP_CACHE_OP_INV) ||
-		((end - start) < FLUSH_CLEAN_BY_SET_WAY_THRESHOLD_INNER))
+		((end - start) < cache_maint_inner_threshold))
 		return false;
 
 	if (op == NVMAP_CACHE_OP_WB_INV)
