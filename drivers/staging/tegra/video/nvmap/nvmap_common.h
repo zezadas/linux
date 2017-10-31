@@ -20,8 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#define FLUSH_CLEAN_BY_SET_WAY_THRESHOLD_INNER (8 * PAGE_SIZE)
-#define FLUSH_CLEAN_BY_SET_WAY_THRESHOLD_OUTER (1024 * 1024)
+extern size_t cache_maint_outer_threshold;
 
 extern void inner_flush_cache_all(void);
 extern void inner_clean_cache_all(void);
