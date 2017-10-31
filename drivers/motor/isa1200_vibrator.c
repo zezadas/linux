@@ -292,7 +292,6 @@ static int isa1200_parse_dt(struct i2c_client *client,
 	struct device_node *np = client->dev.of_node;
 	struct clk *vib_clk;
 	int val;
-	int ret;
 
 	val = of_get_gpio(np, 0);
 	if (val < 0) {
