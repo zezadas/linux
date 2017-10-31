@@ -59,6 +59,7 @@ obj-$(CONFIG_OCXL)		+= ocxl/
 obj-$(CONFIG_MISC_RTSX)		+= cardreader/
 
 obj-$(CONFIG_STMPE_ADC)	+= stmpe-adc.o
+obj-$(CONFIG_BCM4751_POWER)	+= bcm4751-power.o
 
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
