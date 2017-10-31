@@ -178,8 +178,17 @@ static void __init tegra_smp_prepare_cpus(unsigned int max_cpus)
 	/* Always mark the boot CPU (CPU0) as initialized. */
 	cpumask_set_cpu(0, &tegra_cpu_init_mask);
 
-	if (scu_a9_has_base())
-		scu_enable(IO_ADDRESS(scu_a9_get_base()));
+	if (scu_a9_has_base()) {
+		void __iomem *scu_base = IO_ADDRESS(scu_a9_get_base());
+		u32 scu_ctrl = __raw_readl(scu_base) |
+			1 << 3 | /* Enable speculative line fill*/
+			1 << 5 | /* Enable IC standby */
+			1 << 6; /* Enable SCU standby */
+		if (!(scu_ctrl & 1))
+			__raw_writel(scu_ctrl, scu_base);
+
+		scu_enable(scu_base);
+	}
 }
 
 const struct smp_operations tegra_smp_ops __initconst = {
