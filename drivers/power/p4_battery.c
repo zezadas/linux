@@ -1591,12 +1591,21 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 	 * in, this code runs before nct1008.c resume enables ldo6
 	 * so we need to enable it here.
 	 */
-	ret = regulator_enable(reg);
-	if (ret != 0) {
-		pr_err("%s: error enabling regulator vdd_ldo6.\n", __func__);
+	int is_enabled = regulator_is_enabled(reg);
+	if (is_enabled < 0) {
+		pr_err("%s: error regulator_is_enabled return=%d\n",
+			__func__, is_enabled);
 		return false;
 	}
-	udelay(10);
+
+	if (is_enabled == 0) {
+		ret = regulator_enable(reg);
+		if (ret != 0) {
+			pr_err("%s: error enabling regulator vdd_ldo6.\n", __func__);
+			return false;
+		}
+		udelay(10);
+	}
 
 	old_usb_sel_status = usb_sel_status;
 	p3_set_usb_path(data, USB_SEL_ADC);
@@ -1622,8 +1631,10 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 
 	p3_set_usb_path(data, old_usb_sel_status);
 
-	regulator_disable(reg);
-	regulator_put(reg);
+	if (is_enabled == 0) {
+		regulator_disable(reg);
+		regulator_put(reg);
+	}
 
 	pr_info("%s: returning %d\n", __func__, result);
 	return result;
