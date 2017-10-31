@@ -41,6 +41,7 @@
 #include <linux/slab.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
+#include <linux/pinctrl/consumer.h>
 
 #include <asm/mach-types.h>
 #include <linux/isa1200_vibrator.h>
@@ -55,6 +56,10 @@ struct isa1200_vibrator_drvdata {
 
 	struct clk *vib_clk;
 	int gpio_en;
+
+	struct pinctrl* pinctrl;
+	struct pinctrl_state *on_state;
+	struct pinctrl_state *off_state;
 
 	struct workqueue_struct *wq;
 	struct delayed_work work;
@@ -170,6 +175,8 @@ static void isa1200_vibrator_work(struct work_struct *work)
 {
 	struct isa1200_vibrator_drvdata *vib =
 		container_of(to_delayed_work(work), struct isa1200_vibrator_drvdata, work);
+	struct i2c_client* client = vib->client;
+	int err;
 
 	pr_debug("%s\n", __func__);
 
@@ -180,20 +187,29 @@ static void isa1200_vibrator_work(struct work_struct *work)
 		vib->running = false;
 		isa1200_vibrator_off(vib);
 		clk_disable_unprepare(vib->vib_clk);
-// #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
-// 		tegra_pinmux_set_tristate(TEGRA_PINGROUP_CDEV2,
-// 				TEGRA_TRI_TRISTATE);
-// #endif
+
+		if (vib->pinctrl && vib->off_state) {
+			err = pinctrl_select_state(vib->pinctrl, vib->off_state);
+			if (err != 0)
+				dev_err(&client->dev,
+					"%s: error setting pinctrl off state. err=%d\n", __func__, err);
+		}
 
 	} else {
 		if (vib->running)
 			return;
 
 		vib->running = true;
-// #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
-// 		tegra_pinmux_set_tristate(TEGRA_PINGROUP_CDEV2,
-// 				TEGRA_TRI_NORMAL);
-// #endif
+
+		if (vib->pinctrl && vib->on_state) {
+			err = pinctrl_select_state(vib->pinctrl, vib->on_state);
+			if (err != 0) {
+				dev_err(&client->dev,
+					"%s: error setting pinctrl on state. err=%d\n", __func__, err);
+				return;
+			}
+		}
+
 		clk_prepare_enable(vib->vib_clk);
 		mdelay(1);
 		isa1200_vibrator_on(vib);
@@ -317,6 +333,55 @@ static struct device_attribute isa1200_device_attrs[] = {
 			amplitude_show,
 			amplitude_store),
 };
+
+static int isa1200_init_pinctrl(struct isa1200_vibrator_drvdata *ddata)
+{
+	struct i2c_client *client = ddata->client;
+	struct pinctrl *pinctrl;
+	struct pinctrl_state *on_state, *off_state;
+	int err = 0;
+
+	pinctrl = devm_pinctrl_get(&client->dev);
+	if (IS_ERR(pinctrl)) {
+		dev_info(&client->dev,
+			"%s: not using pinctrl.\n", __func__);
+		return 0;
+	}
+
+	off_state = pinctrl_lookup_state(pinctrl, "off");
+	if (IS_ERR(off_state)) {
+		dev_err(&client->dev,
+			"%s: error getting pinctrl off state\n", __func__);
+		err = -ENODEV;
+		goto err;
+	}
+
+	on_state = pinctrl_lookup_state(pinctrl, "on");
+	if (IS_ERR(on_state)) {
+		dev_err(&client->dev,
+			"%s: error getting pinctrl on state\n", __func__);
+		err = -ENODEV;
+		goto err;
+	}
+
+	err = pinctrl_select_state(pinctrl, off_state);
+	if (err) {
+		dev_err(&client->dev,
+			"%s: error setting pinctrl off state. err=%d\n", __func__, err);
+		err = -ENODEV;
+		goto err;
+	}
+
+	ddata->pinctrl = pinctrl;
+	ddata->off_state = off_state;
+	ddata->on_state = on_state;
+
+	return 0;
+
+err:
+	devm_pinctrl_put(pinctrl);
+	return err;
+}
 
 #ifdef CONFIG_OF
 static int isa1200_parse_dt(struct i2c_client *client,
@@ -442,6 +507,10 @@ static int isa1200_vibrator_i2c_probe(struct i2c_client *client,
 			goto err_to_dev_reg;
 		}
 	}
+
+	ret = isa1200_init_pinctrl(ddata);
+	if (ret)
+		goto err_to_dev_reg;
 
 	return 0;
 
