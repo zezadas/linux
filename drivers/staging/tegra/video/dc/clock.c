@@ -27,6 +27,7 @@
 #include "dc_priv.h"
 
 #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+#include "../cmc623.h"
 extern int cmc623_current_type;
 #endif
 
@@ -71,9 +72,9 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 	if (dc->out->type == TEGRA_DC_OUT_RGB) {
 #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 		if (cmc623_current_type == 0) {
-			tegra_dvfs_set_rate(dc->clk, 586000000);
+			tegra_dvfs_set_rate(dc->clk, CMC623_CLK_RATE);
 		} else if (cmc623_current_type == 1) {
-			tegra_dvfs_set_rate(dc->clk, 570000000);
+			tegra_dvfs_set_rate(dc->clk, CMC623F_CLK_RATE);
 		}
 
 		return;
