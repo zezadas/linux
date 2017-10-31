@@ -30,9 +30,11 @@
 #include <linux/regulator/machine.h>
 #include <linux/blkdev.h>
 #include <linux/gpio.h>
+#include <linux/gpio/consumer.h>
 #include <linux/delay.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
+#include <linux/rfkill.h>
 
 struct bcm4751_power_platform_data {
 	struct device *dev;
@@ -41,6 +43,9 @@ struct bcm4751_power_platform_data {
 	struct regulator *gps_lna;
 	int rst_state;
 	int en_state;
+
+	struct rfkill *rfkill;
+	bool is_blocked;
 };
 
 static DEFINE_MUTEX(gps_mutex);
@@ -101,6 +106,29 @@ static int set_power(struct bcm4751_power_platform_data *pdata, int state)
 end_of_function:
 	mutex_unlock(&gps_mutex);
 	return ret;
+}
+
+static int bcm4751_power_rfkill_set_power(void *data, bool blocked)
+{
+	struct bcm4751_power_platform_data *bcm4751_power = data;
+
+	/*
+	 * check if BT gpio_shutdown line status and current request are same.
+	 * If same, then return, else perform requested operation.
+	 */
+	if (gpio_get_value_cansleep(bcm4751_power->power_gpio) == !blocked) {
+		dev_dbg(bcm4751_power->dev,
+			"power_gpio line status and current request are same.\n");
+		return 0;
+	}
+
+
+	dev_info(bcm4751_power->dev, "set power blocked=%d\n", blocked);
+
+	set_power(bcm4751_power, !blocked);
+	bcm4751_power->is_blocked = blocked;
+
+	return 0;
 }
 
 static ssize_t gpio_n_rst_show(struct device *dev, struct device_attribute *attr, char *buf)
@@ -220,6 +248,10 @@ static struct bcm4751_power_platform_data* sec_jack_parse_dt(struct platform_dev
 }
 #endif
 
+static const struct rfkill_ops bcm4751_power_rfkill_ops = {
+	.set_block = bcm4751_power_rfkill_set_power,
+};
+
 static int bcm4751_power_probe(struct platform_device *pdev)
 {
 	struct bcm4751_power_platform_data *pdata;
@@ -263,6 +295,23 @@ static int bcm4751_power_probe(struct platform_device *pdev)
 		goto fail_after_device_create;
 	}
 
+
+	pdata->rfkill = rfkill_alloc("gps_rfkill", &pdev->dev,
+			RFKILL_TYPE_GPS, &bcm4751_power_rfkill_ops, pdata);
+
+	if (unlikely(!pdata->rfkill))
+		goto fail_after_device_create;
+
+	pdata->is_blocked = true;
+	rfkill_set_states(pdata->rfkill,
+		pdata->is_blocked, false);
+
+	ret = rfkill_register(pdata->rfkill);
+	if (unlikely(ret)) {
+		dev_err(&pdev->dev, "Couldn't register rfkill");
+		goto fail_after_rkill_alloc;
+	}
+
 	sec_gps_dev->platform_data = pdata;
 
 	pdata->dev = &pdev->dev;
@@ -272,6 +321,9 @@ static int bcm4751_power_probe(struct platform_device *pdev)
 
 	return 0;
 
+fail_after_rkill_alloc:
+	rfkill_unregister(pdata->rfkill);
+	rfkill_destroy(pdata->rfkill);
 fail_after_device_create:
 	device_destroy(sec_class, 0);
 fail_after_misc_reg:
@@ -283,6 +335,9 @@ fail:
 static int bcm4751_power_remove(struct platform_device *pdev)
 {
 	struct bcm4751_power_platform_data *pdata = dev_get_platdata(&pdev->dev);
+
+	rfkill_unregister(pdata->rfkill);
+	rfkill_destroy(pdata->rfkill);
 
 	device_remove_file(sec_gps_dev, &dev_attr_pwr_en);
 	device_remove_file(sec_gps_dev, &dev_attr_nrst);
