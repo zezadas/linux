@@ -66,6 +66,8 @@
 extern int check_jig_on(void);
 
 struct max17042_platform_data {
+	int ifconsense;
+
 	int sdi_capacity;
 	int sdi_vfcapacity;
 	int atl_capacity;

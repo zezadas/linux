@@ -29,6 +29,7 @@
 #include <linux/gpio.h>
 #include <linux/power/max17042_battery_p4.h>
 #include <linux/of.h>
+#include <linux/of_gpio.h>
 
 #define PRINT_COUNT	10
 
@@ -1497,9 +1498,42 @@ max17042_get_pdata(struct device *dev)
 }
 #endif
 
-static void parse_dt(struct max17042_platform_data *pdata, struct device_node *of_node)
+static int init_gpio(struct max17042_chip *chip)
 {
+	struct i2c_client *client = chip->client;
+	struct max17042_platform_data *pdata = chip->pdata;
+	int gpio = pdata->ifconsense;
+	int err;
+
+	err = devm_gpio_request(&client->dev, gpio, "GPIO_IFCONSENSE");
+	if (err < 0) {
+		dev_err(&client->dev,
+			"failed to request GPIO %d, error %d\n",
+						gpio, err);
+		err = -EINVAL;
+		return err;
+	}
+
+	gpio_direction_input(gpio);
+
+	return 0;
+}
+
+static int parse_dt(struct max17042_chip *chip, struct device_node *of_node)
+{
+	struct i2c_client *client = chip->client;
+	struct max17042_platform_data *pdata = chip->pdata;
+	int gpio;
 	u32 val;
+	int err = 0;
+
+	gpio = of_get_gpio(of_node, 0);
+	if (!gpio_is_valid(gpio)) {
+		dev_err(&client->dev,
+			"gpio (GPIO_IFCONSENSE) is not valid. err=%d\n", err);
+		return -EINVAL;
+	}
+	pdata->ifconsense = gpio;
 
 	if (!of_property_read_u32(of_node, "sdi-capacity", &val))
 		pdata->sdi_capacity = val;
@@ -1515,6 +1549,8 @@ static void parse_dt(struct max17042_platform_data *pdata, struct device_node *o
 
 	if (!of_property_read_u32(of_node, "fuel-alert-line", &val))
 		pdata->fuel_alert_line = val;
+
+	return err;
 }
 
 static
@@ -1523,6 +1559,7 @@ int fg_i2c_probe(struct i2c_client *client,  const struct i2c_device_id *id)
 	struct device_node *np = client->dev.of_node;
 	struct max17042_chip *chip;
 	int fg_irg;
+	int err;
 
 	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
 	if (!chip) {
@@ -1534,7 +1571,16 @@ int fg_i2c_probe(struct i2c_client *client,  const struct i2c_device_id *id)
 	chip->pdata = max17042_get_pdata(&client->dev);
 
 	if (np) {
-		parse_dt(chip->pdata, np);
+		err = parse_dt(chip, np);
+		if (err < 0) {
+			dev_err(&client->dev,
+				"error parsing device tree node. err=%d\n", err);
+			goto err_parse_dt;
+		}
+
+		err = init_gpio(chip);
+		if (err < 0)
+			goto err_parse_dt;
 	}
 
 	i2c_set_clientdata(client, chip);
@@ -1570,7 +1616,12 @@ int fg_i2c_probe(struct i2c_client *client,  const struct i2c_device_id *id)
 
 	fg_read_model_data();
 	fg_periodic_read();
+
 	return 0;
+
+err_parse_dt:
+	kfree(chip);
+	return err;
 }
 
 int get_fuelgauge_capacity(enum capacity_type type)
