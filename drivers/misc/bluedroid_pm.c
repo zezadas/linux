@@ -22,6 +22,8 @@
  *
  */
 
+#define DEBUG
+
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -33,8 +35,14 @@
 #include <linux/wakelock.h>
 #include <linux/serial_core.h>
 #include <linux/tty.h>
+#include <linux/delay.h>
 
 #ifndef N_BRCM_HCI
+/*
+ This definition must match the userspace bt stack.
+ On Android Oreo it is located at:
+   hardware/broadcom/libbt/include/bt_vendor_brcm.h
+*/
 #define N_BRCM_HCI	25	/* Broadcom Bluetooth HCI */
 #endif
 
@@ -48,20 +56,22 @@
 #define MAX_SLEEP_RETRIES 5
 
 struct bluedroid_pm_data {
-	struct gpio_desc *gpio_shutdown;
+	struct gpio_desc *gpio_enable;
+	struct gpio_desc *gpio_reset;
 	struct gpio_desc *host_wake;
 	struct gpio_desc *ext_wake;
+	struct clk *clk;
 	bool is_blocked;
 	unsigned host_wake_irq;
 	bool wake_on_irq;
 	int retries;
-	struct regulator *vdd_3v3;
-	struct regulator *vdd_1v8;
 	struct rfkill *rfkill;
 	struct wake_lock wake_lock;
 	struct device *dev;
 	struct delayed_work retry_work;
 };
+
+static struct bluedroid_pm_data *g_data;
 
 static struct tty_ldisc_ops bluedroid_pm_ldisc_ops;
 
@@ -95,7 +105,7 @@ static void bluedroid_pm_work(struct work_struct *work)
 		/* Try again later */
 		dev_dbg(bluedroid_pm->dev, "Rx is busy, try again later");
 		schedule_delayed_work(&bluedroid_pm->retry_work,
-			(TX_RETRY_INTERVAL * HZ));
+			msecs_to_jiffies(TX_RETRY_INTERVAL * MSEC_PER_SEC));
 	}
 }
 
@@ -107,7 +117,8 @@ static int bluedroid_pm_tty_ioctl(struct tty_struct *tty, struct file *file,
 	if (!tty || tty->magic != TTY_MAGIC)
 		return -ENODEV;
 
-	bluedroid_pm = tty->driver_data;
+	// bluedroid_pm = tty->driver_data;
+	bluedroid_pm = g_data;
 	if (!bluedroid_pm)
 		return -ENODEV;
 
@@ -168,34 +179,40 @@ static void bluedroid_pm_tty_cleanup(void)
 static int bluedroid_pm_rfkill_set_power(void *data, bool blocked)
 {
 	struct bluedroid_pm_data *bluedroid_pm = data;
+	int err;
+
 	/*
 	 * check if BT gpio_shutdown line status and current request are same.
 	 * If same, then return, else perform requested operation.
 	 */
-	if (gpiod_get_value_cansleep(bluedroid_pm->gpio_shutdown) == blocked)
+	if (gpiod_get_value_cansleep(bluedroid_pm->gpio_enable) == !blocked &&
+			gpiod_get_value_cansleep(bluedroid_pm->gpio_reset) == !blocked) {
+		dev_dbg(bluedroid_pm->dev,
+			"BT gpio_shutdown line status and current request are same.\n");
 		return 0;
+	}
+
+
+	dev_dbg(bluedroid_pm->dev, "set power blocked=%d\n", blocked);
 
 	if (blocked) {
-		gpiod_set_value_cansleep(bluedroid_pm->gpio_shutdown, 1);
-		regulator_disable(bluedroid_pm->vdd_3v3);
-		regulator_disable(bluedroid_pm->vdd_1v8);
+		gpiod_set_value_cansleep(bluedroid_pm->gpio_reset, 0);
+		gpiod_set_value_cansleep(bluedroid_pm->gpio_enable, 0);
+
+		clk_disable_unprepare(bluedroid_pm->clk);
+
 		wake_unlock(&bluedroid_pm->wake_lock);
 	} else {
-		int ret = 0;
-
-		ret = regulator_enable(bluedroid_pm->vdd_3v3);
-		if (ret) {
-			dev_err(bluedroid_pm->dev, "vdd_3v3 not enabled\n");
-			return ret;
+		err = clk_prepare_enable(bluedroid_pm->clk);
+		if (err < 0) {
+			dev_err(bluedroid_pm->dev,
+				"error enabling clock. err=%d\n", err);
 		}
 
-		ret = regulator_enable(bluedroid_pm->vdd_1v8);
-		if (ret) {
-			dev_err(bluedroid_pm->dev, "vdd_1v8 not enabled\n");
-			regulator_disable(bluedroid_pm->vdd_3v3);
-			return ret;
-		}
-		gpiod_set_value_cansleep(bluedroid_pm->gpio_shutdown, 0);
+		gpiod_set_value_cansleep(bluedroid_pm->gpio_enable, 1);
+		msleep(20);
+		gpiod_set_value_cansleep(bluedroid_pm->gpio_reset, 1);
+		msleep(50);
 	}
 	bluedroid_pm->is_blocked = blocked;
 
@@ -207,7 +224,7 @@ static const struct rfkill_ops bluedroid_pm_rfkill_ops = {
 };
 
 static const struct of_device_id bluedroid_match[] = {
-	{ .compatible = "bcm,bt-bcm4354" },
+	{ .compatible = "bcm,bt-bcm4330" },
 	{}
 };
 MODULE_DEVICE_TABLE(of, bluedroid_match);
@@ -224,23 +241,18 @@ static int bluedroid_pm_probe(struct platform_device *pdev)
 
 	bluedroid_pm->dev = &pdev->dev;
 
-	bluedroid_pm->vdd_3v3 = devm_regulator_get(&pdev->dev, "avdd");
-	if (IS_ERR(bluedroid_pm->vdd_3v3)) {
-		dev_err(bluedroid_pm->dev, "regulator avdd not available\n");
-		return PTR_ERR(bluedroid_pm->vdd_3v3);
+	bluedroid_pm->gpio_enable = devm_gpiod_get(bluedroid_pm->dev,
+					"bt_en", GPIOD_OUT_HIGH);
+	if (IS_ERR(bluedroid_pm->gpio_enable)) {
+		dev_err(bluedroid_pm->dev, "enable gpio not registered\n");
+		return PTR_ERR(bluedroid_pm->gpio_enable);
 	}
 
-	bluedroid_pm->vdd_1v8 = devm_regulator_get(&pdev->dev, "dvdd");
-	if (IS_ERR(bluedroid_pm->vdd_1v8)) {
-		dev_err(bluedroid_pm->dev, "regulator dvdd not available\n");
-		return PTR_ERR(bluedroid_pm->vdd_1v8);
-	}
-
-	bluedroid_pm->gpio_shutdown = devm_gpiod_get(bluedroid_pm->dev,
-					"bt_reg_on", GPIOD_OUT_HIGH);
-	if (IS_ERR(bluedroid_pm->gpio_shutdown)) {
-		dev_err(bluedroid_pm->dev, "shutdown gpio not registered\n");
-		return PTR_ERR(bluedroid_pm->gpio_shutdown);
+	bluedroid_pm->gpio_reset = devm_gpiod_get(bluedroid_pm->dev,
+					"bt_nrst", GPIOD_OUT_HIGH);
+	if (IS_ERR(bluedroid_pm->gpio_reset)) {
+		dev_err(bluedroid_pm->dev, "enable gpio not registered\n");
+		return PTR_ERR(bluedroid_pm->gpio_reset);
 	}
 
 	bluedroid_pm->ext_wake = devm_gpiod_get(bluedroid_pm->dev,
@@ -267,6 +279,13 @@ static int bluedroid_pm_probe(struct platform_device *pdev)
 		dev_err(bluedroid_pm->dev, "Failed to get host_wake irq\n");
 		return ret;
 	}
+
+	bluedroid_pm->clk = devm_clk_get(bluedroid_pm->dev, "uartc");
+	if (IS_ERR(bluedroid_pm->clk)) {
+		dev_err(bluedroid_pm->dev, "failed to get uartc clock\n");
+		return PTR_ERR(bluedroid_pm->clk);
+	}
+
 
 	/*
 	 * At this point the GPIOs and regulators avaiable to
@@ -305,6 +324,7 @@ static int bluedroid_pm_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	g_data = bluedroid_pm;
 	platform_set_drvdata(pdev, bluedroid_pm);
 	dev_dbg(bluedroid_pm->dev, "driver successfully registered");
 	return 0;
