@@ -20,6 +20,7 @@
 
 #include <linux/slab.h>
 #include <linux/reset.h>
+#include <linux/delay.h>
 
 #include "t20/t20.h"
 #include "host1x/host1x01_hardware.h"
@@ -203,6 +204,7 @@ static int gr3d_probe(struct nvhost_device *dev,
 {
 	int index = 0;
 	struct nvhost_driver *drv = to_nvhost_driver(dev->dev.driver);
+	int err;
 
 	index = id_table->version;
 
@@ -221,7 +223,15 @@ static int gr3d_probe(struct nvhost_device *dev,
 		return PTR_ERR(dev->rst);
 	}
 
-	return nvhost_client_device_init(dev);
+	err = nvhost_client_device_init(dev);
+	if (!err) {
+		reset_control_assert(dev->rst);
+		usleep_range(500, 1000);
+		reset_control_deassert(dev->rst);
+		usleep_range(500, 1000);
+	}
+
+	return err;
 }
 
 static int __exit gr3d_remove(struct nvhost_device *dev)
