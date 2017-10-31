@@ -546,35 +546,6 @@ struct p3_battery_platform_data p3_battery_platform = {
 	.inform_charger_connection = p3_inform_charger_connection,
 };
 
-
-/******************************************************************************
-* bluetooth rfkill
-*****************************************************************************/
-#define GPIO_BT_EN          77     // TEGRA_GPIO_PJ5
-#define GPIO_BT_nRST        177    // TEGRA_GPIO_PW1
-
-static struct rfkill_gpio_platform_data bluetooth_rfkill_platform_data = {
-	.name	= "bluetooth_rfkill",
-	.type	= RFKILL_TYPE_BLUETOOTH,
-};
-
-static struct platform_device bluetooth_rfkill_device = {
-	.name	= "rfkill_gpio",
-	.id	= 1,
-	.dev	= {
-		.platform_data = &bluetooth_rfkill_platform_data,
-	},
-};
-
-static struct gpiod_lookup_table bluetooth_gpio_lookup = {
-	.dev_id = "rfkill_gpio.1",
-	.table = {
-		GPIO_LOOKUP("tegra-gpio", GPIO_BT_nRST, "reset", GPIO_ACTIVE_HIGH),
-		GPIO_LOOKUP("tegra-gpio", GPIO_BT_EN, "shutdown", GPIO_ACTIVE_HIGH),
-		{ },
-	},
-};
-
 /******************************************************************************
 * gps rfkill
 *****************************************************************************/
@@ -626,9 +597,7 @@ void __init p4wifi_machine_init(void)
 
 	register_reboot_notifier(&p3_reboot_notifier);
 
-	gpiod_add_lookup_table(&bluetooth_gpio_lookup);
 	gpiod_add_lookup_table(&gps_gpio_lookup);
-	platform_device_register(&bluetooth_rfkill_device);
 	platform_device_register(&gps_rfkill_device);
 
 	tegra_powergate_power_off(TEGRA_POWERGATE_PCIE);
