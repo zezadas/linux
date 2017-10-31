@@ -26,6 +26,10 @@
 #include "dc_reg.h"
 #include "dc_priv.h"
 
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+extern int cmc623_current_type;
+#endif
+
 unsigned long tegra_dc_pclk_round_rate(struct tegra_dc *dc, int pclk)
 {
 	unsigned long rate;
@@ -64,8 +68,16 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 
 	BUG_ON(IS_ERR(parent_clk));
 
-#ifndef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 	if (dc->out->type == TEGRA_DC_OUT_RGB) {
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+		if (cmc623_current_type == 0) {
+			tegra_dvfs_set_rate(dc->clk, 586000000);
+		} else if (cmc623_current_type == 1) {
+			tegra_dvfs_set_rate(dc->clk, 570000000);
+		}
+
+		return;
+#else
 // 		if (dc->out->parent_clk_backup &&
 // 		    (parent_clk == clk_get_sys(NULL, "pll_p"))) {
 // 			rate = tegra_dc_pclk_predict_rate(
@@ -88,8 +100,9 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 // 			if (rate != clk_get_rate(base_clk))
 // 				clk_set_rate(base_clk, rate);
 // 		}
-	}
 #endif
+	}
+
 	if (dc->out->type == TEGRA_DC_OUT_HDMI) {
 		struct clk *base_clk = clk_get_parent(parent_clk);
 
