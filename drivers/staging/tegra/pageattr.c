@@ -10,10 +10,12 @@ static inline void __flush_cache_all(void *info)
 	flush_cache_all();
 }
 
+#if defined(CONFIG_NVMAP_CACHE_MAINT_BY_SET_WAYS)
 inline void inner_flush_cache_all(void)
 {
 	on_each_cpu(__flush_cache_all, NULL, 1);
 }
+#endif
 
 void update_page_count(int level, unsigned long pages)
 {
@@ -25,10 +27,12 @@ static void flush_cache(struct page **pages, int numpages)
 	bool flush_inner = true;
 	unsigned long base;
 
+#if defined(CONFIG_NVMAP_CACHE_MAINT_BY_SET_WAYS)
 	if (numpages >= FLUSH_CLEAN_BY_SET_WAY_PAGE_THRESHOLD) {
 		inner_flush_cache_all();
 		flush_inner = false;
 	}
+#endif
 
 	for (i = 0; i < numpages; i++) {
 		if (flush_inner)
