@@ -24,20 +24,72 @@
 
 #define MAX_DVFS_FREQS	24
 
-#define DVFS_CLIENT(_name, _speedo_id, _process_id, _freqs...)			\
+/* CPU domain defines */
+#define CPU_MAX_VDD    1375
+static const int cpu_millivolts_process0[MAX_DVFS_FREQS] =
+{
+	750,   // 216 Mhz
+	750,   // 312 Mhz
+	800,   // 456 Mhz
+	850,   // 608 Mhz
+	900,   // 760 Mhz
+	950,   // 816 Mhz
+	1000,  // 912 Mhz
+	1025,  // 1000 Mhz
+	1225,  // 1200 Mhz
+	1250,  // 1400 Mhz
+	1300,  // 1500 Mhz
+	1375,  // 1600 Mhz
+	CPU_MAX_VDD,
+};
+
+static const int cpu_millivolts_process1[MAX_DVFS_FREQS] =
+{
+	750,   // 216 Mhz
+	750,   // 312 Mhz
+	800,   // 456 Mhz
+	850,   // 608 Mhz
+	875,   // 760 Mhz
+	950,   // 816 Mhz
+	950,   // 912 Mhz
+	1000,  // 1000 Mhz
+	1000,  // 1200 Mhz
+	1200,  // 1400 Mhz
+	1250,  // 1500 Mhz
+	1325,  // 1600 Mhz
+	CPU_MAX_VDD,
+};
+
+
+#define DVFS_CPU_CLIENT(_name, _speedo_id, _process_id, _voltages, _freqs...)			\
 	{								\
 		.clk = NULL,						\
 		.clk_name = #_name,					\
 		.speedo_id = _speedo_id,					\
 		.process_id = _process_id,				\
 		.freqs = { _freqs, -1 },				\
+		.voltages_mv =  _voltages,				\
 	}
 
-#define DVFS(_name, _clients, _voltages)				\
+/* core domain defines */
+#define CORE_MAX_VDD    1300
+static const int core_millivolts[7] = {950, 1000, 1100, 1200, 1225, 1275, CORE_MAX_VDD,};
+
+
+#define DVFS_CORE_CLIENT(_name, _speedo_id, _process_id, _freqs...)			\
+	{								\
+		.clk = NULL,						\
+		.clk_name = #_name,					\
+		.speedo_id = _speedo_id,					\
+		.process_id = _process_id,				\
+		.freqs = { _freqs, -1 },				\
+		.voltages_mv =  core_millivolts,				\
+	}
+
+#define DVFS(_name, _clients)				\
 	static struct dvfs_domain dvfs_##_name = {			\
 		.clients = _clients,			\
 		.nclients = ARRAY_SIZE(_clients),			\
-		.voltages_mv =  { _voltages, },				\
 	}
 
 #define _100uV			100000
@@ -64,52 +116,45 @@ struct dvfs_client {
 	int		process_id;
 	unsigned		index;
 	int			freqs[MAX_DVFS_FREQS];
+	const int		*voltages_mv;
 };
 
 struct dvfs_domain {
 	struct list_head	active_clients;
 	struct dvfs_client	*clients;
 	int			nclients;
-	int			voltages_mv[];
 };
-
-
-/* CPU domain defines */
-#define CPU_MAX_VDD    1325
-#define CPU_MILLIVOLTS     700, 700, 850, 850, 850, 900, 925, 975, 1000, 1175, 1250, CPU_MAX_VDD
 
 static struct dvfs_client dvfs_cpu_clients[] = {
-	DVFS_CLIENT(cpu, 1, 1, 216, 312, 456, 608, 750, 816, 912, 1000, 1200, 1400, 1500, 1600),
+	DVFS_CPU_CLIENT(cpu, 1, 0, cpu_millivolts_process0, 216, 312, 456, 608, 750, 816, 912, 1000, 1200, 1400, 1500, 1600),
+	DVFS_CPU_CLIENT(cpu, 1, 1, cpu_millivolts_process1, 216, 312, 456, 608, 750, 816, 912, 1000, 1200, 1400, 1500, 1600),
 };
 
-/* core domain defines */
-#define CORE_MAX_VDD    1300
-#define CORE_MILLIVOLTS    950, 1000, 1100, 1200, 1225, 1275, CORE_MAX_VDD
 
 static struct dvfs_client dvfs_core_clients[] = {
 	// DVFS_CLIENT(disp1, 158000,	158000,	190000),
 	// DVFS_CLIENT(disp2, 158000,	158000,	190000),
 
-	DVFS_CLIENT(host1x, -1, -1, 133000,	166000),
-	DVFS_CLIENT(epp, -1, -1, 133000,	171000,	247000,	300000),
-	DVFS_CLIENT(2d, -1, -1, 133000,	171000,	247000,	300000),
-	DVFS_CLIENT(hdmi, -1, -1, 0,	0,	0,	148500),
+	DVFS_CORE_CLIENT(host1x, -1, -1, 133000,	166000),
+	DVFS_CORE_CLIENT(epp, -1, -1, 133000,	171000,	247000,	300000),
+	DVFS_CORE_CLIENT(2d, -1, -1, 133000,	171000,	247000,	300000),
+	DVFS_CORE_CLIENT(hdmi, -1, -1, 0,	0,	0,	148500),
 
-	DVFS_CLIENT(emc, -1, 2, 57000,  333000, 380000, 666000),
-	DVFS_CLIENT(3d, -1, 2, 218500, 256500, 323000, 380000, 400000),
-	DVFS_CLIENT(mpe, -1, 2, 190000,	237500,	300000),
-	DVFS_CLIENT(vi, -1, 2, 85000,	100000,	150000),
-	DVFS_CLIENT(csi, -1, 2, 0,	0,	0,	0, 72000),
-	DVFS_CLIENT(sclk, -1, 2, 152000,	180500,	229500,	260000, 285000,	300000),
-	DVFS_CLIENT(vde, -1, 2, 152000,	209000,	285000,	300000),
-	DVFS_CLIENT(mipi, -1, 2, 40000,	40000,	40000,	40000, 60000),
-	DVFS_CLIENT(usbd, -1, 2, 400000,	400000,	400000,	480000),
-	DVFS_CLIENT(usb2, -1, 2, 0,	0,	480000),
-	DVFS_CLIENT(usb3, -1, 2, 400000,	400000,	400000,	480000),
+	DVFS_CORE_CLIENT(emc, -1, 2, 57000,  333000, 380000, 666000),
+	DVFS_CORE_CLIENT(3d, -1, 2, 218500, 256500, 323000, 380000, 400000),
+	DVFS_CORE_CLIENT(mpe, -1, 2, 190000,	237500,	300000),
+	DVFS_CORE_CLIENT(vi, -1, 2, 85000,	100000,	150000),
+	DVFS_CORE_CLIENT(csi, -1, 2, 0,	0,	0,	0, 72000),
+	DVFS_CORE_CLIENT(sclk, -1, 2, 152000,	180500,	229500,	260000, 285000,	300000),
+	DVFS_CORE_CLIENT(vde, -1, 2, 152000,	209000,	285000,	300000),
+	DVFS_CORE_CLIENT(mipi, -1, 2, 40000,	40000,	40000,	40000, 60000),
+	DVFS_CORE_CLIENT(usbd, -1, 2, 400000,	400000,	400000,	480000),
+	DVFS_CORE_CLIENT(usb2, -1, 2, 0,	0,	480000),
+	DVFS_CORE_CLIENT(usb3, -1, 2, 400000,	400000,	400000,	480000),
 };
 
-DVFS(cpu, dvfs_cpu_clients, CPU_MILLIVOLTS);
-DVFS(core, dvfs_core_clients, CORE_MILLIVOLTS);
+DVFS(cpu, dvfs_cpu_clients);
+DVFS(core, dvfs_core_clients);
 
 static void dvfs_update_cpu_voltage(int new_uV)
 {
@@ -182,25 +227,38 @@ static void update_core_vdd(int new_core_vdd)
 
 static int dvfs_get_cpu_voltage(void)
 {
-	struct dvfs_client *cpu_client = &dvfs_cpu.clients[0];
+	struct dvfs_client *client;
+	int dvfs_cpu_voltage = 0;
+	int soc_speedo_id = tegra_sku_info.soc_speedo_id;
+	int cpu_process_id = tegra_sku_info.cpu_process_id;
 
-	dev_dbg(dvfs_dev, "CPU client index = %d\n", cpu_client->index);
+	client = list_first_entry_or_null(&dvfs_cpu.active_clients,
+		struct dvfs_client, node);
 
-	return dvfs_cpu.voltages_mv[cpu_client->index] * 1000;
+	// Should only ever be one active client for the single CPU
+	BUG_ON(!client || (client->speedo_id != soc_speedo_id &&
+		client->process_id != cpu_process_id));
+
+	dvfs_cpu_voltage = max(dvfs_cpu_voltage,
+			client->voltages_mv[client->index] * 1000);
+
+	return dvfs_cpu_voltage;
 }
 
 static int dvfs_get_core_voltage(void)
 {
 	struct dvfs_client *client;
-	unsigned dvfs_core_index = 0;
+
+	int dvfs_core_voltage = 0;
 
 	list_for_each_entry(client, &dvfs_core.active_clients, node) {
 		dev_dbg(dvfs_dev, "active core client %s index = %d freq = %dhz\n",
 			client->clk_name, client->index, client->freqs[client->index]);
-		dvfs_core_index = max(client->index, dvfs_core_index);
+		dvfs_core_voltage = max(dvfs_core_voltage,
+			client->voltages_mv[client->index] * 1000);
 	}
 
-	return dvfs_core.voltages_mv[dvfs_core_index] * 1000;
+	return dvfs_core_voltage;
 }
 
 /*
