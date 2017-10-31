@@ -798,6 +798,8 @@ struct mxt_data {
 	struct gpio_desc *touch_en;
 	struct gpio_desc *touch_int;
 	struct gpio_desc *touch_rst;
+
+	bool notify_cable;
 };
 
 enum tsp_ta_settings {

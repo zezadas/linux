@@ -3484,6 +3484,8 @@ err:
 
 static int mxt_parse_dt(struct i2c_client *client, struct mxt_data *mxt)
 {
+	struct device_node *np = client->dev.of_node;
+
 	mxt->touch_en =
 		devm_gpiod_get(&client->dev, "touch-en", GPIOD_ASIS);
 	if (IS_ERR(mxt->touch_en)) {
@@ -3504,6 +3506,9 @@ static int mxt_parse_dt(struct i2c_client *client, struct mxt_data *mxt)
 		dev_err(&client->dev, "Error getting touch-en gpio.\n");
 		return PTR_ERR(mxt->touch_int);
 	}
+
+	mxt->notify_cable = of_property_read_bool(np,
+		"notify-cable");
 
 	return 0;
 }
@@ -3549,9 +3554,11 @@ static int mxt_probe(struct i2c_client *client,
 		goto err_parse_dt;
 	}
 
-	error = init_extcon_notifier(client, mxt);
-	if (error < 0)
-		goto err_init_extcon;
+	if (mxt->notify_cable) {
+		error = init_extcon_notifier(client, mxt);
+		if (error < 0)
+			goto err_init_extcon;
+	}
 
 	mxt_init_gpio(mxt);
 
