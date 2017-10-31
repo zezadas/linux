@@ -440,8 +440,10 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node, size_t requested_si
 			selected_task = task;
 		}
 
+
 		if (size >= requested_size &&
-				large_selected_size > 0 && large_selected_size > size) {
+				(large_selected_size == 0 ||
+				(large_selected_size > 0 && size < large_selected_size))) {
 			large_selected_oom_adj = sig->oom_score_adj;
 			large_selected_size = size;
 			large_selected_task = task;
