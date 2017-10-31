@@ -165,7 +165,7 @@ static void p3_bat_status_update(struct power_supply *bat_ps);
 
 #ifdef CONFIG_SEC_MISC
 extern int stmpe_probed;
-static bool check_samsung_charger(void);
+static bool check_samsung_charger(struct max8903_charger_data *data);
 #endif
 
 static int check_ta_conn(struct battery_data *battery)
@@ -258,7 +258,7 @@ static void p3_program_alarm(struct battery_data *battery, int seconds)
 static void p3_get_cable_status(struct battery_data *battery)
 {
 	if (check_ta_conn(battery)) {
-		if (check_samsung_charger())
+		if (check_samsung_charger(&battery->pdata->charger))
 			battery->current_cable_status = CHARGER_AC;
 		else
 			battery->current_cable_status = CHARGER_USB;
@@ -593,7 +593,7 @@ static void p3_set_chg_en(struct battery_data *battery, int enable)
 	if (enable) {
 		if (chg_en_val) {
 			if (battery->current_cable_status == CHARGER_AC) {
-				if (check_samsung_charger()) {
+				if (check_samsung_charger(&battery->pdata->charger)) {
 					pr_info("%s: samsung charger!!\n",
 						__func__);
 					p3_set_charging(battery, 1);
@@ -1511,7 +1511,67 @@ static void low_comp_work_handler(struct work_struct *work)
 #endif
 
 #ifdef CONFIG_SEC_MISC
-static bool check_samsung_charger(void)
+
+static usb_path_type usb_sel_status = USB_SEL_AP_USB;
+
+static void p3_set_usb_path(struct max8903_charger_data *data,
+	usb_path_type usb_path)
+{
+	if (usb_path == USB_SEL_AP_USB) {
+		pr_info("%s: usb_path=USB_SEL_AP_USB\n", __func__);
+		gpio_set_value(data->usb_sel1, 1);
+		gpio_set_value(data->usb_sel2, 1);
+		usb_sel_status = USB_SEL_AP_USB;
+		}
+	else if (usb_path == USB_SEL_CP_USB) {
+		pr_info("%s: usb_path=USB_SEL_AP_USB\n", __func__);
+		gpio_set_value(data->usb_sel1, 0);
+		gpio_set_value(data->usb_sel2, 0);
+		usb_sel_status = USB_SEL_CP_USB;
+		}
+	else if (usb_path == USB_SEL_ADC) {
+		pr_info("%s: usb_path=USB_SEL_AP_USB\n", __func__);
+		gpio_set_value(data->usb_sel1, 0);
+		gpio_set_value(data->usb_sel2, 1);
+		usb_sel_status = USB_SEL_ADC;
+	}
+}
+
+static int p3_usb_path_init(struct max8903_charger_data *data){
+	int usbsel2;
+	int err;
+
+	pr_info("%s\n", __func__);
+
+	err = gpio_request(data->usb_sel1, "GPIO_USB_SEL1");
+	if (err < 0) {
+		pr_err("%s: error requesting gpio(GPIO_USB_SEL1=%d). err=%d\n",
+			__func__, data->usb_sel1, err);
+		return err;
+	}
+	gpio_direction_output(data->usb_sel1, 0);
+
+	gpio_request(data->usb_sel2, "GPIO_USB_SEL2");
+	if (err < 0) {
+		pr_err("%s: error requesting gpio(GPIO_USB_SEL1=%d). err=%d\n",
+			__func__, data->usb_sel1, err);
+		return err;
+	}
+
+	gpio_direction_input(data->usb_sel2);
+	usbsel2 = gpio_get_value(data->usb_sel2);
+	gpio_direction_output(data->usb_sel2, 0);
+
+	if (usbsel2 == 1) {
+		p3_set_usb_path(data, USB_SEL_AP_USB);
+	} else if (usbsel2 == 0) {
+		p3_set_usb_path(data, USB_SEL_CP_USB);
+	}
+
+	return 0;
+}
+
+static bool check_samsung_charger(struct max8903_charger_data *data)
 {
 	bool result;
 	int sum = 0;
@@ -1539,7 +1599,7 @@ static bool check_samsung_charger(void)
 	udelay(10);
 
 	old_usb_sel_status = usb_sel_status;
-	p3_set_usb_path(USB_SEL_ADC);
+	p3_set_usb_path(data, USB_SEL_ADC);
 
 	mdelay(100);
 
@@ -1560,7 +1620,7 @@ static bool check_samsung_charger(void)
 
 	mdelay(50);
 
-	p3_set_usb_path(old_usb_sel_status);
+	p3_set_usb_path(data, old_usb_sel_status);
 
 	regulator_disable(reg);
 	regulator_put(reg);
@@ -1569,7 +1629,7 @@ static bool check_samsung_charger(void)
 	return result;
 }
 #else
-static bool check_samsung_charger(void)
+static bool check_samsung_charger(struct max8903_charger_data *)
 {
 	return false;
 }
@@ -1589,7 +1649,7 @@ static void p3_bat_gpio_init(struct max8903_charger_data *data)
 	gpio_direction_input(data->fullcharge_line);
 
 	gpio_request(data->currentset_line, "GPIO_CURR_ADJ");
-	if (check_samsung_charger())
+	if (check_samsung_charger(data))
 		gpio_direction_output(data->currentset_line, 1);
 	else
 		gpio_direction_output(data->currentset_line, 0);
@@ -1636,6 +1696,20 @@ static int p3_bat_parse_dt(struct p3_battery_platform_data *pdata,
 	val = of_get_named_gpio(of_node, "alert-line", 0);
 	if (val >= 0) {
 		pdata->charger.alert_line = val;
+	} else {
+		return val;
+	}
+
+	val = of_get_named_gpio(of_node, "usb-sel1", 0);
+	if (val >= 0) {
+		pdata->charger.usb_sel1 = val;
+	} else {
+		return val;
+	}
+
+	val = of_get_named_gpio(of_node, "usb-sel2", 0);
+	if (val >= 0) {
+		pdata->charger.usb_sel2 = val;
 	} else {
 		return val;
 	}
@@ -1757,6 +1831,10 @@ static int p3_bat_probe(struct platform_device *pdev)
 #endif
 
 	p3_bat_gpio_init(&pdata->charger);
+	ret = p3_usb_path_init(&pdata->charger);
+	if (ret < 0) {
+		return ret;
+	}
 
 	battery = kzalloc(sizeof(*battery), GFP_KERNEL);
 	if (!battery)

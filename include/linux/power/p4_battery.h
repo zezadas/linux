@@ -29,9 +29,7 @@ typedef enum
 	USB_SEL_ADC
 } usb_path_type;
 
-extern void p3_set_usb_path(usb_path_type usb_path);
 extern s16 stmpe811_adc_get_value(u8 channel);
-extern usb_path_type usb_sel_status;
 #endif
 
 struct max8903_charger_data {
@@ -40,6 +38,9 @@ struct max8903_charger_data {
 	int fullcharge_line;
 	int currentset_line;
 	int alert_line;
+
+	int usb_sel1;
+	int usb_sel2;
 };
 
 struct p3_battery_platform_data {
