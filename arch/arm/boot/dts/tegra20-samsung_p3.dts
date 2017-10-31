@@ -15,7 +15,7 @@
 	};
 
 	chosen {
-		bootargs = "androidboot.selinux=permissive androidboot.hardware=p3 firmware_class.path=/system/etc/firmware g_ffs.idVendor=0x18d1 g_ffs.idProduct=0x4e26 ignore_loglevel";
+		bootargs = "androidboot.selinux=permissive androidboot.hardware=p3 firmware_class.path=/system/etc/firmware ignore_loglevel";
 	};
 
 	cache-controller@50043000 {
