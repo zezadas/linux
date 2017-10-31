@@ -398,7 +398,10 @@ static int of_platform_bus_create(struct device_node *bus,
 	}
 
 	if (of_device_is_compatible(bus, "nvhost-bus")) {
-		of_nvhost_bus_create(bus, tegra20_auxdata_lookup);
+		rc = of_nvhost_bus_create(bus, tegra20_auxdata_lookup);
+		// Some devices can be disabled which will return -ENODEV
+		if (!rc || rc == -ENODEV)
+			of_node_set_flag(bus, OF_POPULATED_BUS);
 		return 0;
 	}
 
