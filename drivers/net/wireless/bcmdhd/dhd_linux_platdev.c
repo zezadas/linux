@@ -323,6 +323,7 @@ static int wifi_plat_dev_drv_probe(struct platform_device *pdev)
 	return wifi_plat_dev_probe_ret;
 }
 
+#include <linux/gpio.h>
 static int wifi_plat_dev_drv_remove(struct platform_device *pdev)
 {
 	wifi_adapter_info_t *adapter;
@@ -338,8 +339,15 @@ static int wifi_plat_dev_drv_remove(struct platform_device *pdev)
 		wifi_platform_bus_enumerate(adapter, FALSE);
 		wifi_platform_set_power(adapter, FALSE, WIFI_TURNOFF_DELAY);
 #else
+		int gpio;
+
 		wifi_platform_set_power(adapter, FALSE, WIFI_TURNOFF_DELAY);
 		wifi_platform_bus_enumerate(adapter, FALSE);
+
+		gpio = of_get_gpio(pdev->dev.of_node, 0);
+		pr_info("%s() gpio=%d\n", __func__, gpio);
+		gpio_set_value(gpio, 0);
+
 #endif /* BCMPCIE */
 	}
 
@@ -370,6 +378,12 @@ static int wifi_plat_dev_drv_resume(struct platform_device *pdev)
 	return 0;
 }
 
+static void wifi_plat_dev_drv_shutdown(struct platform_device *pdev)
+{
+	pr_info("%s\n", __func__);
+	wifi_plat_dev_drv_remove(pdev);
+}
+
 #ifdef CONFIG_DTS
 static const struct of_device_id wifi_device_dt_match[] = {
 	{ .compatible = "android,bcmdhd_wlan", },
@@ -381,6 +395,7 @@ static struct platform_driver wifi_platform_dev_driver = {
 	.remove         = wifi_plat_dev_drv_remove,
 	.suspend        = wifi_plat_dev_drv_suspend,
 	.resume         = wifi_plat_dev_drv_resume,
+	.shutdown 		= wifi_plat_dev_drv_shutdown,
 	.driver         = {
 	.name   = WIFI_PLAT_NAME,
 #ifdef CONFIG_DTS
