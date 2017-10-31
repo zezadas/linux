@@ -481,7 +481,7 @@ end:
 
 
 		task_lock(selected_task);
-		force_sig(SIGKILL, selected_task);
+		send_sig(SIGKILL, selected_task, 0);
 		/*
 		 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
 		 * infrastructure. There is no real reason why the selected
