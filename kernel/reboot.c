@@ -287,6 +287,7 @@ void kernel_power_off(void)
 	if (pm_power_off_prepare)
 		pm_power_off_prepare();
 	migrate_to_reboot_cpu();
+	disable_nonboot_cpus();
 	syscore_shutdown();
 	pr_emerg("Power down\n");
 	kmsg_dump(KMSG_DUMP_POWEROFF);
