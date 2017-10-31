@@ -38,9 +38,10 @@ struct bcm4751_power_platform_data {
 	int power_gpio;
 	int reset_gpio;
 	struct regulator *gps_lna;
+	int rst_state;
+	int en_state;
 };
 
-static int s_nRstState, s_PwrEnState;
 static DEFINE_MUTEX(gps_mutex);
 
 static struct miscdevice sec_gps_device = {
@@ -53,7 +54,14 @@ struct device *sec_gps_dev;
 
 static ssize_t gpio_n_rst_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", s_nRstState);
+	struct bcm4751_power_platform_data *pdata;
+	pdata = dev_get_platdata(dev);
+	if (!pdata) {
+		dev_err(dev, "no platform data.\n");
+		return -ENODEV;
+	}
+
+	return sprintf(buf, "%d\n", pdata->rst_state);
 }
 
 static ssize_t gpio_n_rst_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
@@ -66,9 +74,9 @@ static ssize_t gpio_n_rst_store(struct device *dev, struct device_attribute *att
 	if (sscanf(buf, "%i", &stat) != 1 || (stat < 0 || stat > 1))
 		return -EINVAL;
 
-	s_nRstState = stat;
-	gpio_set_value(pdata->reset_gpio, s_nRstState);
-	dev_info(dev, "Set GPIO_GPS_nRST to %s.\n", (s_nRstState) ? "high" : "low");
+	pdata->rst_state = stat;
+	gpio_set_value(pdata->reset_gpio,  pdata->rst_state);
+	dev_info(dev, "Set GPIO_GPS_nRST to %s.\n", ( pdata->rst_state) ? "high" : "low");
 
 	return size;
 }
@@ -77,7 +85,14 @@ static DEVICE_ATTR(nrst, S_IRUGO | S_IWUSR, gpio_n_rst_show, gpio_n_rst_store);
 
 static ssize_t gpio_pwr_en_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", s_PwrEnState);
+	struct bcm4751_power_platform_data *pdata;
+	pdata = dev_get_platdata(dev);
+	if (!pdata) {
+		dev_err(dev, "no platform data.\n");
+		return -ENODEV;
+	}
+
+	return sprintf(buf, "%d\n", pdata->en_state);
 }
 
 static ssize_t gpio_pwr_en_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
@@ -103,13 +118,13 @@ static ssize_t gpio_pwr_en_store(struct device *dev, struct device_attribute *at
 	if (sscanf(buf, "%i", &stat) != 1 || (stat < 0 || stat > 1))
 		return -EINVAL;
 
-	if (stat != s_PwrEnState) {
+	if (stat != pdata->en_state) {
 		lna_enabled = regulator_is_enabled(gps_lna);
 	} else
 		return -EINVAL;
 
 	mutex_lock(&gps_mutex);
-	s_PwrEnState = stat;
+	pdata->en_state = stat;
 
 	if (stat && !lna_enabled) {
 		ret = regulator_enable(gps_lna);
@@ -121,8 +136,8 @@ static ssize_t gpio_pwr_en_store(struct device *dev, struct device_attribute *at
 		msleep(10);
 	}
 
-	gpio_set_value(pdata->power_gpio, s_PwrEnState);
-	dev_info(dev, "Set GPIO_GPS_PWR_EN to %s.\n", (s_PwrEnState) ? "high" : "low");
+	gpio_set_value(pdata->power_gpio, pdata->en_state);
+	dev_info(dev, "Set GPIO_GPS_PWR_EN to %s.\n", (pdata->en_state) ? "high" : "low");
 
 	if (!stat && lna_enabled) {
 		ret = regulator_disable(gps_lna);
@@ -147,11 +162,11 @@ static void sec_gps_hw_init(struct platform_device *pdev,
 {
 	devm_gpio_request(&pdev->dev, pdata->reset_gpio, "GPS_N_RST");
 	gpio_direction_output(pdata->reset_gpio, 1);
-	s_nRstState  = 1;
+	 pdata->rst_state  = 1;
 
 	devm_gpio_request(&pdev->dev, pdata->power_gpio, "GPS_PWR_EN");
 	gpio_direction_output(pdata->power_gpio, 0);
-	s_PwrEnState = 0;
+	pdata->en_state = 0;
 }
 
 #ifdef CONFIG_OF
