@@ -449,7 +449,7 @@
 			};
 
 			conf_atc {
-				nvidia,pins = "atc", "atd", "ate", "cdev1", "cdev2", "dap1",
+				nvidia,pins = "atc", "atd", "ate", "cdev1", "dap1",
 				"dap2", "dap4", "dte", "gmc", "gpu7", "gpv", "i2cp",
 				"pta", "rm", "sdio1", "slxc", "slxd", "slxk", "spdi", "spdo",
 				"uaa", "uab", "uac", "uda";
@@ -549,6 +549,21 @@
 			pta {
 				nvidia,pins = "pta";
 				nvidia,function = "rsvd4";
+			};
+		};
+
+		state_isa1200_on: state_isa1200_on {
+			cdev2 {
+				nvidia,pins = "cdev2";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+			};
+		};
+		state_isa1200_off: state_isa1200_off {
+			cdev2 {
+				nvidia,pins = "cdev2";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_ENABLE>;
 			};
 		};
 	};
@@ -811,6 +826,10 @@
 
 			clocks = <&tegra_car TEGRA20_CLK_CDEV2>;
 			clock-names = "vibrator-clk";
+
+			pinctrl-names = "on", "off";
+			pinctrl-0 = <&state_isa1200_on>;
+			pinctrl-1 = <&state_isa1200_off>;
 		};
 	};
 
