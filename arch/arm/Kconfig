@@ -1016,7 +1016,6 @@ config ARM_ERRATA_716044
 config ARM_ERRATA_742230
 	bool "ARM errata: DMB operation may be faulty"
 	depends on CPU_V7 && SMP
-	depends on !ARCH_MULTIPLATFORM
 	help
 	  This option enables the workaround for the 742230 Cortex-A9
 	  (r1p0..r2p2) erratum. Under rare circumstances, a DMB instruction
@@ -1081,7 +1080,6 @@ config ARM_ERRATA_743622
 config ARM_ERRATA_751472
 	bool "ARM errata: Interrupted ICIALLUIS may prevent completion of broadcasted operation"
 	depends on CPU_V7
-	depends on !ARCH_MULTIPLATFORM
 	help
 	  This option enables the workaround for the 751472 Cortex-A9 (prior
 	  to r3p0) erratum. An interrupted ICIALLUIS operation may prevent the
