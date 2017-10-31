@@ -2241,10 +2241,8 @@ static int tegra_dc_probe(struct nvhost_device *ndev,
 	mutex_lock(&dc->lock);
 #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 	if (dc->pdata->flags & TEGRA_DC_FLAG_ENABLED) {
-		cmc623_suspend();
 		_tegra_dc_set_default_videomode(dc);
 		dc->enabled = _tegra_dc_enable_noreset(dc);
-		cmc623_resume();
 }
 #else
 	if (dc->pdata->flags & TEGRA_DC_FLAG_ENABLED) {
