@@ -1230,3 +1230,8 @@ err:
 	return err;
 }
 
+int sdio_reset_comm(struct mmc_card *card)
+{
+	return mmc_power_restore_host(card->host);
+}
+EXPORT_SYMBOL(sdio_reset_comm);
