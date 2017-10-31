@@ -274,19 +274,15 @@ static struct platform_device ram_console_device = {
 	.resource	= ram_console_resources,
 };
 
-void __init tegra_ram_console_debug_reserve(unsigned long ram_console_size)
+void __init tegra_ram_console_debug_init_mem(unsigned long start, unsigned long size)
 {
 	struct resource *res;
-	long ret;
 
 	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
 	if (!res)
 		goto fail;
-	res->start = memblock_end_of_DRAM() - ram_console_size;
-	res->end = res->start + ram_console_size - 1;
-	ret = memblock_remove(res->start, ram_console_size);
-	if (ret)
-		goto fail;
+	res->start = start;
+	res->end = res->start + size - 1;
 
 	return;
 
@@ -313,14 +309,7 @@ void __init p3_reserve(void)
 	tegra_bootloader_fb_size = 4096000;
 	tegra_bootloader_fb_start = 0x18012000;
 
-	if (memblock_reserve(0x0, 4096) < 0)
-		pr_warn("Cannot reserve first 4K of memory for safety\n");
-
 	tegra_reserve(SZ_256M, SZ_8M + SZ_1M, SZ_16M);
-	tegra_ram_console_debug_reserve(SZ_1M);
-
-	// reserve iram
-	memblock_remove(0x40000400, 0x3FC00);
 }
 
 /******************************************************************************
@@ -624,6 +613,7 @@ static struct gpiod_lookup_table gps_gpio_lookup = {
 void __init p4wifi_machine_init(void)
 {
 	pr_info("%s()\n", __func__);
+	tegra_ram_console_debug_init_mem(0x2E600000, 0x00100000);
 	tegra_ram_console_debug_init();
 
 	// Must operate on the memory after mem reserve function.

@@ -32,6 +32,49 @@
 		reg = <0x20000000 0x20000000>;
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		memblock_safety: safety@0 {
+			reg = <0x00000000 0x00001000>;
+		};
+
+		suspend: suspend@1840e000 {
+			reg = <0x1840e000 0x00002000>;
+		};
+
+		bootloader: framebuffer@18012000 {
+			reg = <0x18012000 0x003E8000>;
+		};
+
+		framebuffer0: framebuffer@2f700000 {
+			reg = <0x2f700000 0x00900000>;
+			no-map;
+		};
+
+		framebuffer1: framebuffer@2f000000 {
+			reg = <0x2f000000 0x01000000>;
+			no-map;
+		};
+
+		generic: carveout@30000000 {
+			reg = <0x30000000 0x10000000>;
+			no-map;
+		};
+
+		android_logger: ram-console@2E600000 {
+			reg = <0x2E600000 0x00100000>;
+			no-map;
+		};
+
+		iram: carveout@40000400 {
+			reg = <0x40000400 0x3FC00>;
+			no-map;
+		};
+	};
+
 	/* Disable tegra20-rtc because it breaks tps6586x rtc */
 	rtc@7000e000 {
 		compatible = "nvidia,tegra20-rtc";
