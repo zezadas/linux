@@ -97,16 +97,6 @@ int check_jig_on(void)
 	return !value;
 }
 
-static __init int init_jig_on(void)
-{
-	pr_info("%s\n", __func__);
-	gpio_request(GPIO_IFCONSENSE, "GPIO_IFCONSENSE");
-	gpio_direction_input(GPIO_IFCONSENSE);
-
-	return 0;
-}
-arch_initcall(init_jig_on);
-
 struct class *sec_class;
 EXPORT_SYMBOL(sec_class);
 
