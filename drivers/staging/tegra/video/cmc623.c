@@ -1945,30 +1945,6 @@ static int alloc_cmc623_gpio(void)
 }
 #endif
 
-static void init_work_handler(struct work_struct *w);
-
-static struct workqueue_struct *wq = NULL;
-static DECLARE_DELAYED_WORK(init_work, init_work_handler);
-static int init_step = 0;
-
-static void
-init_work_handler(struct work_struct *w)
-{
-    pr_info("%s()\n", __func__);
-
-	if (init_step == 0) {
-		cmc623_suspend();
-		init_step++;
-		queue_delayed_work(wq, &init_work, msecs_to_jiffies(1000));
-	} else {
-		cmc623_resume();
-	    if (wq) {
-	        destroy_workqueue(wq);
-	        wq = NULL;
-	    }
-	}
-}
-
 /* extern struct class *sec_class; */
 static struct class *mdni_class;
 struct device *mdnie_dev;
