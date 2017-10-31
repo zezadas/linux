@@ -35,6 +35,7 @@
 #include <linux/platform_device.h>
 
 struct bcm4751_power_platform_data {
+	struct device *dev;
 	int power_gpio;
 	int reset_gpio;
 	struct regulator *gps_lna;
@@ -51,6 +52,56 @@ static struct miscdevice sec_gps_device = {
 
 extern struct class *sec_class;
 struct device *sec_gps_dev;
+
+
+static int set_power(struct bcm4751_power_platform_data *pdata, int state)
+{
+	struct regulator* gps_lna;
+	int lna_enabled;
+	int ret = 0;
+
+	gps_lna = pdata->gps_lna;
+	if (!gps_lna) {
+		dev_err(pdata->dev, "no regulator.\n");
+		return -ENODEV;
+	}
+
+	lna_enabled = regulator_is_enabled(gps_lna);
+	if (lna_enabled < 0) {
+		dev_err(pdata->dev, "error enabling regular. err=%d\n", lna_enabled);
+		return lna_enabled;
+	}
+
+	mutex_lock(&gps_mutex);
+	pdata->en_state = state;
+
+	if (state && !lna_enabled) {
+		ret = regulator_enable(gps_lna);
+		if (ret != 0) {
+			dev_err(pdata->dev, "Failed to enable GPS_LNA_2.85V: %d\n", ret);
+			goto end_of_function;
+		}
+		dev_info(pdata->dev, "GPS_LNA LDO turned on\n");
+		msleep(10);
+	}
+
+	gpio_set_value(pdata->power_gpio, pdata->en_state);
+	dev_info(pdata->dev,
+		"Set GPIO_GPS_PWR_EN to %s.\n", (pdata->en_state) ? "high" : "low");
+
+	if (!state && lna_enabled) {
+		ret = regulator_disable(gps_lna);
+		if (ret != 0) {
+			dev_err(pdata->dev, "Failed to disable GPS_LNA_2.85V: %d\n", ret);
+			goto end_of_function;
+		}
+		dev_info(pdata->dev, "GPS_LNA LDO turned off\n");
+	}
+
+end_of_function:
+	mutex_unlock(&gps_mutex);
+	return ret;
+}
 
 static ssize_t gpio_n_rst_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -98,10 +149,8 @@ static ssize_t gpio_pwr_en_show(struct device *dev, struct device_attribute *att
 static ssize_t gpio_pwr_en_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct bcm4751_power_platform_data *pdata;
-	struct regulator* gps_lna;
-	int stat;
+	int state;
 	int ret;
-	int lna_enabled;
 
 	pdata = dev_get_platdata(dev);
 	if (!pdata) {
@@ -109,50 +158,20 @@ static ssize_t gpio_pwr_en_store(struct device *dev, struct device_attribute *at
 		return -ENODEV;
 	}
 
-	gps_lna = pdata->gps_lna;
-	if (!gps_lna) {
-		dev_err(dev, "no regulator.\n");
-		return -ENODEV;
-	}
-
-	if (sscanf(buf, "%i", &stat) != 1 || (stat < 0 || stat > 1))
+	if (sscanf(buf, "%i", &state) != 1 || (state < 0 || state > 1))
 		return -EINVAL;
 
-	if (stat != pdata->en_state) {
-		lna_enabled = regulator_is_enabled(gps_lna);
-	} else
+	if (state == pdata->en_state)
 		return -EINVAL;
 
-	mutex_lock(&gps_mutex);
-	pdata->en_state = stat;
-
-	if (stat && !lna_enabled) {
-		ret = regulator_enable(gps_lna);
-		if (ret != 0) {
-			dev_err(dev, "Failed to enable GPS_LNA_2.85V: %d\n", ret);
-			goto end_of_function;
-		}
-		dev_info(dev, "GPS_LNA LDO turned on\n");
-		msleep(10);
-	}
-
-	gpio_set_value(pdata->power_gpio, pdata->en_state);
-	dev_info(dev, "Set GPIO_GPS_PWR_EN to %s.\n", (pdata->en_state) ? "high" : "low");
-
-	if (!stat && lna_enabled) {
-		ret = regulator_disable(gps_lna);
-		if (ret != 0) {
-			dev_err(dev, "Failed to disable GPS_LNA_2.85V: %d\n", ret);
-			goto end_of_function;
-		}
-		dev_info(dev, "GPS_LNA LDO turned off\n");
+	ret = set_power(pdata, state);
+	if (ret < 0) {
+		dev_err(dev, "Failed set power. ret=%d\n", ret);
+		return ret;
 	}
 
 	ret = size;
-
-end_of_function:
-	mutex_unlock(&gps_mutex);
-	return ret;
+	return size;
 }
 
 static DEVICE_ATTR(pwr_en, S_IRUGO | S_IWUSR, gpio_pwr_en_show, gpio_pwr_en_store);
@@ -244,8 +263,10 @@ static int bcm4751_power_probe(struct platform_device *pdev)
 		goto fail_after_device_create;
 	}
 
-	pdev->dev.platform_data = pdata;
 	sec_gps_dev->platform_data = pdata;
+
+	pdata->dev = &pdev->dev;
+	pdev->dev.platform_data = pdata;
 
 	pr_info("%s: probed\n", __func__);
 
