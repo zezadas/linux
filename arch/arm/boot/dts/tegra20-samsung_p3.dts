@@ -599,16 +599,20 @@
 						0	0	0xff>;
 
 			accelerometer {
+				adap-num = <0>;
 				bus-secondary;
 				address = <0xF>;
+
 				orientation = /bits/ 8 <0xff	0	0
 							0	1	0
 							0	0	0xff>;
 			};
 
 			compass {
+				adap-num = <12>;
 				bus-primary;
 				address = <0xC>;
+
 				orientation = /bits/ 8 <0	1	0
 							1	0	0
 							0	0	0xff>;
