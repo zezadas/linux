@@ -546,33 +546,6 @@ struct p3_battery_platform_data p3_battery_platform = {
 	.inform_charger_connection = p3_inform_charger_connection,
 };
 
-/******************************************************************************
-* gps rfkill
-*****************************************************************************/
-#define GPIO_GPS_PWR_EN		202 // TEGRA_GPIO_PZ2
-#define GPIO_GPS_N_RST		109 // TEGRA_GPIO_PN5
-
-static struct rfkill_gpio_platform_data gps_rfkill_platform_data = {
-	.name	= "gps_rfkill",
-	.type	= RFKILL_TYPE_GPS,
-};
-
-static struct platform_device gps_rfkill_device = {
-	.name	= "rfkill_gpio",
-	.id	= 0,
-	.dev	= {
-		.platform_data = &gps_rfkill_platform_data,
-	},
-};
-
-static struct gpiod_lookup_table gps_gpio_lookup = {
-	.dev_id = "rfkill_gpio.0",
-	.table = {
-		GPIO_LOOKUP("tegra-gpio", GPIO_GPS_N_RST, "reset", GPIO_ACTIVE_HIGH),
-		GPIO_LOOKUP("tegra-gpio", GPIO_GPS_PWR_EN, "shutdown", GPIO_ACTIVE_HIGH),
-		{ },
-	},
-};
 
 #include <soc/tegra/pmc.h>
 
@@ -596,9 +569,6 @@ void __init p4wifi_machine_init(void)
 	p4_check_hwrev();
 
 	register_reboot_notifier(&p3_reboot_notifier);
-
-	gpiod_add_lookup_table(&gps_gpio_lookup);
-	platform_device_register(&gps_rfkill_device);
 
 	tegra_powergate_power_off(TEGRA_POWERGATE_PCIE);
 
