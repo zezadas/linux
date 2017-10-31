@@ -309,6 +309,9 @@ void __init tegra_init_from_table(struct tegra_clk_init_table *tbl,
 				WARN_ON(1);
 			}
 
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+		if (tbl->clk_id != TEGRA20_CLK_PLL_C && tbl->clk_id != TEGRA20_CLK_DISP1)
+#endif
 		if (tbl->state)
 			if (clk_prepare_enable(clk)) {
 				pr_err("%s: Failed to enable %s\n", __func__,
