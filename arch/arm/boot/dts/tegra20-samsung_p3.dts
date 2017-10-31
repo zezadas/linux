@@ -592,6 +592,8 @@
 			interrupt-parent = <&gpio>;
 			interrupts = <TEGRA_GPIO(V, 6) IRQ_TYPE_LEVEL_HIGH>;
 
+			gpios = <&gpio TEGRA_GPIO(V, 6) IRQ_TYPE_LEVEL_HIGH>;
+
 			int-config = <0x10>;
 			level-shifter = <1>;
 			orientation = /bits/ 8 <0	0xff	0
@@ -799,6 +801,9 @@
 			reg = <0x0C>;
 			interrupt-parent = <&gpio>;
 			interrupts = <TEGRA_GPIO(K, 4) IRQ_TYPE_LEVEL_HIGH>;
+
+			gpios = <&gpio TEGRA_GPIO(K, 4) IRQ_TYPE_LEVEL_HIGH>;
+
 		};
 	};
 	i2c@13 {
