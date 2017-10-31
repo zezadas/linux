@@ -408,10 +408,16 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node)
 		if (!task)
 			continue;
 
-		task_lock(task);
+		task = find_lock_task_mm(task);
+		if (!task)
+			continue;
+
 		sig = task->signal;
 		if (!task->mm || !sig)
 			goto end;
+		if (test_tsk_thread_flag(task, TIF_MEMDIE))
+			goto end;
+
 		/* don't try to kill current */
 		if (task == current->group_leader)
 			goto end;
@@ -440,7 +446,17 @@ end:
 			"to reclaim %d (for process with oom_score_adj %d)\n",
 			selected_task->pid, selected_oom_adj,
 			selected_size, current_oom_adj);
+
+		task_lock(selected_task);
 		force_sig(SIGKILL, selected_task);
+		/*
+		 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
+		 * infrastructure. There is no real reason why the selected
+		 * task should have access to the memory reserves.
+		 */
+		if (selected_task->mm)
+			mark_oom_victim(selected_task);
+		task_unlock(selected_task);
 	}
 out:
 	spin_unlock_irqrestore(&node->clients_lock, flags);
