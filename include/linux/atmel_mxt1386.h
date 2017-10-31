@@ -688,14 +688,9 @@ struct multi_touch_info {
 	int status;
 };
 
-struct mxt_callbacks {
-	void (*inform_charger)(struct mxt_callbacks *, int mode);
-};
-
 struct mxt_platform_data {
 	u8    numtouch;	/* Number of touches to report	*/
 	u8    (*valid_interrupt) (void);
-	void	(*register_cb)(struct mxt_callbacks *);
 	int   max_x;    /* The default reported X range   */
 	int   max_y;    /* The default reported Y range   */
 	struct gen_powerconfig_t7_config_t power_config;
@@ -749,7 +744,6 @@ struct mxt_data {
 	struct work_struct fhe_work;
 	struct report_id_map *rid_map;
 	struct mxt_object *object_table;
-	struct mxt_callbacks callbacks;
 	struct mutex mutex;
 #ifdef MXT_CALIBRATE_WORKAROUND
 	struct delayed_work calibrate_dwork;

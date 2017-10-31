@@ -216,9 +216,6 @@ u8	*object_type_name[MXT_MAX_OBJECT_TYPES]	= {
 	[44]	= "SPT_MESSAGECOUNT_T44",
 };
 
-struct mxt_callbacks *charger_callbacks;
-EXPORT_SYMBOL(charger_callbacks);
-
 static void mxt_suspend_hw(struct mxt_data *mxt);
 static void mxt_resume_hw(struct mxt_data *mxt);
 
@@ -276,13 +273,8 @@ static void mxt_force_reset(struct mxt_data *mxt)
 }
 #endif
 
-/*mode 1 = Charger connected */
-/*mode 0 = Charger disconnected*/
-static void mxt_inform_charger_connection(struct mxt_callbacks *cb, int mode)
 {
-	struct mxt_data *mxt = container_of(cb, struct mxt_data, callbacks);
 
-	mxt->set_mode_for_ta = !!mode;
 	if (mxt->enabled && !work_pending(&mxt->ta_work))
 		schedule_work(&mxt->ta_work);
 }
@@ -3208,11 +3200,6 @@ static void mxt_resume_hw(struct mxt_data *mxt)
 	msleep(120);
 }
 
-// static void p3_register_touch_callbacks(struct mxt_callbacks *cb)
-// {
-// 	charger_callbacks = cb;
-// }
-
 static void mxt_init_gpio(struct mxt_data *mxt)
 {
 	pr_info("%s\n", __func__);
@@ -3238,7 +3225,6 @@ static struct mxt_platform_data p3_touch_platform_data = {
 	.numtouch = 10,
 	.max_x  = 1279,
 	.max_y  = 799,
-	// .register_cb = p3_register_touch_callbacks,
 	/*mxt_power_config*/
 	/* Set Idle Acquisition Interval to 32 ms. */
 	.power_config.idleacqint = 32,
@@ -3584,13 +3570,6 @@ static int mxt_probe(struct i2c_client *client,
 #ifdef MXT_CALIBRATE_WORKAROUND
 	INIT_DELAYED_WORK(&mxt->calibrate_dwork, mxt_calibrate_worker);
 #endif
-
-	/* Register callbacks */
-	/* To inform tsp , charger connection status*/
-	mxt->callbacks.inform_charger = mxt_inform_charger_connection;
-	// if (mxt->pdata->register_cb)
-	// 	mxt->pdata->register_cb(&mxt->callbacks);
-	charger_callbacks = &mxt->callbacks;
 
 	init_waitqueue_head(&mxt->msg_queue);
 	mutex_init(&mxt->mutex);
