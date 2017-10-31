@@ -377,9 +377,31 @@ static struct nvmap_client *get_client_from_carveout_commit(
 					       carveout_commit);
 }
 
+static int nvmap_kill_task(struct task_struct *selected_task)
+{
+	if (fatal_signal_pending(selected_task)) {
+		pr_warning("carveout_killer: process %d dying "
+			   "slowly\n", selected_task->pid);
+		return -1;
+	}
+
+	task_lock(selected_task);
+	force_sig(SIGKILL, selected_task);
+	/*
+	 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
+	 * infrastructure. There is no real reason why the selected
+	 * task should have access to the memory reserves.
+	 */
+	if (selected_task->mm)
+		mark_oom_victim(selected_task);
+	task_unlock(selected_task);
+
+	return 0;
+}
+
 static DECLARE_WAIT_QUEUE_HEAD(wait_reclaim);
 static int wait_count;
-bool nvmap_shrink_carveout(struct nvmap_carveout_node *node)
+bool nvmap_shrink_carveout(struct nvmap_carveout_node *node, size_t requested_size)
 {
 	struct nvmap_carveout_commit *commit;
 	size_t selected_size = 0;
@@ -388,6 +410,11 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node)
 	unsigned long flags;
 	bool wait = false;
 	int current_oom_adj = OOM_SCORE_ADJ_MIN;
+	int res;
+
+	size_t large_selected_size = 0;
+	int large_selected_oom_adj = OOM_ADJUST_MIN;
+	struct task_struct *large_selected_task = NULL;
 
 	task_lock(current);
 	if (current->signal)
@@ -429,36 +456,49 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node)
 		if (sig->oom_score_adj == selected_oom_adj &&
 		    size <= selected_size)
 			goto end;
-		selected_oom_adj = sig->oom_score_adj;
-		selected_size = size;
-		selected_task = task;
+
+		if (size > selected_size) {
+			selected_oom_adj = sig->oom_score_adj;
+			selected_size = size;
+			selected_task = task;
+		}
+
+		if (size >= requested_size &&
+				large_selected_size > 0 && large_selected_size > size) {
+			large_selected_oom_adj = sig->oom_score_adj;
+			large_selected_size = size;
+			large_selected_task = task;
+
+			pr_info("carveout_killer: large_selected_task (%d) cred=%u size=%d\n",
+				large_selected_task->pid,
+				(unsigned int)large_selected_task->cred->euid.val, size);
+		}
 end:
 		task_unlock(task);
 	}
-	if (selected_task) {
-		wait = true;
-		if (fatal_signal_pending(selected_task)) {
-			pr_warning("carveout_killer: process %d dying "
-				   "slowly\n", selected_task->pid);
-			goto out;
-		}
-		pr_info("carveout_killer: killing process %d with oom_score_adj %d "
-			"to reclaim %d (for process with oom_score_adj %d)\n",
-			selected_task->pid, selected_oom_adj,
-			selected_size, current_oom_adj);
 
-		task_lock(selected_task);
-		force_sig(SIGKILL, selected_task);
-		/*
-		 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
-		 * infrastructure. There is no real reason why the selected
-		 * task should have access to the memory reserves.
-		 */
-		if (selected_task->mm)
-			mark_oom_victim(selected_task);
-		task_unlock(selected_task);
+	if (large_selected_task) {
+		selected_oom_adj = large_selected_oom_adj;
+		selected_size = large_selected_size;
+		selected_task = large_selected_task;
 	}
-out:
+
+	if (selected_task)
+		res = nvmap_kill_task(selected_task);
+	if (!res) {
+		char task_comm[TASK_COMM_LEN];
+
+		wait = true;
+
+		get_task_comm(task_comm, selected_task);
+		pr_info("carveout_killer: killing process '%s' (pid=%d, euid=%u) with oom_score_adj %d "
+			"to reclaim %d (for process with oom_score_adj %d)\n",
+			task_comm,
+			selected_task->pid, (unsigned int)selected_task->cred->euid.val,
+			selected_oom_adj,
+			selected_size, current_oom_adj);
+	}
+
 	spin_unlock_irqrestore(&node->clients_lock, flags);
 	return wait;
 }
@@ -538,7 +578,7 @@ struct nvmap_heap_block *nvmap_carveout_alloc(struct nvmap_client *client,
 			count = wait_count;
 			/* indicates we didn't find anything to kill,
 			   might as well stop trying */
-			if (!nvmap_shrink_carveout(co_heap))
+			if (!nvmap_shrink_carveout(co_heap, handle->size))
 				return NULL;
 
 			if (time_is_after_jiffies(end))
