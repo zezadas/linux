@@ -104,9 +104,9 @@ void tegra_dc_clk_enable(struct tegra_dc *dc)
 		// tegra_dvfs_set_rate(dc->clk, dc->mode.pclk);
 
 		if (cmc623_current_type == 0) {
-			tegra_dvfs_set_rate(dc->clk, 586000000);
+			tegra_dvfs_set_rate(dc->clk, CMC623_CLK_RATE);
 		} else if (cmc623_current_type == 1) {
-			tegra_dvfs_set_rate(dc->clk, 570000000);
+			tegra_dvfs_set_rate(dc->clk, CMC623F_CLK_RATE);
 		}
 	}
 }
