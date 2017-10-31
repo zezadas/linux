@@ -30,6 +30,8 @@
 #include <linux/completion.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <linux/of_gpio.h>
+
 #include "ak8975-reg.h"
 
 #define AK8975_REG_CNTL			0x0A
@@ -565,11 +567,23 @@ int akm8975_probe(struct i2c_client *client,
 	if (!of_node || client->dev.platform_data) {
 		pdata = client->dev.platform_data;
 	} else if (of_node) {
-		struct resource r_irq;
+		int gpio = -1;
 		pdata = kzalloc(sizeof(struct akm8975_platform_data), GFP_KERNEL);
 
-		if (of_irq_to_resource(of_node, 0, &r_irq))
-			pdata->gpio_data_ready_int = r_irq.start;
+		gpio = of_get_gpio(of_node, 0);
+		if (gpio_is_valid(gpio)) {
+			devm_gpio_request(&client->dev, gpio, "ak8975_int");
+			if (err < 0) {
+				dev_err(&client->dev,
+					"failed to request GPIO %d, error %d\n",
+								gpio, err);
+				err = -EINVAL;
+				goto exit_platform_data_null;
+			}
+
+			gpio_direction_input(gpio);
+			pdata->gpio_data_ready_int = gpio;
+		}
 	}
 
 	pr_info("%s: pdata->gpio_data_ready_int=%d\n", __func__, pdata->gpio_data_ready_int);
