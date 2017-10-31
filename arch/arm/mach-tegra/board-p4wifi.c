@@ -318,6 +318,9 @@ void __init p3_reserve(void)
 
 	tegra_reserve(SZ_256M, SZ_8M + SZ_1M, SZ_16M);
 	tegra_ram_console_debug_reserve(SZ_1M);
+
+	// reserve iram
+	memblock_remove(0x40000400, 0x3FC00);
 }
 
 /******************************************************************************
