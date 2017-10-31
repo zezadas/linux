@@ -115,6 +115,73 @@ static int __init tegra_lp0_vec_arg(char *options)
 }
 early_param("lp0_vec", tegra_lp0_vec_arg);
 
+
+/*
+ * Due to conflicting restrictions on the placement of the framebuffer,
+ * the bootloader is likely to leave the framebuffer pointed at a location
+ * in memory that is outside the grhost aperture.  This function will move
+ * the framebuffer contents from a physical address that is anywher (lowmem,
+ * highmem, or outside the memory map) to a physical address that is outside
+ * the memory map.
+ */
+void tegra_move_framebuffer(unsigned long to, unsigned long from,
+	unsigned long size)
+{
+	struct page *page;
+	void __iomem *to_io;
+	void *from_virt;
+	unsigned long i;
+	unsigned char r, g, b;
+	unsigned char b0, b1;
+
+	BUG_ON(PAGE_ALIGN((unsigned long)to) != (unsigned long)to);
+	BUG_ON(PAGE_ALIGN(from) != from);
+	BUG_ON(PAGE_ALIGN(size) != size);
+
+	to_io = ioremap(to, size*2);
+	if (!to_io) {
+		pr_err("%s: Failed to map target framebuffer\n", __func__);
+		return;
+	}
+
+	if (pfn_valid(page_to_pfn(phys_to_page(from)))) {
+		for (i = 0 ; i < size; i += PAGE_SIZE) {
+			int j;
+			page = phys_to_page(from + i);
+			from_virt = kmap(page);
+
+			for (j = 0; j < PAGE_SIZE; j += 2) {
+				b0 = *((unsigned char *)(from_virt + j));
+				b1 = *((unsigned char *)(from_virt + j+1));
+
+				r = b0 & 0x1f;
+				g = ((b1 & 0x07) << 3) | ((b0 & 0xe0) >> 5);
+				b = (b1 & 0xf8) >> 3;
+
+				*((unsigned char *)(to_io + (i + j)*2)) = r * 8;/*Red*/
+				*((unsigned char *)(to_io + (i + j)*2 + 1)) = g * 4;/*Green*/
+				*((unsigned char *)(to_io + (i + j)*2 + 2)) = b * 8;/*Blue*/
+				*((unsigned char *)(to_io + (i + j)*2 + 3)) = 0x00;/*Alpha*/
+			}
+			kunmap(page);
+		}
+	} else {
+		void __iomem *from_io = ioremap(from, size);
+		if (!from_io) {
+			pr_err("%s: Failed to map source framebuffer\n",
+				__func__);
+			goto out;
+		}
+
+		for (i = 0; i < size; i += 4)
+			writel(readl(from_io + i), to_io + i);
+
+		iounmap(from_io);
+	}
+out:
+	iounmap(to_io);
+}
+
 void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 	unsigned long fb2_size)
 {
@@ -242,6 +309,10 @@ void __init tegra_ram_console_debug_init(void)
 void __init p3_reserve(void)
 {
 	pr_info("%s()\n",__func__);
+
+	tegra_bootloader_fb_size = 4096000;
+	tegra_bootloader_fb_start = 0x18012000;
+
 	if (memblock_reserve(0x0, 4096) < 0)
 		pr_warn("Cannot reserve first 4K of memory for safety\n");
 
@@ -552,8 +623,13 @@ void __init p4wifi_machine_init(void)
 	pr_info("%s()\n", __func__);
 	tegra_ram_console_debug_init();
 
-	p4_check_hwrev();
+	// Must operate on the memory after mem reserve function.
+	// The device will not boot if we touch memory before this.
+	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
+		min(tegra_fb_size, tegra_bootloader_fb_size));
+	tegra_release_bootloader_fb();
 
+	p4_check_hwrev();
 
 	register_reboot_notifier(&p3_reboot_notifier);
 
