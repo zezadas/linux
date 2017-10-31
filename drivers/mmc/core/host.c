@@ -276,6 +276,9 @@ int mmc_of_parse(struct mmc_host *host)
 	if (ro_cap_invert ^ ro_gpio_invert)
 		host->caps2 |= MMC_CAP2_RO_ACTIVE_HIGH;
 
+	if (of_property_read_bool(np, "sd-ignore-pm-notify"))
+		host->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;
+
 	if (device_property_read_bool(dev, "cap-sd-highspeed"))
 		host->caps |= MMC_CAP_SD_HIGHSPEED;
 	if (device_property_read_bool(dev, "cap-mmc-highspeed"))
