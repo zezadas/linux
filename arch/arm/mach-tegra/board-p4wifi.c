@@ -32,8 +32,6 @@
 #include <linux/mmc/host.h>
 #include <linux/file.h>
 #include <linux/input.h>
-#include <linux/atmel_mxt1386.h>
-#include <linux/power/p4_battery.h>
 #include <linux/gpio/machine.h>
 #include <linux/rfkill-gpio.h>
 
@@ -530,22 +528,6 @@ static void p4_check_hwrev(void)
 
 	pr_info("%s: system_rev = %d (gpio value = 0x%02x)\n", __func__, system_rev, value);
 }
-
-/******************************************************************************
-* battery
-*****************************************************************************/
-extern struct mxt_callbacks *charger_callbacks;
-
-static void  p3_inform_charger_connection(int mode)
-{
-	if (charger_callbacks && charger_callbacks->inform_charger)
-		charger_callbacks->inform_charger(charger_callbacks, mode);
-};
-
-struct p3_battery_platform_data p3_battery_platform = {
-	.inform_charger_connection = p3_inform_charger_connection,
-};
-
 
 #include <soc/tegra/pmc.h>
 

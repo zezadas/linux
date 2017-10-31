@@ -56,10 +56,7 @@
 #include "reset.h"
 #include "sleep.h"
 
-extern struct p3_battery_platform_data p3_battery_platform;
-
 static struct of_dev_auxdata tegra20_auxdata_lookup[] __initdata = {
-	OF_DEV_AUXDATA("samsung,p4-battery", 0, "p3-battery", &p3_battery_platform),
 	{}
 };
 
