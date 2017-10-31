@@ -44,6 +44,10 @@
 #define MOTOR_DEBUG
 #endif
 
+#define PWM_PERCENT_MIN     0
+#define PWM_PERCENT_MAX     100
+
+
 struct isa1200_vibrator_drvdata {
 	struct timed_output_dev dev;
 	struct hrtimer timer;
@@ -63,6 +67,16 @@ struct isa1200_vibrator_drvdata {
 	u8 duty;
 	u8 period;
 };
+
+static int isa1200_config(struct isa1200_vibrator_drvdata *vib, int percent) {
+	unsigned int period = vib->period;
+	unsigned int duty =
+			(period * (percent + PWM_PERCENT_MAX)) / (2 * PWM_PERCENT_MAX);
+
+	vib->duty = duty;
+
+	return 0;
+}
 
 static int isa1200_vibrator_i2c_write(struct i2c_client *client,
 					u8 addr, u8 val)
@@ -209,6 +223,68 @@ static void isa1200_vibrator_enable(struct timed_output_dev *_dev, int value)
 	spin_unlock_irqrestore(&data->lock, flags);
 }
 
+static ssize_t isa1200_pwm_min_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", PWM_PERCENT_MIN);
+}
+
+static ssize_t isa1200_pwm_max_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", PWM_PERCENT_MAX);
+}
+
+static ssize_t isa1000_pwm_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct timed_output_dev *timed_dev = dev_get_drvdata(dev);
+	struct isa1200_vibrator_drvdata *vib =
+			container_of(timed_dev, struct isa1200_vibrator_drvdata, dev);
+
+	int percent;
+
+	// duty = (period * (percent + PWM_PERCENT_MAX)) / (2 * PWM_PERCENT_MAX);
+	percent = ((vib->duty * (2 * PWM_PERCENT_MAX)) / vib->period) - PWM_PERCENT_MAX;
+
+	return sprintf(buf, "%d\n", percent);
+}
+
+static ssize_t isa1200_pwm_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct timed_output_dev *timed_dev = dev_get_drvdata(dev);
+	struct isa1200_vibrator_drvdata *vib =
+			container_of(timed_dev, struct isa1200_vibrator_drvdata, dev);
+	int duty_percent;
+
+	sscanf(buf, "%d", &duty_percent);
+
+	if (duty_percent > PWM_PERCENT_MAX)
+		duty_percent = PWM_PERCENT_MAX;
+	else if (duty_percent < PWM_PERCENT_MIN)
+		duty_percent = PWM_PERCENT_MIN;
+
+	if (isa1200_config(vib, duty_percent) < 0) {
+		pr_err("%s: failed to configure pwm\n", __func__);
+	}
+
+	return size;
+}
+
+static struct device_attribute isa1200_device_attrs[] = {
+	__ATTR(duty_cycle_min, S_IRUGO,
+			isa1200_pwm_min_show,
+			NULL),
+	__ATTR(duty_cycle_max, S_IRUGO,
+			isa1200_pwm_max_show,
+			NULL),
+	__ATTR(duty_cycle, S_IRUGO | S_IWUSR,
+			isa1000_pwm_show,
+			isa1200_pwm_store),
+};
+
+
 #ifdef CONFIG_OF
 static int isa1200_parse_dt(struct i2c_client *client,
 		struct isa1200_vibrator_drvdata *drvdata)
@@ -266,6 +342,7 @@ static int isa1200_vibrator_i2c_probe(struct i2c_client *client,
 {
 	struct isa1200_vibrator_platform_data *pdata = NULL;
 	struct isa1200_vibrator_drvdata *ddata;
+	int i;
 	int ret = 0;
 
 	printk(KERN_DEBUG "[VIB] %s\n", __func__);
@@ -323,6 +400,15 @@ static int isa1200_vibrator_i2c_probe(struct i2c_client *client,
 	if (ret < 0) {
 		printk(KERN_ERR "[VIB] Failed to register timed_output : -%d\n", ret);
 		goto err_to_dev_reg;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(isa1200_device_attrs); i++) {
+		ret = device_create_file(&client->dev, &isa1200_device_attrs[i]);
+		if (ret < 0) {
+			dev_err(&client->dev,
+					"%s: failed to create sysfs attributes\n", __func__);
+			goto err_to_dev_reg;
+		}
 	}
 
 	return 0;
