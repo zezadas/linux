@@ -61,6 +61,7 @@ struct isa1200_vibrator_drvdata {
 
 	struct hrtimer timer;
 	spinlock_t lock;
+	int queued_enable;
 	int timeout;
 	int max_timeout;
 
@@ -132,21 +133,11 @@ static void isa1200_vibrator_hw_init(struct isa1200_vibrator_drvdata *vib)
 
 static void isa1200_vibrator_on(struct isa1200_vibrator_drvdata *vib)
 {
-	int duty = vib->duty;
-
 	pr_debug("%s\n", __func__);
-
-	if (vib->duty >= vib->period) {
-		duty -= 3;
-	}
-
 	isa1200_vibrator_i2c_write(vib->client,
 		HAPTIC_CONTROL_REG0, vib->ctrl0 | CTL0_NORMAL_OP);
-	isa1200_vibrator_i2c_write(vib->client,
-		HAPTIC_PWM_DUTY_REG, vib->duty);
 #ifdef MOTOR_DEBUG
 	printk(KERN_DEBUG "[VIB] ctrl0 = 0x%x\n", vib->ctrl0 | CTL0_NORMAL_OP);
-	printk(KERN_DEBUG "[VIB] duty = 0x%x\n", duty);
 #endif
 }
 
@@ -157,6 +148,22 @@ static void isa1200_vibrator_off(struct isa1200_vibrator_drvdata *vib)
 		HAPTIC_PWM_DUTY_REG, vib->period/2);
 	isa1200_vibrator_i2c_write(vib->client,
 		HAPTIC_CONTROL_REG0, vib->ctrl0);
+}
+
+static void isa1200_vibrator_set_duty(struct isa1200_vibrator_drvdata *vib)
+{
+	int duty = vib->duty;
+
+	pr_debug("%s\n", __func__);
+
+	if (vib->duty >= vib->period)
+		duty -= 3;
+
+	isa1200_vibrator_i2c_write(vib->client,
+		HAPTIC_PWM_DUTY_REG, duty);
+#ifdef MOTOR_DEBUG
+	printk(KERN_DEBUG "[VIB] duty = 0x%x\n", duty);
+#endif
 }
 
 static void isa1200_vibrator_work(struct work_struct *work)
@@ -190,6 +197,8 @@ static void isa1200_vibrator_work(struct work_struct *work)
 		clk_prepare_enable(vib->vib_clk);
 		mdelay(1);
 		isa1200_vibrator_on(vib);
+		isa1200_vibrator_set_duty(vib);
+		vib->queued_enable = 0;
 	}
 }
 
@@ -228,27 +237,28 @@ static ssize_t enable_store(struct device *dev,
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 	struct isa1200_vibrator_drvdata *vib =
 			container_of(led_cdev, struct isa1200_vibrator_drvdata, cdev);
-	unsigned long	flags;
-	int value;
+	unsigned long flags;
+	int timeout;
 
-	sscanf(buf, "%d", &value);
-	pr_debug("%s timeout=%d\n", __func__, value);
+	sscanf(buf, "%d", &timeout);
+	pr_debug("%s timeout=%d\n", __func__, timeout);
 
 #ifdef MOTOR_DEBUG
-	printk(KERN_DEBUG "[VIB] time = %dms\n", value);
+	printk(KERN_DEBUG "[VIB] time = %dms\n", timeout);
 #endif
 	cancel_delayed_work(&vib->work);
 	hrtimer_cancel(&vib->timer);
-	vib->timeout = value;
-	queue_delayed_work(vib->wq, &vib->work, 0);
-	spin_lock_irqsave(&vib->lock, flags);
-	if (value > 0) {
-		if (value > vib->max_timeout)
-			value = vib->max_timeout;
 
-		hrtimer_start(&vib->timer,
-			ns_to_ktime((u64)value * NSEC_PER_MSEC),
-			HRTIMER_MODE_REL);
+	if (timeout > vib->max_timeout)
+		timeout = vib->max_timeout;
+	vib->timeout = timeout;
+
+	spin_lock_irqsave(&vib->lock, flags);
+	if (timeout > 0) {
+		vib->queued_enable = 1;
+	} else if (timeout == 0) {
+		vib->queued_enable = 0;
+		queue_delayed_work(vib->wq, &vib->work, 0);
 	}
 	spin_unlock_irqrestore(&vib->lock, flags);
 
@@ -272,6 +282,7 @@ static ssize_t amplitude_store(struct device *dev,
 	struct isa1200_vibrator_drvdata *vib =
 			container_of(led_cdev, struct isa1200_vibrator_drvdata, cdev);
 	int amplitude;
+	unsigned long flags;
 
 	sscanf(buf, "%d", &amplitude);
 
@@ -283,7 +294,16 @@ static ssize_t amplitude_store(struct device *dev,
 	vib->duty = amplitude_to_duty(vib->period, amplitude);
 	vib->amplitude = amplitude;
 
-	pr_debug("%s: amplitude=%d duty_cycle=%d\n", __func__, amplitude, vib->duty);
+	pr_debug("%s: amplitude=%hhu duty_cycle=%u\n", __func__, amplitude, vib->duty);
+
+	spin_lock_irqsave(&vib->lock, flags);
+	if (vib->queued_enable) {
+		queue_delayed_work(vib->wq, &vib->work, 0);
+		hrtimer_start(&vib->timer,
+			ns_to_ktime((u64)vib->timeout * NSEC_PER_MSEC),
+			HRTIMER_MODE_REL);
+	}
+	spin_unlock_irqrestore(&vib->lock, flags);
 
 	return size;
 }
