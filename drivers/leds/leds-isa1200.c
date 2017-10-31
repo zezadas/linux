@@ -457,6 +457,7 @@ static int isa1200_vibrator_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+#if 0
 static int isa1200_vibrator_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
@@ -476,6 +477,10 @@ static int isa1200_vibrator_resume(struct device *dev)
 
 static SIMPLE_DEV_PM_OPS(isa1200_pm,
 	isa1200_vibrator_suspend, isa1200_vibrator_resume);
+#define ISA1200_PM &isa1200_pm
+#else
+#define ISA1200_PM NULL
+#endif
 
 static const struct i2c_device_id isa1200_vibrator_device_id[] = {
 	{"isa1200_vibrator", 0},
@@ -494,7 +499,7 @@ MODULE_DEVICE_TABLE(of, isa1200_dt_match);
 static struct i2c_driver isa1200_vibrator_i2c_driver = {
 	.driver = {
 		.name = "isa1200_vibrator",
-		.pm = &isa1200_pm,
+		.pm = ISA1200_PM,
 		.of_match_table = of_match_ptr(isa1200_dt_match),
 		.owner = THIS_MODULE,
 	},
