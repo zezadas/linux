@@ -24,6 +24,13 @@
 
 #define MAX_DVFS_FREQS	24
 
+#define _100uV			100000
+#define _170uV			170000
+
+/* RTC domain defines */
+#define RTC_MAX_VDD		1300
+#define RTC_MIN_VDD		950
+
 /* CPU domain defines */
 #define CPU_MAX_VDD    1375
 static const int cpu_millivolts_process0[MAX_DVFS_FREQS] =
@@ -72,7 +79,8 @@ static const int cpu_millivolts_process1[MAX_DVFS_FREQS] =
 	}
 
 /* core domain defines */
-#define CORE_MAX_VDD    1300
+// #define CORE_MAX_VDD    1300
+#define CORE_MAX_VDD (CPU_MAX_VDD+_100uV)
 static const int core_millivolts[7] = {950, 1000, 1100, 1200, 1225, 1275, CORE_MAX_VDD,};
 
 
@@ -92,12 +100,6 @@ static const int core_millivolts[7] = {950, 1000, 1100, 1200, 1225, 1275, CORE_M
 		.nclients = ARRAY_SIZE(_clients),			\
 	}
 
-#define _100uV			100000
-#define _170uV			170000
-
-/* RTC domain defines */
-#define RTC_MAX_VDD		1300
-#define RTC_MIN_VDD		950
 
 static DEFINE_MUTEX(dvfs_lock);
 static bool dvfs_enabled;
@@ -252,8 +254,9 @@ static int dvfs_get_core_voltage(void)
 	int dvfs_core_voltage = 0;
 
 	list_for_each_entry(client, &dvfs_core.active_clients, node) {
-		dev_dbg(dvfs_dev, "active core client %s index = %d freq = %dhz\n",
-			client->clk_name, client->index, client->freqs[client->index]);
+		dev_dbg(dvfs_dev, "active core client %s index = %d freq = %dhz voltage = %dmV\n",
+			client->clk_name, client->index, client->freqs[client->index],
+			client->voltages_mv[client->index]);
 		dvfs_core_voltage = max(dvfs_core_voltage,
 			client->voltages_mv[client->index] * 1000);
 	}
@@ -278,8 +281,11 @@ static void update_voltages(int new_cpu_vdd, int new_core_vdd)
 	/*
 	 * Re-calculate VDD's according to the rules
 	 */
-	if (new_core_vdd - new_cpu_vdd < _100uV)
+	if (new_core_vdd - new_cpu_vdd < _100uV) {
+		dev_dbg(dvfs_dev, "new_core_vdd(%d) - new_cpu_vdd(%d) < _100uV",
+			new_core_vdd, new_cpu_vdd);
 		new_core_vdd = new_cpu_vdd + _100uV;
+	}
 
 	/*
 	 * What goes update first?
