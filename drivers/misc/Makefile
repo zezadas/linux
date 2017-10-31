@@ -62,6 +62,8 @@ obj-$(CONFIG_SEC_MISC)	+= stmpe811.o
 
 obj-$(CONFIG_SAMSUNG_JACK)	+= sec_jack.o
 
+obj-$(CONFIG_BCM4751_POWER)	+= bcm4751-power.o
+
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_heap.o
