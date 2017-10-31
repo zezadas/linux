@@ -2298,11 +2298,6 @@ static int tegra_dc_probe(struct nvhost_device *ndev,
 
 	tegra_dc_create_sysfs(&dc->ndev->dev);
 
-	if (dc->enabled) {
-		tegra_disable_backlight(dc);
-		schedule_delayed_work(&dc->disable_work, 0*HZ);
-	}
-
 	return 0;
 }
 
