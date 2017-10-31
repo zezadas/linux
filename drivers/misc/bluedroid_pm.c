@@ -199,14 +199,17 @@ static int bluedroid_pm_rfkill_set_power(void *data, bool blocked)
 		gpiod_set_value_cansleep(bluedroid_pm->gpio_reset, 0);
 		gpiod_set_value_cansleep(bluedroid_pm->gpio_enable, 0);
 
-		clk_disable_unprepare(bluedroid_pm->clk);
+		if (bluedroid_pm->clk)
+			clk_disable_unprepare(bluedroid_pm->clk);
 
 		wake_unlock(&bluedroid_pm->wake_lock);
 	} else {
-		err = clk_prepare_enable(bluedroid_pm->clk);
-		if (err < 0) {
-			dev_err(bluedroid_pm->dev,
-				"error enabling clock. err=%d\n", err);
+		if (bluedroid_pm->clk) {
+			err = clk_prepare_enable(bluedroid_pm->clk);
+			if (err < 0) {
+				dev_err(bluedroid_pm->dev,
+					"error enabling clock. err=%d\n", err);
+			}
 		}
 
 		gpiod_set_value_cansleep(bluedroid_pm->gpio_enable, 1);
@@ -282,8 +285,8 @@ static int bluedroid_pm_probe(struct platform_device *pdev)
 
 	bluedroid_pm->clk = devm_clk_get(bluedroid_pm->dev, "uartc");
 	if (IS_ERR(bluedroid_pm->clk)) {
-		dev_err(bluedroid_pm->dev, "failed to get uartc clock\n");
-		return PTR_ERR(bluedroid_pm->clk);
+		dev_info(bluedroid_pm->dev, "not using uartc clock\n");
+		// return PTR_ERR(bluedroid_pm->clk);
 	}
 
 
