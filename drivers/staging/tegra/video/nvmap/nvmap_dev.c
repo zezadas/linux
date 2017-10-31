@@ -377,28 +377,6 @@ static struct nvmap_client *get_client_from_carveout_commit(
 					       carveout_commit);
 }
 
-static int nvmap_kill_task(struct task_struct *selected_task)
-{
-	if (fatal_signal_pending(selected_task)) {
-		pr_warning("carveout_killer: process %d dying "
-			   "slowly\n", selected_task->pid);
-		return -1;
-	}
-
-	task_lock(selected_task);
-	force_sig(SIGKILL, selected_task);
-	/*
-	 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
-	 * infrastructure. There is no real reason why the selected
-	 * task should have access to the memory reserves.
-	 */
-	if (selected_task->mm)
-		mark_oom_victim(selected_task);
-	task_unlock(selected_task);
-
-	return 0;
-}
-
 static DECLARE_WAIT_QUEUE_HEAD(wait_reclaim);
 static int wait_count;
 bool nvmap_shrink_carveout(struct nvmap_carveout_node *node, size_t requested_size)
@@ -410,7 +388,6 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node, size_t requested_si
 	unsigned long flags;
 	bool wait = false;
 	int current_oom_adj = OOM_SCORE_ADJ_MIN;
-	int res;
 
 	size_t large_selected_size = 0;
 	int large_selected_oom_adj = OOM_ADJUST_MIN;
@@ -483,20 +460,37 @@ end:
 		selected_task = large_selected_task;
 	}
 
-	if (selected_task)
-		res = nvmap_kill_task(selected_task);
-	if (!res) {
+	if (selected_task) {
 		char task_comm[TASK_COMM_LEN];
-
-		wait = true;
-
 		get_task_comm(task_comm, selected_task);
-		pr_info("carveout_killer: killing process '%s' (pid=%d, euid=%u) with oom_score_adj %d "
+		pr_info("carveout_killer: killing process "
+			"'%s' (pid=%d, euid=%u) with oom_score_adj %d "
 			"to reclaim %d kB (for process with oom_score_adj %d)\n",
-			task_comm,
-			selected_task->pid, (unsigned int)selected_task->cred->euid.val,
-			selected_oom_adj,
-			selected_size/1024, current_oom_adj);
+			task_comm, selected_task->pid,
+			(unsigned int)selected_task->cred->euid.val,
+			selected_oom_adj, selected_size/1024, current_oom_adj);
+
+		if (fatal_signal_pending(selected_task)) {
+			pr_warning("carveout_killer: process "
+				"'%s' (pid=%d, euid=%u) dying slowly\n",
+				task_comm, selected_task->pid,
+				(unsigned int)selected_task->cred->euid.val);
+			spin_unlock_irqrestore(&node->clients_lock, flags);
+			return false;
+		}
+
+
+		task_lock(selected_task);
+		force_sig(SIGKILL, selected_task);
+		/*
+		 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
+		 * infrastructure. There is no real reason why the selected
+		 * task should have access to the memory reserves.
+		 */
+		if (selected_task->mm)
+			mark_oom_victim(selected_task);
+		task_unlock(selected_task);
+		wait = true;
 	}
 
 	spin_unlock_irqrestore(&node->clients_lock, flags);
