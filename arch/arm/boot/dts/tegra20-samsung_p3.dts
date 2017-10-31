@@ -1090,6 +1090,8 @@
 		usb-sel1 =  <&gpio TEGRA_GPIO(B, 2) GPIO_ACTIVE_HIGH>;
 		usb-sel2 =  <&gpio TEGRA_GPIO(O, 1) GPIO_ACTIVE_HIGH>;
 
+		vcc-supply = <&vbus1_reg>;
+
 		temp-high-threshold = <50000>;
 		temp-high-recovery = <42000>;
 		temp-low-recovery = <2000>;
