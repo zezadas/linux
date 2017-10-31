@@ -89,7 +89,8 @@ static void t20_intr_init_host_sync(struct nvhost_intr *intr)
 	/* increase the auto-ack timout to the maximum value. 2d will hang
 	 * otherwise on ap20.
 	 */
-	writel(0xff, sync_regs + host1x_sync_ctxsw_timeout_cfg_r());
+	if (!IS_ENABLED(CONFIG_SAMSUNG_VARIATION_TEGRA))
+		writel(0xff, sync_regs + host1x_sync_ctxsw_timeout_cfg_r());
 }
 
 static void t20_intr_set_host_clocks_per_usec(struct nvhost_intr *intr, u32 cpm)

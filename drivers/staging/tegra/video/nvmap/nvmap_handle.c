@@ -828,8 +828,11 @@ int nvmap_alloc_handle_id(struct nvmap_client *client,
 	/* This restriction is deprecated as alignments greater than
 	   PAGE_SIZE are now correctly handled, but it is retained for
 	   AP20 compatibility. */
-	if (h->align > PAGE_SIZE)
-		heap_mask &= NVMAP_HEAP_CARVEOUT_MASK;
+	if (!IS_ENABLED(CONFIG_SAMSUNG_VARIATION_TEGRA)) {
+		if (h->align > PAGE_SIZE)
+			heap_mask &= NVMAP_HEAP_CARVEOUT_MASK;
+	}
+
 #endif
 	/* secure allocations can only be served from secure heaps */
 	if (h->secure)
