@@ -31,6 +31,7 @@
 #include <linux/power/p4_battery.h>
 #include <linux/power/max17042_battery_p4.h>
 #include <linux/regulator/consumer.h>
+#include <linux/extcon.h>
 
 #include <asm/system_info.h>
 
@@ -56,6 +57,11 @@ static enum power_supply_property p3_battery_properties[] = {
 
 static enum power_supply_property p3_power_properties[] = {
 	POWER_SUPPLY_PROP_ONLINE,
+};
+
+static const unsigned int charger_cables[] = {
+	EXTCON_USB,
+	EXTCON_NONE,
 };
 
 enum charger_type {
@@ -132,6 +138,8 @@ struct battery_data {
 	int previous_charging_status;
 	int full_check_flag;
 	bool is_first_check;
+
+	struct extcon_dev *charging_connector;
 };
 
 struct battery_data *test_batterydata;
@@ -266,10 +274,13 @@ static void p3_get_cable_status(struct battery_data *battery)
 		irq_set_irq_type(gpio_to_irq(battery->pdata->charger.connect_line),
 			IRQ_TYPE_LEVEL_HIGH);
 
+		extcon_set_state(battery->charging_connector, 1);
 	} else {
 		battery->current_cable_status = CHARGER_BATTERY;
 		irq_set_irq_type(gpio_to_irq(battery->pdata->charger.connect_line),
 			IRQ_TYPE_LEVEL_LOW);
+
+		extcon_set_state(battery->charging_connector, 0);
 
 		battery->info.batt_improper_ta = 0;  /* clear flag */
 	}
@@ -1827,6 +1838,28 @@ static const struct power_supply_config psy_ac_cfg = {
 	.num_supplicants = ARRAY_SIZE(supply_list),
 };
 
+static int init_extcon_dev(struct platform_device *pdev)
+{
+	struct battery_data *battery = platform_get_drvdata(pdev);
+	int ret = 0;
+
+	battery->charging_connector = devm_extcon_dev_allocate(&pdev->dev, charger_cables);
+	battery->charging_connector->name = "p4-battery-charger";
+	ret = devm_extcon_dev_register(&pdev->dev, battery->charging_connector);
+	if (ret < 0) {
+		pr_err("%s : Failed to register extcon device\n", __func__);
+		return ret;
+	}
+
+	return ret;
+}
+static void deinit_extcon_dev(struct platform_device *pdev)
+{
+	struct battery_data *battery = platform_get_drvdata(pdev);
+
+	devm_extcon_dev_unregister(&pdev->dev, battery->charging_connector);
+}
+
 static int p3_bat_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1970,6 +2003,10 @@ static int p3_bat_probe(struct platform_device *pdev)
 	battery->p3_battery_initial = 1;
 	battery->low_batt_boot_flag = 0;
 
+	ret = init_extcon_dev(pdev);
+	if (ret < 0)
+		goto err_workqueue_init;
+
 	battery->connect_irq = gpio_to_irq(pdata->charger.connect_line);
 	if (check_ta_conn(battery))
 		trigger = IRQF_TRIGGER_HIGH;
@@ -2025,6 +2062,8 @@ static int p3_bat_probe(struct platform_device *pdev)
 	lpm_mode_check(battery);
 #endif
 
+	pr_info("%s: done.\n", __func__);
+
 	return 0;
 
 err_charger_irq:
@@ -2040,6 +2079,7 @@ err_battery_psy_register:
 	destroy_workqueue(battery->low_bat_comp_workqueue);
 #endif
 err_workqueue_init:
+	deinit_extcon_dev(pdev);
 	wakeup_source_trash(&battery->vbus_wake_source);
 	wakeup_source_trash(&battery->work_wake_source);
 	wakeup_source_trash(&battery->cable_wake_source);
@@ -2081,6 +2121,8 @@ static int p3_bat_remove(struct platform_device *pdev)
 	wakeup_source_trash(&battery->low_comp_wake_source);
 #endif
 	mutex_destroy(&battery->work_lock);
+
+	deinit_extcon_dev(pdev);
 
 	kfree(battery);
 
