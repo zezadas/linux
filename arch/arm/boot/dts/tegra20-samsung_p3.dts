@@ -700,6 +700,8 @@
 			interrupt-parent = <&gpio>;
 			interrupts = <TEGRA_GPIO(O, 6) IRQ_TYPE_LEVEL_HIGH>;
 
+			gpios = <&gpio TEGRA_GPIO(O, 6) IRQ_TYPE_LEVEL_HIGH>;
+
 			sdi-capacity = <0x340A>;
 			sdi-vfcapacity = <0x478A>;
 			atl-capacity = <0x349A>;
