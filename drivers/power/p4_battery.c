@@ -1514,23 +1514,42 @@ static void low_comp_work_handler(struct work_struct *work)
 
 static usb_path_type usb_sel_status = USB_SEL_AP_USB;
 
+static const char* get_usb_path_name(usb_path_type usb_path)
+{
+	switch(usb_path) {
+	case USB_SEL_AP_USB:
+		return "USB_SEL_AP_USB";
+	case USB_SEL_CP_USB:
+		return "USB_SEL_AP_USB";
+	case USB_SEL_ADC:
+		return "USB_SEL_AP_USB";
+	default:
+		break;
+	}
+	return "invalid";
+}
+
 static void p3_set_usb_path(struct max8903_charger_data *data,
 	usb_path_type usb_path)
 {
+	if (usb_path == usb_sel_status) {
+		pr_info("%s: usb_path already set to: %s\n",
+			__func__, get_usb_path_name(usb_path));
+		return;
+	}
+
+	pr_info("%s: usb_path=%s\n", __func__, get_usb_path_name(usb_path));
 	if (usb_path == USB_SEL_AP_USB) {
-		pr_info("%s: usb_path=USB_SEL_AP_USB\n", __func__);
 		gpio_set_value(data->usb_sel1, 1);
 		gpio_set_value(data->usb_sel2, 1);
 		usb_sel_status = USB_SEL_AP_USB;
 		}
 	else if (usb_path == USB_SEL_CP_USB) {
-		pr_info("%s: usb_path=USB_SEL_AP_USB\n", __func__);
 		gpio_set_value(data->usb_sel1, 0);
 		gpio_set_value(data->usb_sel2, 0);
 		usb_sel_status = USB_SEL_CP_USB;
 		}
 	else if (usb_path == USB_SEL_ADC) {
-		pr_info("%s: usb_path=USB_SEL_AP_USB\n", __func__);
 		gpio_set_value(data->usb_sel1, 0);
 		gpio_set_value(data->usb_sel2, 1);
 		usb_sel_status = USB_SEL_ADC;
