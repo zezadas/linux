@@ -48,6 +48,7 @@
 #include <linux/platform_device.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
+#include <linux/gpio/consumer.h>
 
 #include <linux/init.h>
 #include <linux/types.h>
@@ -3187,37 +3188,33 @@ static void mxt_late_resume(struct mxt_data *mxt)
 
 static void mxt_suspend_hw(struct mxt_data *mxt)
 {
-	gpio_direction_output(mxt->touch_rst, 0);
-	gpio_direction_output(mxt->touch_int, 0);
-	gpio_direction_output(mxt->touch_en, 0);
+	gpiod_direction_output(mxt->touch_rst, 0);
+	gpiod_direction_output(mxt->touch_int, 0);
+	gpiod_direction_output(mxt->touch_en, 0);
 }
 
 static void mxt_resume_hw(struct mxt_data *mxt)
 {
-	gpio_direction_output(mxt->touch_rst, 1);
-	gpio_direction_output(mxt->touch_en, 1);
-	gpio_direction_input(mxt->touch_int);
+	gpiod_direction_output(mxt->touch_rst, 1);
+	gpiod_direction_output(mxt->touch_en, 1);
+	gpiod_direction_input(mxt->touch_int);
 	msleep(120);
 }
 
 static void mxt_init_gpio(struct mxt_data *mxt)
 {
 	pr_info("%s\n", __func__);
-	gpio_request(mxt->touch_en, "TOUCH_EN");
-	gpio_request(mxt->touch_rst, "TOUCH_RST");
-	gpio_request(mxt->touch_int, "TOUCH_INT");
-
-	gpio_direction_output(mxt->touch_en, 1);
-	gpio_direction_output(mxt->touch_rst, 1);
-	gpio_direction_input(mxt->touch_int);
+	gpiod_direction_output(mxt->touch_en, 1);
+	gpiod_direction_output(mxt->touch_rst, 1);
+	gpiod_direction_input(mxt->touch_int);
 }
 
-static void mxt_exit_gpio(struct mxt_data *mxt)
+static void mxt_exit_gpio(struct i2c_client *client, struct mxt_data *mxt)
 {
 	pr_info("%s\n", __func__);
-	gpio_free(mxt->touch_en);
-	gpio_free(mxt->touch_rst);
-	gpio_free(mxt->touch_int);
+	devm_gpiod_put(&client->dev, mxt->touch_en);
+	devm_gpiod_put(&client->dev, mxt->touch_rst);
+	devm_gpiod_put(&client->dev, mxt->touch_int);
 }
 
 
@@ -3444,38 +3441,32 @@ static struct attribute_group mxt_attr_group = {
     .attrs = mxt_attrs,
 };
 
-static int mxt_parse_dt(struct mxt_data *mxt, struct device_node *np)
 {
-	u32 val;
 
-	// val = of_get_named_gpio(np, "touch-en", 0);
-	// if (val >= 0)
-	// 	mxt->touch_en = val;
-	// else
-	// 	return val;
 
-	// val = of_get_named_gpio(np, "touch-rst", 0);
-	// if (val >= 0)
-	// 	mxt->touch_rst = val;
-	// else
-	// 	return val;
 
-	// val = of_get_named_gpio(np, "touch-int", 0);
-	// if (val >= 0)
-	// 	mxt->touch_int = val;
-	// else
-	// 	return val;
+static int mxt_parse_dt(struct i2c_client *client, struct mxt_data *mxt)
+{
+	mxt->touch_en =
+		devm_gpiod_get(&client->dev, "touch-en", GPIOD_ASIS);
+	if (IS_ERR(mxt->touch_en)) {
+		dev_err(&client->dev, "Error getting touch-en gpio.\n");
+		return PTR_ERR(mxt->touch_en);
+	}
 
-	if (!of_property_read_u32(np, "touch-en", &val))
-		mxt->touch_en = val;
-	if (!of_property_read_u32(np, "touch-rst", &val))
-		mxt->touch_rst = val;
-	if (!of_property_read_u32(np, "touch-int", &val))
-		mxt->touch_int = val;
+	mxt->touch_rst =
+		devm_gpiod_get(&client->dev, "touch-rst", GPIOD_ASIS);
+	if (IS_ERR(mxt->touch_rst)) {
+		dev_err(&client->dev, "Error getting touch-en gpio.\n");
+		return PTR_ERR(mxt->touch_rst);
+	}
 
-	pr_info("%s: touch-en=<%d>\n", __func__, mxt->touch_en);
-	pr_info("%s: touch-rst=<%d>\n", __func__, mxt->touch_rst);
-	pr_info("%s: touch-int=<%d>\n", __func__, mxt->touch_int);
+	mxt->touch_int =
+		devm_gpiod_get(&client->dev, "touch-int", GPIOD_ASIS);
+	if (IS_ERR(mxt->touch_int)) {
+		dev_err(&client->dev, "Error getting touch-en gpio.\n");
+		return PTR_ERR(mxt->touch_int);
+	}
 
 	return 0;
 }
@@ -3483,7 +3474,6 @@ static int mxt_parse_dt(struct mxt_data *mxt, struct device_node *np)
 static int mxt_probe(struct i2c_client *client,
 			       const struct i2c_device_id *id)
 {
-	struct device_node *np = client->dev.of_node;
 	struct mxt_data          *mxt;
 	struct mxt_platform_data *pdata;
 	struct input_dev         *input;
@@ -3516,10 +3506,11 @@ static int mxt_probe(struct i2c_client *client,
 		goto err_mxt_alloc;
 	}
 
-	if (mxt_parse_dt(mxt, np)) {
+	if (mxt_parse_dt(client, mxt)) {
 		dev_err(&client->dev, "error parsing device tree\n");
 		error = -EINVAL;
-		goto err_mxt_alloc;
+		goto err_parse_dt;
+	}
 	}
 
 	mxt_init_gpio(mxt);
@@ -3722,7 +3713,8 @@ err_pdata:
 	if (input)
 		input_free_device(input);
 err_input_dev_alloc:
-	mxt_exit_gpio(mxt);
+	mxt_exit_gpio(client, mxt);
+err_parse_dt:
 	kfree(mxt);
 err_mxt_alloc:
 	return error;
@@ -3760,7 +3752,7 @@ static int mxt_remove(struct i2c_client *client)
 #ifdef MXT_CALIBRATE_WORKAROUND
 	cancel_delayed_work_sync(&mxt->calibrate_dwork);
 #endif
-	mxt_exit_gpio(mxt);
+	mxt_exit_gpio(client, mxt);
 	kfree(mxt);
 
 	i2c_set_clientdata(client, NULL);

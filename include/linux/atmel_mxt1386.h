@@ -789,9 +789,9 @@ struct mxt_data {
 	s16 delta_data[MXT1386_MAX_CHANNEL];
 	u16 ref_data[MXT1386_MAX_CHANNEL];
 
-	int touch_en;
-	int touch_int;
-	int touch_rst;
+	struct gpio_desc *touch_en;
+	struct gpio_desc *touch_int;
+	struct gpio_desc *touch_rst;
 };
 
 enum tsp_ta_settings {
