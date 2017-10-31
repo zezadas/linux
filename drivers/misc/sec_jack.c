@@ -121,6 +121,20 @@ static void sec_jack_set_micbias_state(
 static int sec_jack_get_adc_value(void);
 
 
+static void sec_jack_report_insert_event(struct input_dev *dev, int state, bool sync)
+{
+	if (!dev) {
+		pr_err("%s: input_dev is NULL. Not reporting event.\n", __func__);
+		return;
+	}
+
+	pr_info("%s : input_report_switch state=%d\n", __func__, state);
+	input_report_switch(dev, SW_HEADPHONE_INSERT, state);
+	input_report_switch(dev, SW_MICROPHONE_INSERT, state);
+	if (sync)
+		input_sync(dev);
+}
+
 /* gpio_input driver does not support to read adc value.
  * We use input filter to support 3-buttons of headset
  * without changing gpio_input driver.
@@ -185,6 +199,12 @@ static int sec_jack_buttons_connect(struct input_handler *handler,
 	for (i = 0; i < pdata->num_buttons_zones; i++)
 		input_set_capability(dev, EV_KEY, btn_zones[i].code);
 
+	input_set_capability(dev, EV_SW, SW_HEADPHONE_INSERT);
+	input_set_capability(dev, EV_SW, SW_MICROPHONE_INSERT);
+
+	// event does not get reported if input_sync() is called here.
+	sec_jack_report_insert_event(hi->handle.dev, 1, false);
+
 	return 0;
 
 err_open_device:
@@ -225,6 +245,10 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 	} else {
 		/* for all other jacks, disable send/end key detection */
 		if (hi->send_key_dev != NULL) {
+
+			/* report insert event to /dev/input/event subsystem */
+			sec_jack_report_insert_event(hi->handle.dev, 0, true);
+
 			/* cancel the work if it is queued */
 			cancel_work_sync(&hi->buttons_work);
 			/* disable to prevent false events on next insert */
