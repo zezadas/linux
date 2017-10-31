@@ -144,20 +144,24 @@
 
 		mpe@54040000 {
 			clock-names = "mpe";
+			status = "okay";
 		};
 
 		gr3d@54180000 {
 			clock-names = "gr3d";
+			status = "okay";
 		};
 
 		gr2d@54140000 {
 			clocks = <&tegra_car TEGRA20_CLK_GR2D>,
 				 <&tegra_car TEGRA20_CLK_EPP>;
 			clock-names = "gr2d", "epp";
+			status = "okay";
 		};
 
 		epp@540c0000 {
 			clock-names = "epp";
+			status = "okay";
 		};
 
 		dc@54200000 {
@@ -165,6 +169,7 @@
 			      <0x2E700000 0x00900000>;
 			reg-names = "regs", "fbmem";
 			interrupt-names = "irq";
+			status = "okay";
 
 			rgb {
 				status = "okay";
@@ -215,6 +220,41 @@
 					};
 				};
 			};
+		};
+
+
+		vi@54080000 {
+			compatible = "nvidia,tegra20-vi";
+			status = "disabled";
+		};
+
+		isp@54100000 {
+			compatible = "nvidia,tegra20-isp";
+			status = "disabled";
+		};
+
+		dc@54240000 {
+			compatible = "nvidia,tegra20-dc";
+			status = "disabled";
+
+			rgb {
+				status = "disabled";
+			};
+		};
+
+		hdmi@54280000 {
+			compatible = "nvidia,tegra20-hdmi";
+			status = "disabled";
+		};
+
+		tvo@542c0000 {
+			compatible = "nvidia,tegra20-tvo";
+			status = "disabled";
+		};
+
+		dsi@54300000 {
+			compatible = "nvidia,tegra20-dsi";
+			status = "disabled";
 		};
 	};
 
