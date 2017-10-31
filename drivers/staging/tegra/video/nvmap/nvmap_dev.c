@@ -492,11 +492,11 @@ end:
 
 		get_task_comm(task_comm, selected_task);
 		pr_info("carveout_killer: killing process '%s' (pid=%d, euid=%u) with oom_score_adj %d "
-			"to reclaim %d (for process with oom_score_adj %d)\n",
+			"to reclaim %d kB (for process with oom_score_adj %d)\n",
 			task_comm,
 			selected_task->pid, (unsigned int)selected_task->cred->euid.val,
 			selected_oom_adj,
-			selected_size, current_oom_adj);
+			selected_size/1024, current_oom_adj);
 	}
 
 	spin_unlock_irqrestore(&node->clients_lock, flags);
@@ -558,13 +558,13 @@ struct nvmap_heap_block *nvmap_carveout_alloc(struct nvmap_client *client,
 				get_task_comm(task_comm, client->task);
 			else
 				task_comm[0] = 0;
-			pr_info("%s: failed to allocate %u bytes for "
+			pr_info("%s: failed to allocate %u kB for "
 				"process %s, firing carveout "
-				"killer!\n", __func__, handle->size, task_comm);
+				"killer!\n", __func__, handle->size/1024, task_comm);
 
 		} else {
-			pr_info("%s: still can't allocate %u bytes, "
-				"attempt %d!\n", __func__, handle->size, count);
+			pr_info("%s: still can't allocate %u kB, "
+				"attempt %d!\n", __func__, handle->size/1024, count);
 		}
 
 		/* shrink carveouts that matter and try again */
