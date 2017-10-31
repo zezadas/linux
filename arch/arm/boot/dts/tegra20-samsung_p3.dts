@@ -451,7 +451,7 @@
 			conf_atc {
 				nvidia,pins = "atc", "atd", "ate", "cdev1", "dap1",
 				"dap2", "dap4", "dte", "gmc", "gpu7", "gpv", "i2cp",
-				"pta", "rm", "sdio1", "slxc", "slxd", "slxk", "spdi", "spdo",
+				"pta", "rm", "slxc", "slxd", "slxk", "spdi", "spdo",
 				"uaa", "uab", "uac", "uda";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
@@ -481,6 +481,20 @@
 				"gmb", "irrx", "kbcb", "kbcd", "kbcf",
 				"sdc", "sdd", "spia", "spib", "spic", "spid", "spif";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+			};
+
+			/* wifi */
+			conf_sdio1 {
+				nvidia,pins = "sdio1";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+			};
+
+			/* mxt1386 */
+			conf_slxc {
+				nvidia,pins = "slxc";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 			};
 
