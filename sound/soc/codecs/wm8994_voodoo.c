@@ -1405,101 +1405,101 @@ static ssize_t enable_store(struct device *dev,
 }
 #endif
 
-static DEVICE_ATTR(debug_log, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(debug_log, S_IRUGO | S_IWUSR | S_IWGRP,
 		   debug_log_show,
 		   debug_log_store);
 
 #ifdef CONFIG_SND_VOODOO_HP_LEVEL_CONTROL
-static DEVICE_ATTR(headphone_amplifier_level, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_amplifier_level, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_amplifier_level_show,
 		   headphone_amplifier_level_store);
 #endif
 
 #ifdef NEXUS_S
-static DEVICE_ATTR(speaker_tuning, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(speaker_tuning, S_IRUGO | S_IWUSR | S_IWGRP,
 		   speaker_tuning_show,
 		   speaker_tuning_store);
 #endif
 
 #ifdef CONFIG_SND_VOODOO_FM
-static DEVICE_ATTR(fm_radio_headset_restore_bass, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(fm_radio_headset_restore_bass, S_IRUGO | S_IWUSR | S_IWGRP,
 		   fm_radio_headset_restore_bass_show,
 		   fm_radio_headset_restore_bass_store);
 
-static DEVICE_ATTR(fm_radio_headset_restore_highs, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(fm_radio_headset_restore_highs, S_IRUGO | S_IWUSR | S_IWGRP,
 		   fm_radio_headset_restore_highs_show,
 		   fm_radio_headset_restore_highs_store);
 
-static DEVICE_ATTR(fm_radio_headset_normalize_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(fm_radio_headset_normalize_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   fm_radio_headset_normalize_gain_show,
 		   fm_radio_headset_normalize_gain_store);
 #endif
 
 #ifdef CONFIG_SND_VOODOO_RECORD_PRESETS
-static DEVICE_ATTR(recording_preset, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(recording_preset, S_IRUGO | S_IWUSR | S_IWGRP,
 		   recording_preset_show,
 		   recording_preset_store);
 #endif
 
-static DEVICE_ATTR(dac_osr128, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(dac_osr128, S_IRUGO | S_IWUSR | S_IWGRP,
 		   dac_osr128_show,
 		   dac_osr128_store);
 
-static DEVICE_ATTR(adc_osr128, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(adc_osr128, S_IRUGO | S_IWUSR | S_IWGRP,
 		   adc_osr128_show,
 		   adc_osr128_store);
 
 #ifndef GALAXY_TAB_TEGRA
-static DEVICE_ATTR(fll_tuning, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(fll_tuning, S_IRUGO | S_IWUSR | S_IWGRP,
 		   fll_tuning_show,
 		   fll_tuning_store);
 #endif
 
-static DEVICE_ATTR(dac_direct, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(dac_direct, S_IRUGO | S_IWUSR | S_IWGRP,
 		   dac_direct_show,
 		   dac_direct_store);
 
-static DEVICE_ATTR(digital_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(digital_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   digital_gain_show,
 		   digital_gain_store);
 
-static DEVICE_ATTR(headphone_eq, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_show,
 		   headphone_eq_store);
 
-static DEVICE_ATTR(headphone_eq_b1_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq_b1_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_b1_gain_show,
 		   headphone_eq_b1_gain_store);
 
-static DEVICE_ATTR(headphone_eq_b2_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq_b2_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_b2_gain_show,
 		   headphone_eq_b2_gain_store);
 
-static DEVICE_ATTR(headphone_eq_b3_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq_b3_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_b3_gain_show,
 		   headphone_eq_b3_gain_store);
 
-static DEVICE_ATTR(headphone_eq_b4_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq_b4_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_b4_gain_show,
 		   headphone_eq_b4_gain_store);
 
-static DEVICE_ATTR(headphone_eq_b5_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq_b5_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_b5_gain_show,
 		   headphone_eq_b5_gain_store);
 
-static DEVICE_ATTR(headphone_eq_bands_values, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(headphone_eq_bands_values, S_IRUGO | S_IWUSR | S_IWGRP,
 		   headphone_eq_bands_values_show,
 		   headphone_eq_bands_values_store);
 
-static DEVICE_ATTR(stereo_expansion, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(stereo_expansion, S_IRUGO | S_IWUSR | S_IWGRP,
 		   stereo_expansion_show,
 		   stereo_expansion_store);
 
-static DEVICE_ATTR(stereo_expansion_gain, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(stereo_expansion_gain, S_IRUGO | S_IWUSR | S_IWGRP,
 		   stereo_expansion_gain_show,
 		   stereo_expansion_gain_store);
 
-static DEVICE_ATTR(mono_downmix, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(mono_downmix, S_IRUGO | S_IWUSR | S_IWGRP,
 		   mono_downmix_show,
 		   mono_downmix_store);
 
@@ -1518,7 +1518,7 @@ static DEVICE_ATTR(version, S_IRUGO,
 		   NULL);
 
 #ifndef MODULE
-static DEVICE_ATTR(enable, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(enable, S_IRUGO | S_IWUSR | S_IWGRP,
 		   enable_show,
 		   enable_store);
 #endif
