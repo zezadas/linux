@@ -1219,8 +1219,10 @@
 		compatible = "bcm,bt-bcm4330";
 		status = "okay";
 
+		/*
 		clocks = <&tegra_car TEGRA20_CLK_UARTC>;
 		clock-names = "uartc";
+		*/
 
 		bt_en-gpio = <&gpio TEGRA_GPIO(J, 5) GPIO_ACTIVE_HIGH>;
 		bt_nrst-gpio = <&gpio TEGRA_GPIO(W, 1) GPIO_ACTIVE_HIGH>;
