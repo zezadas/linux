@@ -266,14 +266,10 @@ static void p3_get_cable_status(struct battery_data *battery)
 		irq_set_irq_type(gpio_to_irq(battery->pdata->charger.connect_line),
 			IRQ_TYPE_LEVEL_HIGH);
 
-		if (battery->pdata->inform_charger_connection)
-			battery->pdata->inform_charger_connection(true);
 	} else {
 		battery->current_cable_status = CHARGER_BATTERY;
 		irq_set_irq_type(gpio_to_irq(battery->pdata->charger.connect_line),
 			IRQ_TYPE_LEVEL_LOW);
-		if (battery->pdata->inform_charger_connection)
-			battery->pdata->inform_charger_connection(false);
 
 		battery->info.batt_improper_ta = 0;  /* clear flag */
 	}

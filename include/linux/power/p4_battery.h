@@ -47,7 +47,6 @@ struct p3_battery_platform_data {
 	struct max8903_charger_data charger;
 	bool	(*check_dedicated_charger) (void);
 	void	(*init_charger_gpio) (void);
-	void (*inform_charger_connection) (int);
 	int temp_high_threshold;
 	int temp_high_recovery;
 	int temp_low_recovery;
