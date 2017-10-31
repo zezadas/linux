@@ -554,7 +554,7 @@ config SEC_MISC
 
 config SAMSUNG_JACK
 	bool "3.5MM ear jack driver for Samsung devices"
-	depends on INPUT && SWITCH
+	depends on INPUT && EXTCON
 	default n
 	---help---
 	 This is 3.5MM ear jack driver for Samsung devices.

@@ -24,7 +24,7 @@
 #include <linux/platform_device.h>
 #include <linux/errno.h>
 #include <linux/err.h>
-#include <linux/switch.h>
+#include <linux/extcon.h>
 #include <linux/input.h>
 #include <linux/timer.h>
 #include <linux/slab.h>
@@ -62,6 +62,12 @@ struct sec_jack_info {
 	int pressed_code;
 	struct platform_device *send_key_dev;
 	unsigned int cur_jack_type;
+
+	/* sysfs name HeadsetObserver.java looks for to track headset state */
+	struct extcon_dev *switch_jack_detection;
+
+	/* To support AT+FCESTEST=1 */
+	struct extcon_dev *switch_sendend;
 };
 
 /* with some modifications like moving all the gpio structs inside
@@ -75,13 +81,12 @@ static atomic_t instantiated = ATOMIC_INIT(0);
 
 /* sysfs name HeadsetObserver.java looks for to track headset state
  */
-struct switch_dev switch_jack_detection = {
-	.name = "h2w",
+static const unsigned int jack_cables[] = {
+	EXTCON_NONE,
 };
 
-/* To support AT+FCESTEST=1 */
-struct switch_dev switch_sendend = {
-		.name = "send_end",
+static const unsigned int sendend_cables[] = {
+	EXTCON_NONE,
 };
 
 static struct gpio_event_direct_entry sec_jack_key_map[] = {
@@ -262,7 +267,7 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 	hi->cur_jack_type = jack_type;
 	pr_info("%s : jack_type = %d\n", __func__, jack_type);
 
-	switch_set_state(&switch_jack_detection, jack_type);
+	extcon_set_state(hi->switch_jack_detection, jack_type);
 }
 
 static void handle_jack_not_inserted(struct sec_jack_info *hi)
@@ -363,7 +368,7 @@ void sec_jack_buttons_work(struct work_struct *work)
 	/* when button is released */
 	if (hi->pressed == 0) {
 		input_report_key(hi->input_dev, hi->pressed_code, 0);
-		switch_set_state(&switch_sendend, 0);
+		extcon_set_state(hi->switch_sendend, 0);
 		input_sync(hi->input_dev);
 		pr_debug("%s: keycode=%d, is released\n", __func__,
 			hi->pressed_code);
@@ -378,7 +383,7 @@ void sec_jack_buttons_work(struct work_struct *work)
 		    adc <= btn_zones[i].adc_high) {
 			hi->pressed_code = btn_zones[i].code;
 			input_report_key(hi->input_dev, btn_zones[i].code, 1);
-			switch_set_state(&switch_sendend, 1);
+			extcon_set_state(hi->switch_sendend, 1);
 			input_sync(hi->input_dev);
 			pr_debug("%s: keycode=%d, is pressed\n", __func__,
 				btn_zones[i].code);
@@ -657,16 +662,20 @@ static int sec_jack_probe(struct platform_device *pdev)
 	 */
 	hi->dev_id = pdev->id;
 
-	ret = switch_dev_register(&switch_jack_detection);
+	hi->switch_jack_detection = devm_extcon_dev_allocate(&pdev->dev, jack_cables);
+	hi->switch_jack_detection->name = "h2w";
+	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_jack_detection);
 	if (ret < 0) {
 		pr_err("%s : Failed to register switch device\n", __func__);
-		goto err_switch_dev_register;
+		goto err_extcon_dev_register;
 	}
 
-	ret = switch_dev_register(&switch_sendend);
+	hi->switch_sendend = devm_extcon_dev_allocate(&pdev->dev, sendend_cables);
+	hi->switch_sendend->name = "send_end";
+	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_sendend);
 	if (ret < 0) {
 		printk(KERN_ERR "SEC JACK: Failed to register switch device\n");
-		goto err_switch_dev_register_send_end;
+		goto err_extcon_dev_register_send_end;
 	}
 	wakeup_source_init(&hi->det_wakeup_source, "sec_jack_det");
 
@@ -740,10 +749,10 @@ err_register_input_handler:
 	destroy_workqueue(hi->queue);
 err_create_wq_failed:
 	wakeup_source_trash(&hi->det_wakeup_source);
-	switch_dev_unregister(&switch_sendend);
-err_switch_dev_register_send_end:
-	switch_dev_unregister(&switch_jack_detection);
-err_switch_dev_register:
+	devm_extcon_dev_unregister(&pdev->dev, hi->switch_sendend);
+err_extcon_dev_register_send_end:
+	devm_extcon_dev_unregister(&pdev->dev, hi->switch_jack_detection);
+err_extcon_dev_register:
 	gpio_free(pdata->det_gpio);
 err_gpio_request:
 	kfree(hi);
@@ -769,8 +778,8 @@ static int sec_jack_remove(struct platform_device *pdev)
 	}
 	input_unregister_handler(&hi->handler);
 	wakeup_source_trash(&hi->det_wakeup_source);
-	switch_dev_unregister(&switch_sendend);
-	switch_dev_unregister(&switch_jack_detection);
+	devm_extcon_dev_unregister(&pdev->dev, hi->switch_sendend);
+	devm_extcon_dev_unregister(&pdev->dev, hi->switch_jack_detection);
 	devm_gpio_free(&pdev->dev, hi->pdata->det_gpio);
 	devm_gpio_free(&pdev->dev, pdata->send_end_gpio);
 	devm_gpio_free(&pdev->dev, pdata->micbias_enable_gpio);
