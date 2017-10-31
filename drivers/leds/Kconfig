@@ -713,6 +713,14 @@ config LEDS_NIC78BX
 	  To compile this driver as a module, choose M here: the module
 	  will be called leds-nic78bx.
 
+config LEDS_ISA1200
+	tristate "LES support for the ISA1200 motor"
+	default n
+	depends on I2C
+	help
+	  Say Y to enalbe the ISA1200 IC.
+
+
 comment "LED Triggers"
 source "drivers/leds/trigger/Kconfig"
 
