@@ -1659,6 +1659,11 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 	return result;
 }
 #else
+static int p3_usb_path_init(struct max8903_charger_data *)
+{
+	return 0;
+}
+
 static bool check_samsung_charger(struct max8903_charger_data *)
 {
 	return false;
