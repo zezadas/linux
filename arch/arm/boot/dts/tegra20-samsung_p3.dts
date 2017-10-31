@@ -654,6 +654,8 @@
 				touch-en-gpio = <&gpio TEGRA_GPIO(J, 2) IRQ_TYPE_LEVEL_HIGH>;
 				touch-rst-gpio = <&gpio TEGRA_GPIO(D, 3) IRQ_TYPE_LEVEL_HIGH>;
 				touch-int-gpio = <&gpio TEGRA_GPIO(D, 4) IRQ_TYPE_LEVEL_HIGH>;
+
+				notify-cable;
 			};
 		};
 
