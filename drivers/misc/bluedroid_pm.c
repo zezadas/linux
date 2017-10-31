@@ -34,6 +34,10 @@
 #include <linux/serial_core.h>
 #include <linux/tty.h>
 
+#ifndef N_BRCM_HCI
+#define N_BRCM_HCI	25	/* Broadcom Bluetooth HCI */
+#endif
+
 #define BCM_SHARED_UART_MAGIC	0x80
 #define TIO_ASSERT_BT_WAKE	_IO(BCM_SHARED_UART_MAGIC, 3)
 #define TIO_DEASSERT_BT_WAKE	_IO(BCM_SHARED_UART_MAGIC, 4)
