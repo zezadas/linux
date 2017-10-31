@@ -39,7 +39,7 @@ static struct cpufreq_frequency_table freq_table[] = {
 	{ .frequency = 1200000 },
 	{ .frequency = 1400000 },
 	{ .frequency = 1500000 },
-	{ .frequency = 1600000 },
+	// { .frequency = 1600000 },
 	{ .frequency = CPUFREQ_TABLE_END },
 };
 
@@ -161,6 +161,7 @@ static int tegra_cpu_init(struct cpufreq_policy *policy)
 
 	policy->max = 1000000;
 	policy->user_policy.max = 1000000;
+	// policy->cpuinfo.max_freq = 2000000;
 
 	return 0;
 }
