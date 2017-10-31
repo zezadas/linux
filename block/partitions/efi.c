@@ -670,6 +670,19 @@ static int find_valid_gpt(struct parsed_partitions *state, gpt_header **gpt,
         return 0;
 }
 
+// #ifdef CONFIG_BIGPART
+#define SYSTEM_LABEL    "AP"
+#define CACHE_LABEL     "CC"
+#define DATA_LABEL      "UA"
+
+#define SYSTEM_START    0x11c00
+#define CACHE_START     0x132c00
+#define DATA_START      0x219c00
+
+#define SYSTEM_SIZE     0x121000
+#define CACHE_SIZE      0xe0000
+// #endif
+
 /**
  * efi_partition(struct parsed_partitions *state)
  * @state: disk parsed partitions
@@ -695,6 +708,15 @@ int efi_partition(struct parsed_partitions *state)
 	gpt_entry *ptes = NULL;
 	u32 i;
 	unsigned ssz = bdev_logical_block_size(state->bdev) / 512;
+// #ifdef CONFIG_BIGPART
+	int use_bigpart = 0;
+	u64 system_start = 0;
+	u64 system_size = 0;
+	u64 cache_start = 0;
+	u64 cache_size = 0;
+	u64 data_start = 0;
+	u64 data_size = 0;
+// #endif
 
 	if (!find_valid_gpt(state, &gpt, &ptes) || !gpt || !ptes) {
 		kfree(gpt);
@@ -703,6 +725,59 @@ int efi_partition(struct parsed_partitions *state)
 	}
 
 	pr_debug("GUID Partition Table is valid!  Yea!\n");
+ 	pr_info("GUID Partition Table entries: %d\n",
+ 		le32_to_cpu(gpt->num_partition_entries));
+ 	pr_info("\tstart - end = size\n");
+
+// #ifdef CONFIG_BIGPART
+	// prepare for bigpart
+	for (i = 0; i < le32_to_cpu(gpt->num_partition_entries) && i < state->limit-1; i++) {
+		u32 j;
+		char buf[2];
+		struct partition_meta_info *info = &state->parts[i + 1].info;
+		unsigned label_max = min(sizeof(info->volname) - 1,
+				sizeof(ptes[i].partition_name));
+		u64 start = le64_to_cpu(ptes[i].starting_lba);
+		u64 size = le64_to_cpu(ptes[i].ending_lba) -
+			   le64_to_cpu(ptes[i].starting_lba) + 1ULL;
+
+		for (j = 0; j < sizeof(buf) && j < label_max; j++) {
+			u8 c = ptes[i].partition_name[j] & 0xff;
+			buf[j] = c;
+		}
+
+		if (strncmp(SYSTEM_LABEL, (const char*) buf, sizeof(buf)) == 0) {
+			system_start = start;
+			system_size = size;
+		} else if (strncmp(CACHE_LABEL, (const char*) buf, sizeof(buf)) == 0) {
+			cache_start = start;
+			cache_size = size;
+		} else if (strncmp(DATA_LABEL, (const char*) buf, sizeof(buf)) == 0) {
+			data_start = start;
+			data_size = size;
+		}
+	}
+
+	pr_info("Original GUID Partition table: \n"
+			"\t System 0x%lx 0x%lx\n"
+			"\t Cache 0x%lx 0x%lx\n"
+			"\t Data 0x%lx 0x%lx\n",
+			(unsigned long) system_start, (unsigned long) system_size,
+			(unsigned long) cache_start, (unsigned long) cache_size,
+			(unsigned long) data_start, (unsigned long) data_size);
+
+	// validate for expected partition table
+	if (system_start == SYSTEM_START && system_size == SYSTEM_SIZE &&
+			cache_start == CACHE_START && cache_size == CACHE_SIZE &&
+			data_start == DATA_START && data_size > cache_size) {
+		pr_info("Using Bigpart partition table.");
+		use_bigpart = 1;
+	} else {
+		pr_err("Original GUID Partition table is not valid."
+			"NOT using Bigpart");
+		use_bigpart = 0;
+	}
+// #endif
 
 	for (i = 0; i < le32_to_cpu(gpt->num_partition_entries) && i < state->limit-1; i++) {
 		struct partition_meta_info *info;
@@ -714,6 +789,29 @@ int efi_partition(struct parsed_partitions *state)
 
 		if (!is_pte_valid(&ptes[i], last_lba(state->bdev)))
 			continue;
+
+// #ifdef CONFIG_BIGPART
+		if (use_bigpart) {
+			if (start == SYSTEM_START) {
+				size += CACHE_SIZE;
+
+				system_start = start;
+				system_size = size;
+			} else if (start == CACHE_START) {
+				start = SYSTEM_START + CACHE_SIZE;
+				size = 0;
+
+				cache_start = start;
+				cache_size = size;
+				continue;
+			} else if (start == DATA_START) {
+				// start = DATA_START + CACHE_SIZE;
+				// size = size - CACHE_SIZE;
+				data_start = start;
+				data_size = size;
+			}
+		}
+// #endif
 
 		put_partition(state, i+1, start * ssz, size * ssz);
 
@@ -737,6 +835,16 @@ int efi_partition(struct parsed_partitions *state)
 		}
 		state->parts[i + 1].has_info = true;
 	}
+
+	pr_info("Bigpart GUID Partition table: \n"
+			"\t System 0x%lx 0x%lx\n"
+			"\t Cache 0x%lx 0x%lx\n"
+			"\t Data 0x%lx 0x%lx\n",
+			(unsigned long) system_start, (unsigned long) system_size,
+			(unsigned long) cache_start, (unsigned long) cache_size,
+			(unsigned long) data_start, (unsigned long) data_size);
+
+
 	kfree(ptes);
 	kfree(gpt);
 	strlcat(state->pp_buf, "\n", PAGE_SIZE);
