@@ -4,16 +4,27 @@
 
 #define FLUSH_CLEAN_BY_SET_WAY_PAGE_THRESHOLD 8
 extern void __flush_dcache_page(struct address_space *, struct page *);
+extern void v7_clean_kern_cache_all(void);
 
 static inline void __flush_cache_all(void *info)
 {
 	flush_cache_all();
 }
 
+static inline void __clean_cache_all(void *info)
+{
+	v7_clean_kern_cache_all();
+}
+
 #if defined(CONFIG_NVMAP_CACHE_MAINT_BY_SET_WAYS)
 inline void inner_flush_cache_all(void)
 {
 	on_each_cpu(__flush_cache_all, NULL, 1);
+}
+
+inline void inner_clean_cache_all(void)
+{
+	on_each_cpu(__clean_cache_all, NULL, 1);
 }
 #endif
 
