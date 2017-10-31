@@ -1427,6 +1427,9 @@ static void mpu3050_dt_parse_slave_pdata(struct i2c_client *client,
 	if (of_irq_to_resource(of_node, 0, &r_irq))
 		slave_pdata->irq = r_irq.start;
 
+	if (!of_property_read_u32(of_node, "adap-num", &val))
+		slave_pdata->adapt_num = val;
+
 	if (of_find_property(of_node, "bus-primary", NULL))
 		slave_pdata->bus = EXT_SLAVE_BUS_PRIMARY;
 	else if (of_find_property(of_node, "bus-secondary", NULL))
