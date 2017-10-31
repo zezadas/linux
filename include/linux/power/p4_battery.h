@@ -12,6 +12,7 @@
 #ifndef _LINUX_P3_BATTERY_H
 #define _LINUX_P3_BATTERY_H
 
+#include <linux/regulator/consumer.h>
 
 extern int p3_low_batt_compensation(int fg_soc, int fg_vcell, int fg_current);
 extern void reset_low_batt_comp_cnt(void);
@@ -33,6 +34,8 @@ extern s16 stmpe811_adc_get_value(u8 channel);
 #endif
 
 struct max8903_charger_data {
+	struct regulator *regulator;
+
 	int enable_line;
 	int connect_line;
 	int fullcharge_line;

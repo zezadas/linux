@@ -1604,14 +1604,8 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 	int count;
 	int vol_1;
 	usb_path_type old_usb_sel_status;
-	struct regulator *reg = NULL;
+	struct regulator *reg = data->regulator;
 	int ret;
-
-	reg = regulator_get(NULL, "vdd_ldo6,vddio_vi,vdd_nct1008");
-	if (reg == NULL) {
-		pr_err("%s: error getting regulator vdd_ldo6\n", __func__);
-		return false;
-	}
 
 	/* when device wakes from suspend due to charger being plugged
 	 * in, this code runs before nct1008.c resume enables ldo6
@@ -1657,10 +1651,8 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 
 	p3_set_usb_path(data, old_usb_sel_status);
 
-	if (is_enabled == 0) {
+	if (is_enabled == 0)
 		regulator_disable(reg);
-		regulator_put(reg);
-	}
 
 	pr_info("%s: returning %d\n", __func__, result);
 	return result;
@@ -1706,6 +1698,7 @@ static int p3_bat_parse_dt(struct platform_device *pdev,
 	struct p3_battery_platform_data *pdata)
 {
 	struct device_node *of_node = pdev->dev.of_node;
+	struct regulator *regulator;
 	u32 val;
 
 	val = of_get_named_gpio(of_node, "enable-line", 0);
@@ -1756,6 +1749,13 @@ static int p3_bat_parse_dt(struct platform_device *pdev,
 	} else {
 		return val;
 	}
+
+	regulator = devm_regulator_get(&pdev->dev, "vcc");
+	if (IS_ERR(regulator))
+		return PTR_ERR(regulator);
+
+	pdata->charger.regulator = regulator;
+
 
 	if (!of_property_read_u32(of_node, "temp-high-threshold", &val))
 		pdata->temp_high_threshold = val;
