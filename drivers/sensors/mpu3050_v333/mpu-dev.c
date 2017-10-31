@@ -1136,7 +1136,7 @@ static const struct file_operations mpu_fops = {
 	.release = mpu_release,
 };
 
-static unsigned short normal_i2c[] = { I2C_CLIENT_END };
+static unsigned short normal_i2c[] = { 0x68, I2C_CLIENT_END };
 
 static struct miscdevice i2c_mpu_device = {
 	.minor = MISC_DYNAMIC_MINOR,
