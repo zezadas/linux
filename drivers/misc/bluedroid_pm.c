@@ -286,7 +286,7 @@ static int bluedroid_pm_probe(struct platform_device *pdev)
 	bluedroid_pm->clk = devm_clk_get(bluedroid_pm->dev, "uartc");
 	if (IS_ERR(bluedroid_pm->clk)) {
 		dev_info(bluedroid_pm->dev, "not using uartc clock\n");
-		// return PTR_ERR(bluedroid_pm->clk);
+		bluedroid_pm->clk = NULL;
 	}
 
 
