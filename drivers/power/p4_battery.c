@@ -176,6 +176,15 @@ extern int stmpe_probed;
 static bool check_samsung_charger(struct max8903_charger_data *data);
 #endif
 
+static inline bool charger_connected(struct battery_data *battery)
+{
+	bool res = battery->info.charging_source == CHARGER_AC ||
+		(battery->info.charging_source == CHARGER_USB &&
+		battery->info.force_usb_charging);
+	dev_dbg(battery->dev, "%s=%d\n", __func__, res);
+	return res;
+}
+
 static int check_ta_conn(struct battery_data *battery)
 {
 	u32 value;
@@ -446,9 +455,7 @@ static int p3_get_bat_level(struct power_supply *bat_ps)
 	/* Algorithm for reducing time to fully charged (from MAXIM) */
 	if (battery->info.charging_enabled &&  /* Charging is enabled */
 		!battery->info.batt_is_recharging &&  /* Not Recharging */
-		(battery->info.charging_source == CHARGER_AC ||
-		(battery->info.charging_source == CHARGER_USB &&
-		battery->info.force_usb_charging)) &&
+		charger_connected(battery) &&
 		!battery->is_first_check &&  /* Skip first check */
 		(fg_vfsoc>70 && (fg_current>20 && fg_current<250) &&
 		(avg_current>20 && avg_current<260))) {
@@ -466,10 +473,7 @@ static int p3_get_bat_level(struct power_supply *bat_ps)
 	else
 		battery->full_check_flag = 0;
 
-	if ((battery->info.charging_source == CHARGER_AC ||
-	   (battery->info.charging_source == CHARGER_USB &&
-	    battery->info.force_usb_charging)) &&
-		battery->info.batt_improper_ta == 0) {
+	if (charger_connected(battery) && battery->info.batt_improper_ta == 0) {
 		if (is_over_abs_time(battery)) {
 			/* fg_soc = 100; */
 			/* battery->info.batt_is_full = 1; */
@@ -2039,12 +2043,10 @@ static int p3_bat_probe(struct platform_device *pdev)
 	p3_cable_check_status(battery);
 
 	/* before enable fullcharge interrupt, check fullcharge */
-	if ((battery->info.charging_source == CHARGER_AC ||
-	   (battery->info.charging_source == CHARGER_USB &&
-            battery->info.force_usb_charging))
-		&& battery->info.charging_enabled
-		&& gpio_get_value(pdata->charger.fullcharge_line) == 1)
+	if (charger_connected(battery) && battery->info.charging_enabled
+			&& gpio_get_value(pdata->charger.fullcharge_line) == 1) {
 		p3_cable_charging(battery);
+	}
 
 	/* Request IRQ */
 	irq_num = gpio_to_irq(pdata->charger.alert_line);
