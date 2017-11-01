@@ -1098,6 +1098,8 @@
 		charge-duration = <36000>;
 		recharge-duration = <5400>;
 		recharge-voltage = <4150>;
+
+		force-usb-charging;
 	};
 
 	gpio-keys {
