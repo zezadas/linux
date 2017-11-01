@@ -2047,7 +2047,7 @@ static int p3_bat_probe(struct platform_device *pdev)
 		p3_cable_charging(battery);
 
 	/* Request IRQ */
-	irq_num = gpio_to_irq(max17042_chip_data->pdata->fuel_alert_line);
+	irq_num = gpio_to_irq(pdata->charger.alert_line);
 		if (request_irq(irq_num, low_battery_isr,
 			IRQF_TRIGGER_FALLING, "FUEL_ALRT irq", battery))
 			pr_err("Can NOT request irq 'IRQ_FUEL_ALERT' %d ",
@@ -2095,7 +2095,7 @@ static int p3_bat_remove(struct platform_device *pdev)
 {
 	struct battery_data *battery = platform_get_drvdata(pdev);
 
-	free_irq(gpio_to_irq(max17042_chip_data->pdata->fuel_alert_line), NULL);
+	free_irq(gpio_to_irq(battery->pdata->charger.alert_line), NULL);
 	free_irq(gpio_to_irq(battery->pdata->charger.connect_line), NULL);
 
 	hrtimer_cancel(&battery->hrtimer);
