@@ -941,6 +941,15 @@ p3_attrs_failed:
 	return rc;
 }
 
+static int p3_bat_remove_attrs(struct device *dev)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(p3_battery_attrs); i++)
+		device_remove_file(dev, &p3_battery_attrs[i]);
+	return 0;
+}
+
 static ssize_t p3_bat_show_property(struct device *dev,
 			struct device_attribute *attr,
 			char *buf)
@@ -1929,19 +1938,6 @@ static int p3_bat_probe(struct platform_device *pdev)
 	battery->info.abstimer_is_active = 0;
 	battery->is_first_check = true;
 
-
-	battery->psy_battery = power_supply_register(&pdev->dev,
-		&psy_battery_desc, &psy_battery_cfg);
-	battery->psy_battery->drv_data = battery;
-
-	battery->psy_usb = power_supply_register(&pdev->dev,
-		&psy_usb_desc, &psy_usb_cfg);
-	battery->psy_usb->drv_data = battery;
-
-	battery->psy_ac = power_supply_register(&pdev->dev,
-		&psy_ac_desc, &psy_ac_cfg);
-	battery->psy_ac->drv_data = battery;
-
 	mutex_init(&battery->work_lock);
 
 	wakeup_source_init(&battery->vbus_wake_source, "vbus wake lock");
@@ -1988,23 +1984,32 @@ static int p3_bat_probe(struct platform_device *pdev)
 	hrtimer_init(&battery->hrtimer, CLOCK_BOOTTIME, HRTIMER_MODE_ABS);
 	battery->hrtimer.function = &p3_battery_alarm;
 
-	// ret = power_supply_register(&pdev->dev, &battery->psy_battery);
-	// if (ret) {
-	// 	pr_err("Failed to register battery power supply.\n");
-	// 	goto err_battery_psy_register;
-	// }
+	battery->psy_battery = power_supply_register(&pdev->dev,
+		&psy_battery_desc, &psy_battery_cfg);
+	if (IS_ERR(battery->psy_battery)) {
+		pr_err("Failed to register battery power supply.\n");
+		ret = PTR_ERR(battery->psy_battery);
+		goto err_battery_psy_register;
+	}
+	battery->psy_battery->drv_data = battery;
 
-	// ret = power_supply_register(&pdev->dev, &battery->psy_usb);
-	// if (ret) {
-	// 	pr_err("Failed to register USB power supply.\n");
-	// 	goto err_usb_psy_register;
-	// }
+	battery->psy_usb = power_supply_register(&pdev->dev,
+		&psy_usb_desc, &psy_usb_cfg);
+	if (IS_ERR(battery->psy_usb)) {
+		pr_err("Failed to register usb power supply.\n");
+		ret = PTR_ERR(battery->psy_usb);
+		goto err_usb_psy_register;
+	}
+	battery->psy_usb->drv_data = battery;
 
-	// ret = power_supply_register(&pdev->dev, &battery->psy_ac);
-	// if (ret) {
-	// 	pr_err("Failed to register AC power supply.\n");
-	// 	goto err_ac_psy_register;
-	// }
+	battery->psy_ac = power_supply_register(&pdev->dev,
+		&psy_ac_desc, &psy_ac_cfg);
+	if (IS_ERR(battery->psy_ac)) {
+		pr_err("Failed to register ac power supply.\n");
+		ret = PTR_ERR(battery->psy_ac);
+		goto err_ac_psy_register;
+	}
+	battery->psy_ac->drv_data = battery;
 
 	/* create sec detail attributes */
 	p3_bat_create_attrs(&battery->psy_battery->dev);
@@ -2018,7 +2023,7 @@ static int p3_bat_probe(struct platform_device *pdev)
 
 	ret = init_extcon_dev(pdev);
 	if (ret < 0)
-		goto err_workqueue_init;
+		goto err_init_extcon_dev;
 
 	battery->connect_irq = gpio_to_irq(pdata->charger.connect_line);
 	if (check_ta_conn(battery))
@@ -2078,19 +2083,21 @@ static int p3_bat_probe(struct platform_device *pdev)
 	return 0;
 
 err_charger_irq:
-	hrtimer_cancel(&battery->hrtimer);
+	deinit_extcon_dev(pdev);
+err_init_extcon_dev:
+	p3_bat_remove_attrs(&battery->psy_battery->dev);
 	power_supply_unregister(battery->psy_ac);
 err_ac_psy_register:
 	power_supply_unregister(battery->psy_usb);
 err_usb_psy_register:
 	power_supply_unregister(battery->psy_battery);
 err_battery_psy_register:
+	hrtimer_cancel(&battery->hrtimer);
 	destroy_workqueue(battery->p3_TA_workqueue);
 #ifdef CONFIG_TARGET_LOCALE_KOR
 	destroy_workqueue(battery->low_bat_comp_workqueue);
 #endif
 err_workqueue_init:
-	deinit_extcon_dev(pdev);
 	wakeup_source_trash(&battery->vbus_wake_source);
 	wakeup_source_trash(&battery->work_wake_source);
 	wakeup_source_trash(&battery->cable_wake_source);
@@ -2100,6 +2107,7 @@ err_workqueue_init:
 #endif
 	mutex_destroy(&battery->work_lock);
 	kfree(battery);
+	kfree(pdev);
 
 	return ret;
 }
