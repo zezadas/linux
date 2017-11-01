@@ -1547,9 +1547,6 @@ static int parse_dt(struct max17042_chip *chip, struct device_node *of_node)
 	if (!of_property_read_u32(of_node, "atl-vfcapacity", &val))
 		pdata->atl_vfcapacity = val;
 
-	if (!of_property_read_u32(of_node, "fuel-alert-line", &val))
-		pdata->fuel_alert_line = val;
-
 	return err;
 }
 

@@ -72,7 +72,6 @@ struct max17042_platform_data {
 	int sdi_vfcapacity;
 	int atl_capacity;
 	int atl_vfcapacity;
-	int fuel_alert_line;
 };
 
 struct fuelgauge_info {
