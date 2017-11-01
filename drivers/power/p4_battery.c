@@ -1702,6 +1702,7 @@ static int p3_bat_parse_dt(struct platform_device *pdev,
 	struct p3_battery_platform_data *pdata)
 {
 	struct device_node *of_node = pdev->dev.of_node;
+	struct battery_data *battery = platform_get_drvdata(pdev);
 	struct regulator *regulator;
 	u32 val;
 
@@ -1781,6 +1782,9 @@ static int p3_bat_parse_dt(struct platform_device *pdev,
 
 	if (!of_property_read_u32(of_node, "recharge-voltage", &val))
 		pdata->recharge_voltage = val;
+
+	battery->info.force_usb_charging =
+		of_property_read_bool(of_node, "force-usb-charging");
 
 	pr_debug("%s: enable_line=<%d>\n", __func__, pdata->charger.enable_line);
 	pr_debug("%s: connect_line=<%d>\n", __func__, pdata->charger.connect_line);
@@ -1886,10 +1890,22 @@ static int p3_bat_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+	battery = kzalloc(sizeof(*battery), GFP_KERNEL);
+	if (!battery) {
+		pr_err("%s: failed to allocate battery_data.\n", __func__);
+		kfree(pdata);
+		return -ENOMEM;
+	}
+
+	battery->dev = &pdev->dev;
+	battery->pdata = pdata;
+	platform_set_drvdata(pdev, battery);
+
 #ifdef CONFIG_OF
 	ret = p3_bat_parse_dt(pdev, pdata);
 	if (ret < 0) {
 		pr_info("%s error parsing device tree node.\n", __func__);
+		kfree(battery);
 		kfree(pdata);
 		return ret;
 	}
@@ -1899,16 +1915,11 @@ static int p3_bat_probe(struct platform_device *pdev)
 	p3_bat_gpio_init(&pdata->charger);
 	ret = p3_usb_path_init(&pdata->charger);
 	if (ret < 0) {
+		kfree(battery);
+		kfree(pdata);
 		return ret;
 	}
 
-	battery = kzalloc(sizeof(*battery), GFP_KERNEL);
-	if (!battery)
-		return -ENOMEM;
-
-	battery->pdata = pdata;
-
-	platform_set_drvdata(pdev, battery);
 	test_batterydata = battery;
 
 	battery->present = 1;
