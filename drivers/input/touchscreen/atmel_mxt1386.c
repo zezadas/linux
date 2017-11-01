@@ -3203,16 +3203,14 @@ static void mxt_late_resume(struct mxt_data *mxt)
 
 static void mxt_suspend_hw(struct mxt_data *mxt)
 {
-	gpiod_direction_output(mxt->touch_rst, 0);
-	gpiod_direction_output(mxt->touch_int, 0);
 	gpiod_direction_output(mxt->touch_en, 0);
+	gpiod_direction_output(mxt->touch_rst, 0);
 }
 
 static void mxt_resume_hw(struct mxt_data *mxt)
 {
 	gpiod_direction_output(mxt->touch_rst, 1);
 	gpiod_direction_output(mxt->touch_en, 1);
-	gpiod_direction_input(mxt->touch_int);
 	msleep(120);
 }
 
