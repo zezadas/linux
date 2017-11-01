@@ -16,12 +16,12 @@ static inline void __clean_cache_all(void *info)
 	v7_clean_kern_cache_all();
 }
 
-#if defined(CONFIG_NVMAP_CACHE_MAINT_BY_SET_WAYS)
 inline void inner_flush_cache_all(void)
 {
 	on_each_cpu(__flush_cache_all, NULL, 1);
 }
 
+#if defined(CONFIG_NVMAP_CACHE_MAINT_BY_SET_WAYS)
 inline void inner_clean_cache_all(void)
 {
 	on_each_cpu(__clean_cache_all, NULL, 1);
