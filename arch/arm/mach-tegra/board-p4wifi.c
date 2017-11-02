@@ -452,6 +452,12 @@ static int p3_notifier_call(struct notifier_block *notifier,
 	return NOTIFY_DONE;
 }
 
+void write_bootloader_recovery(void)
+{
+	write_bootloader_message("recovery", REBOOT_MODE_RECOVERY);
+}
+EXPORT_SYMBOL(write_bootloader_recovery);
+
 static struct notifier_block p3_reboot_notifier = {
 	.notifier_call = p3_notifier_call,
 	.priority = INT_MAX,
