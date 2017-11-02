@@ -32,6 +32,15 @@
 		reg = <0x20000000 0x20000000>;
 	};
 
+	ramoops {
+		compatible = "ramoops";
+		memory-region = <&pstore>;
+		record-size	= <0x0 0x00020000>;
+		console-size	= <0x0 0x00020000>;
+		ftrace-size	= <0x0 0x00020000>;
+		pmsg-size	= <0x0 0x00020000>;
+	};
+
 	reserved-memory {
 		#address-cells = <1>;
 		#size-cells = <1>;
@@ -66,6 +75,11 @@
 
 		android_logger: ram-console@2E600000 {
 			reg = <0x2E600000 0x00100000>;
+			no-map;
+		};
+
+		pstore: ram-console@2E500000 {
+			reg = <0x2E500000 0x00100000>;
 			no-map;
 		};
 
