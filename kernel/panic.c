@@ -46,6 +46,10 @@ ATOMIC_NOTIFIER_HEAD(panic_notifier_list);
 
 EXPORT_SYMBOL(panic_notifier_list);
 
+#if defined(CONFIG_MACH_SAMSUNG_P4WIFI)
+extern void write_bootloader_recovery(void);
+#endif
+
 static long no_blink(int state)
 {
 	return 0;
@@ -137,6 +141,10 @@ void panic(const char *fmt, ...)
 	int state = 0;
 	int old_cpu, this_cpu;
 	bool _crash_kexec_post_notifiers = crash_kexec_post_notifiers;
+
+#if defined(CONFIG_MACH_SAMSUNG_P4WIFI)
+	write_bootloader_recovery();
+#endif
 
 	/*
 	 * Disable local interrupts. This will prevent panic_smp_self_stop
