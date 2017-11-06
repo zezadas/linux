@@ -56,6 +56,14 @@
 #define NVMAP_NUM_PTES		64
 #define NVMAP_CARVEOUT_KILLER_RETRY_TIME 100 /* msecs */
 
+#if defined(CONFIG_ANDROID)
+/*
+ * Android user ids are defined in framework file
+ * android_filesystem_config.h
+ */
+#define AID_APP_START 10000
+#endif
+
 #ifdef CONFIG_NVMAP_CARVEOUT_KILLER
 static bool carveout_killer = true;
 #else
@@ -433,6 +441,10 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node, size_t requested_si
 		if (sig->oom_score_adj == selected_oom_adj &&
 		    size <= selected_size)
 			goto end;
+#if defined(CONFIG_ANDROID)
+		if (task_euid(task).val < AID_APP_START)
+			goto end;
+#endif
 
 		if (size > selected_size) {
 			selected_oom_adj = sig->oom_score_adj;
