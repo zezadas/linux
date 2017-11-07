@@ -670,6 +670,87 @@ static int find_valid_gpt(struct parsed_partitions *state, gpt_header **gpt,
         return 0;
 }
 
+#ifdef CONFIG_BIGSYS
+#define SYSTEM_LABEL    "AP"
+#define CACHE_LABEL     "CC"
+#define DATA_LABEL      "UA"
+
+// MAG4FA
+// #define SYSTEM_START    0x11c00
+// #define CACHE_START     0x132c00
+// #define DATA_START      0x219c00
+
+// SEM16G
+// #define SYSTEM_START    0x11400
+// #define CACHE_START     0x132400
+// #define DATA_START      0x219400
+
+#define SYSTEM_SIZE     0x121000
+#define CACHE_SIZE      0xe0000
+
+
+static void get_partition_label(struct partition_meta_info *info, gpt_entry *pte,
+	char *buf, size_t buf_sz)
+{
+	u32 j;
+	// char buf[2];
+	// struct partition_meta_info *info = &state->parts[i + 1].info;
+	unsigned label_max = min(sizeof(info->volname) - 1,
+			sizeof(pte->partition_name));
+
+	for (j = 0; j < buf_sz && j < label_max; j++) {
+		u8 c = pte->partition_name[j] & 0xff;
+		buf[j] = c;
+	}
+}
+
+static inline bool label_equals(const char *buf, size_t buf_sz, const char* label)
+{
+	return strncmp(label, buf, buf_sz) == 0;
+}
+
+/**
+ * Validate for expected partition table.
+ * Expect that the cache partition is adjacent to system partition.
+ */
+static int validate_partition_layout(u64 system_start, u64 system_size,
+	u64 cache_start, u64 cache_size,
+	u64 data_start, u64 data_size)
+{
+	bool valid = false;
+
+	if (!system_size || !cache_size || !data_size ||
+		!system_start || !cache_start || !data_start) {
+		pr_err("%s: unexpected: system_size=%llu, cache_size=%llu, data_size=%llu\n",
+			__func__, system_size, cache_size, data_size);
+		pr_err("%s: unexpected: system_start=%llu, cache_start=%llu, data_start=%llu\n",
+			__func__, system_start, cache_start, data_start);
+		return false;
+	}
+
+	if (data_start < cache_start) {
+		pr_err("%s: unexpected: data_start(%llu) is less than cache_start=(%llu)\n",
+			__func__, data_start, cache_start);
+		return false;
+	}
+
+	if (cache_start < system_start) {
+		pr_err("%s: unexpected: cache_start(%llu) is less than system_start=(%llu)\n",
+			__func__, cache_start, system_start);
+		return false;
+	}
+
+	if (system_size == SYSTEM_SIZE && cache_size == CACHE_SIZE &&
+			(system_start + system_size) == cache_start &&
+			// extra sanity check
+			(system_start + system_size + cache_size) <= data_start)
+	{
+		valid = true;
+	}
+	return valid;
+}
+#endif /* CONFIG_BIGSYS */
+
 /**
  * efi_partition(struct parsed_partitions *state)
  * @state: disk parsed partitions
@@ -695,6 +776,17 @@ int efi_partition(struct parsed_partitions *state)
 	gpt_entry *ptes = NULL;
 	u32 i;
 	unsigned ssz = bdev_logical_block_size(state->bdev) / 512;
+#ifdef CONFIG_BIGSYS
+	int use_bigsys = 0;
+	u64 system_start = 0;
+	u64 system_size = 0;
+	u64 cache_start = 0;
+	u64 cache_size = 0;
+	u64 data_start = 0;
+	u64 data_size = 0;
+	char buf[2];
+	size_t buf_sz = sizeof(buf);
+#endif /* CONFIG_BIGSYS */
 
 	if (!find_valid_gpt(state, &gpt, &ptes) || !gpt || !ptes) {
 		kfree(gpt);
@@ -703,6 +795,48 @@ int efi_partition(struct parsed_partitions *state)
 	}
 
 	pr_debug("GUID Partition Table is valid!  Yea!\n");
+
+#ifdef CONFIG_BIGSYS
+	// Prepare for BigSys
+	pr_info("GUID Partition Table entries: %d\n",
+		le32_to_cpu(gpt->num_partition_entries));
+	for (i = 0; i < le32_to_cpu(gpt->num_partition_entries) && i < state->limit-1; i++) {
+		struct partition_meta_info *info = &state->parts[i + 1].info;
+		u64 start = le64_to_cpu(ptes[i].starting_lba);
+		u64 size = le64_to_cpu(ptes[i].ending_lba) -
+			   le64_to_cpu(ptes[i].starting_lba) + 1ULL;
+
+		get_partition_label(info, &ptes[i], buf, buf_sz);
+
+		if (label_equals(buf, buf_sz, SYSTEM_LABEL)) {
+			system_start = start;
+			system_size = size;
+		} else if (label_equals(buf, buf_sz, CACHE_LABEL)) {
+			cache_start = start;
+			cache_size = size;
+		} else if (label_equals(buf, buf_sz, DATA_LABEL)) {
+			data_start = start;
+			data_size = size;
+		}
+	}
+
+	pr_info("\tstart - end = size\n");
+	pr_info("Original GUID Partition table:\n");
+	pr_info("\t System 0x%lx 0x%lx\n",
+		(unsigned long) system_start, (unsigned long) system_size);
+	pr_info("\t Cache 0x%lx 0x%lx\n",
+		(unsigned long) cache_start, (unsigned long) cache_size);
+	pr_info("\t Data 0x%lx 0x%lx\n",
+		(unsigned long) data_start, (unsigned long) data_size);
+
+	use_bigsys = validate_partition_layout(system_start, system_size,
+		cache_start, cache_size, data_start, data_size);
+	if (use_bigsys)
+		pr_info("Using BigSys partition table.");
+	else
+		pr_err("Original GUID Partition table is not valid. "
+			"NOT using BigSys");
+#endif /* CONFIG_BIGSYS */
 
 	for (i = 0; i < le32_to_cpu(gpt->num_partition_entries) && i < state->limit-1; i++) {
 		struct partition_meta_info *info;
@@ -714,6 +848,33 @@ int efi_partition(struct parsed_partitions *state)
 
 		if (!is_pte_valid(&ptes[i], last_lba(state->bdev)))
 			continue;
+
+#ifdef CONFIG_BIGSYS
+		if (use_bigsys) {
+			get_partition_label(info, &ptes[i], buf, buf_sz);
+
+			if (start == system_start &&
+					label_equals(buf, buf_sz, SYSTEM_LABEL)) {
+				// Append cache partition to system partition
+				size += CACHE_SIZE;
+				system_start = start;
+				system_size = size;
+			} else if (start == cache_start &&
+					label_equals(buf, buf_sz, CACHE_LABEL)) {
+				// Skip the cache partition.
+				start = system_start;
+				size = 0;
+				cache_start = start;
+				cache_size = size;
+
+				continue;
+			} else if (start == data_start &&
+					label_equals(buf, buf_sz, DATA_LABEL)) {
+				data_start = start;
+				data_size = size;
+			}
+		}
+#endif /* CONFIG_BIGSYS */
 
 		put_partition(state, i+1, start * ssz, size * ssz);
 
@@ -737,6 +898,19 @@ int efi_partition(struct parsed_partitions *state)
 		}
 		state->parts[i + 1].has_info = true;
 	}
+
+#ifdef CONFIG_BIGSYS
+	if (use_bigsys) {
+		pr_info("BigSys GUID Partition table: \n");
+		pr_info("\t System 0x%lx 0x%lx\n",
+			(unsigned long) system_start, (unsigned long) system_size);
+		pr_info("\t Cache 0x%lx 0x%lx\n",
+			(unsigned long) cache_start, (unsigned long) cache_size);
+		pr_info("\t Data 0x%lx 0x%lx\n",
+			(unsigned long) data_start, (unsigned long) data_size);
+	}
+#endif /* CONFIG_BIGSYS */
+
 	kfree(ptes);
 	kfree(gpt);
 	strlcat(state->pp_buf, "\n", PAGE_SIZE);
