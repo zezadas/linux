@@ -268,3 +268,11 @@ config CMDLINE_PARTITION
 	help
 	  Say Y here if you want to read the partition table from bootargs.
 	  The format for the command line is just like mtdparts.
+
+config BIGSYS
+	bool "Big System repartition support"
+	depends on EFI_PARTITION
+	help
+	  Say Y here if you would like to repartition the Samsung
+	  Galaxy Tab 10.1. The system and cache partition are combined
+	  into one large system partition.
