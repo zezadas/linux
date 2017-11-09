@@ -103,9 +103,9 @@ void tegra_dc_clk_enable(struct tegra_dc *dc)
 		clk_prepare_enable(dc->clk);
 		// tegra_dvfs_set_rate(dc->clk, dc->mode.pclk);
 
-		if (cmc623_current_type == 0) {
+		if (cmc623_current_type == cmc623_type_lsi) {
 			tegra_dvfs_set_rate(dc->clk, CMC623_CLK_RATE);
-		} else if (cmc623_current_type == 1) {
+		} else if (cmc623_current_type == cmc623_type_fujitsu) {
 			tegra_dvfs_set_rate(dc->clk, CMC623F_CLK_RATE);
 		}
 	}
@@ -749,6 +749,11 @@ void tegra_dc_set_out_pin_polars(struct tegra_dc *dc,
 
 static struct tegra_dc_mode *tegra_dc_get_override_mode(struct tegra_dc *dc)
 {
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+	if (dc->out->type == TEGRA_DC_OUT_RGB) {
+		return &dc->out->modes[cmc623_current_type];
+	}
+#endif
 	if (dc->out->type == TEGRA_DC_OUT_RGB ||
 		dc->out->type == TEGRA_DC_OUT_HDMI ||
 		dc->out->type == TEGRA_DC_OUT_DSI)
@@ -768,11 +773,7 @@ static void tegra_dc_set_out(struct tegra_dc *dc, struct tegra_dc_out *out)
 	if (mode)
 		tegra_dc_set_mode(dc, mode);
 	else if (out->n_modes > 0)
-#ifndef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 		tegra_dc_set_mode(dc, &dc->out->modes[0]);
-#else
-		tegra_dc_set_mode(dc, &dc->out->modes[cmc623_current_type]);
-#endif
 
 	switch (out->type) {
 	case TEGRA_DC_OUT_RGB:
