@@ -69,8 +69,6 @@ struct nvhost_intr {
 	struct nvhost_intr_syncpt *syncpt;
 	struct mutex mutex;
 	int host_general_irq;
-	bool host_general_irq_requested;
-	bool syncpt_irq_requested;
 	int syncpt_irq;
 	struct workqueue_struct *wq;
 };

@@ -325,13 +325,11 @@ int nvhost_intr_init(struct nvhost_intr *intr, u32 irq_gen, u32 irq_sync)
 
 	mutex_init(&intr->mutex);
 	intr->syncpt_irq = irq_sync;
-	intr->syncpt_irq_requested = false;
 	intr->wq = create_workqueue("host_syncpt");
 	if (!intr->wq)
 		return -ENOMEM;
 	intr_op().init_host_sync(intr);
 	intr->host_general_irq = irq_gen;
-	intr->host_general_irq_requested = false;
 
 	for (id = 0, syncpt = intr->syncpt;
 	     id < nb_pts;
