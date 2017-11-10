@@ -30,8 +30,6 @@
 /* Spacing between sync registers */
 #define REGISTER_STRIDE 4
 
-/*** HW host sync management ***/
-
 static void t20_intr_syncpt_thresh_isr(struct nvhost_intr_syncpt *syncpt);
 
 static void t20_syncpt_thresh_cascade_fn(struct work_struct *work)
@@ -64,7 +62,7 @@ static irqreturn_t t20_syncpt_thresh_cascade_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void t20_request_syncpt_irq(struct nvhost_intr *intr)
+static void t20_intr_init_host_sync(struct nvhost_intr *intr)
 {
 	struct nvhost_master *dev = intr_to_dev(intr);
 	void __iomem *sync_regs = dev->sync_aperture;
@@ -266,7 +264,7 @@ static void t20_intr_free_host_general_irq(struct nvhost_intr *intr)
 }
 
 static const struct nvhost_intr_ops host1x_intr_ops = {
-	.request_syncpt_irq = t20_request_syncpt_irq,
+	.init_host_sync = t20_intr_init_host_sync,
 	.free_syncpt_irq = t20_free_syncpt_irq,
 	.set_host_clocks_per_usec = t20_intr_set_host_clocks_per_usec,
 	.set_syncpt_threshold = t20_intr_set_syncpt_threshold,
