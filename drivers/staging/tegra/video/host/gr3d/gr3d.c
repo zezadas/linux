@@ -226,9 +226,8 @@ static int gr3d_probe(struct nvhost_device *dev,
 	err = nvhost_client_device_init(dev);
 	if (!err) {
 		reset_control_assert(dev->rst);
-		usleep_range(500, 1000);
+		usleep_range(1000, 2000);
 		reset_control_deassert(dev->rst);
-		usleep_range(500, 1000);
 	}
 
 	return err;
