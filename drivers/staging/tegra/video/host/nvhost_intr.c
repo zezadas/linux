@@ -329,6 +329,7 @@ int nvhost_intr_init(struct nvhost_intr *intr, u32 irq_gen, u32 irq_sync)
 	intr->wq = create_workqueue("host_syncpt");
 	if (!intr->wq)
 		return -ENOMEM;
+	intr_op().init_host_sync(intr);
 	intr->host_general_irq = irq_gen;
 	intr->host_general_irq_requested = false;
 
@@ -352,13 +353,13 @@ void nvhost_intr_deinit(struct nvhost_intr *intr)
 
 void nvhost_intr_start(struct nvhost_intr *intr, u32 hz)
 {
-	BUG_ON(!(intr_op().request_syncpt_irq &&
+	BUG_ON(!(intr_op().init_host_sync &&
 		 intr_op().set_host_clocks_per_usec &&
 		 intr_op().request_host_general_irq));
 
 	mutex_lock(&intr->mutex);
 
-	intr_op().request_syncpt_irq(intr);
+	intr_op().init_host_sync(intr);
 	intr_op().set_host_clocks_per_usec(intr,
 					       (hz + 1000000 - 1)/1000000);
 
