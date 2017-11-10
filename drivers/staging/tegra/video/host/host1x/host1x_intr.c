@@ -68,9 +68,6 @@ static void t20_intr_init_host_sync(struct nvhost_intr *intr)
 	void __iomem *sync_regs = dev->sync_aperture;
 	int i, err;
 
-	if (intr->syncpt_irq_requested)
-		return;
-
 	writel(0xffffffffUL,
 	       sync_regs + host1x_sync_syncpt_thresh_int_disable_r());
 	writel(0xffffffffUL,
@@ -92,17 +89,6 @@ static void t20_intr_init_host_sync(struct nvhost_intr *intr)
 	 * otherwise on ap20.
 	 */
 	writel(0xff, sync_regs + host1x_sync_ctxsw_timeout_cfg_r());
-
-	intr->syncpt_irq_requested = true;
-}
-
-static void t20_free_syncpt_irq(struct nvhost_intr *intr)
-{
-	if (intr->syncpt_irq_requested) {
-		free_irq(intr->syncpt_irq, intr);
-		flush_workqueue(intr->wq);
-		intr->syncpt_irq_requested = false;
-	}
 }
 
 static void t20_intr_set_host_clocks_per_usec(struct nvhost_intr *intr, u32 cpm)
@@ -218,9 +204,6 @@ static int t20_intr_request_host_general_irq(struct nvhost_intr *intr)
 	void __iomem *sync_regs = intr_to_dev(intr)->sync_aperture;
 	int err;
 
-	if (intr->host_general_irq_requested)
-		return 0;
-
 	/* master disable for general (not syncpt) host interrupts */
 	writel(0, sync_regs + host1x_sync_intmask_r());
 
@@ -245,22 +228,24 @@ static int t20_intr_request_host_general_irq(struct nvhost_intr *intr)
 	/* master enable for general (not syncpt) host interrupts */
 	writel(BIT(0), sync_regs + host1x_sync_intmask_r());
 
-	intr->host_general_irq_requested = true;
-
 	return err;
 }
 
 static void t20_intr_free_host_general_irq(struct nvhost_intr *intr)
 {
-	if (intr->host_general_irq_requested) {
-		void __iomem *sync_regs = intr_to_dev(intr)->sync_aperture;
+	void __iomem *sync_regs = intr_to_dev(intr)->sync_aperture;
 
-		/* master disable for general (not syncpt) host interrupts */
-		writel(0, sync_regs + host1x_sync_intmask_r());
+	/* master disable for general (not syncpt) host interrupts */
+	writel(0, sync_regs + host1x_sync_intmask_r());
 
-		free_irq(intr->host_general_irq, intr);
-		intr->host_general_irq_requested = false;
-	}
+	free_irq(intr->host_general_irq, intr);
+}
+
+
+static void t20_free_syncpt_irq(struct nvhost_intr *intr)
+{
+	free_irq(intr->syncpt_irq, intr);
+	flush_workqueue(intr->wq);
 }
 
 static const struct nvhost_intr_ops host1x_intr_ops = {
