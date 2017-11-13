@@ -6235,8 +6235,16 @@ dhd_dpc_thread(void *data)
 	if (dhd_dpc_prio > 0)
 	{
 		struct sched_param param;
+#if defined(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)
+		// HACK: lower priority of mmc0 (wifi) irq
+		// To prevent it from monopolizing resources.
+		param.sched_priority = 20;
+		current->static_prio = DEFAULT_PRIO + 5; // task nice value
+		setScheduler(current, SCHED_NORMAL, &param);
+#else
 		param.sched_priority = (dhd_dpc_prio < MAX_RT_PRIO)?dhd_dpc_prio:(MAX_RT_PRIO-1);
 		setScheduler(current, SCHED_FIFO, &param);
+#endif
 	}
 
 #if defined(ARGOS_CPU_SCHEDULER) && defined(CONFIG_SCHED_HMP) && \
