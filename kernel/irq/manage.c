@@ -1092,7 +1092,19 @@ setup_irq_thread(struct irqaction *new, unsigned int irq, bool secondary)
 	if (IS_ERR(t))
 		return PTR_ERR(t);
 
+#if defined(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)
+	// HACK: lower priority of mmc0 (wifi) irq
+	// To prevent it from monopolizing resources.
+	if (irq == 288) {
+		param.sched_priority = 20;
+		t->static_prio = DEFAULT_PRIO + 5; // task nice value
+		sched_setscheduler_nocheck(t, SCHED_NORMAL, &param);
+	} else {
+		sched_setscheduler_nocheck(t, SCHED_FIFO, &param);
+	}
+#else
 	sched_setscheduler_nocheck(t, SCHED_FIFO, &param);
+#endif
 
 	/*
 	 * We keep the reference to the task struct even if
