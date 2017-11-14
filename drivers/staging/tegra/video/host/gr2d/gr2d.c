@@ -18,13 +18,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <linux/slab.h>
+#include <linux/reset.h>
+#include <linux/delay.h>
+
 #include "dev.h"
 #include "bus_client.h"
 
 static int gr2d_probe(struct nvhost_device *dev,
 	struct nvhost_device_id *id_table)
 {
-	return nvhost_client_device_init(dev);
+	int err;
+
+	dev->rst = devm_reset_control_get(&dev->dev, "2d");
+	if (IS_ERR(dev->rst)) {
+		dev_err(&dev->dev, "failed to get reset\n");
+		return PTR_ERR(dev->rst);
+	}
+
+	err = nvhost_client_device_init(dev);
+	if (!err) {
+		dev_info(&dev->dev, "assert reset.\n");
+		err = reset_control_assert(dev->rst);
+		if (err) {
+			dev_err(&dev->dev, "failed to assert reset. err=%d\n", err);
+			return err;
+		}
+		usleep_range(1000, 2000);
+		err = reset_control_deassert(dev->rst);
+		if (err) {
+			dev_err(&dev->dev, "failed to deassert reset. err=%d\n", err);
+			return err;
+		}
+	}
+
+	return err;
 }
 
 static int __exit gr2d_remove(struct nvhost_device *dev)
