@@ -19,6 +19,7 @@
 #include <linux/workqueue.h>
 #include <linux/regulator/consumer.h>
 #include <linux/clk-provider.h>
+#include <linux/debugfs.h>
 
 #include <soc/tegra/fuse.h>
 
@@ -157,6 +158,8 @@ static struct dvfs_client dvfs_core_clients[] = {
 
 DVFS(cpu, dvfs_cpu_clients);
 DVFS(core, dvfs_core_clients);
+
+struct dentry *debugfs_file = NULL;
 
 static void dvfs_update_cpu_voltage(int new_uV)
 {
@@ -610,6 +613,37 @@ static void dvfs_stop_locked(void)
 
 extern int tegradc_probed;
 
+static int attr_registers_show(struct seq_file *s, void *data)
+{
+	struct dvfs_client *client;
+
+	seq_printf(s, "CPU voltage = %dmV\n", regulator_get_voltage(cpu_reg)/1000);
+	seq_printf(s, "RTC voltage = %dmV\n", regulator_get_voltage(rtc_reg)/1000);
+	seq_printf(s, "Core voltage = %dmV\n", regulator_get_voltage(core_reg)/1000);
+
+	seq_printf(s, "Active core clients:\n");
+	list_for_each_entry(client, &dvfs_core.active_clients, node) {
+		seq_printf(s, "\t%s index = %d freq = %dMhz voltage = %dmV\n",
+			client->clk_name, client->index, client->freqs[client->index]/1000,
+			client->voltages_mv[client->index]);
+	}
+
+	return 0;
+}
+
+static int dvfs_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, attr_registers_show, inode->i_private);
+}
+
+static const struct file_operations dvfs_fops = {
+    .owner          = THIS_MODULE,
+    .open           = dvfs_open,
+    .read           = seq_read,
+    .llseek         = seq_lseek,
+    .release        = single_release,
+};
+
 static int tegra_dvfs_probe(struct platform_device *pdev)
 {
 	int soc_speedo_id = tegra_sku_info.soc_speedo_id;
@@ -652,6 +686,13 @@ static int tegra_dvfs_probe(struct platform_device *pdev)
 	dvfs_start_locked();
 
 	mutex_unlock(&dvfs_lock);
+
+	debugfs_file = debugfs_create_file("tegra_dvfs", S_IRUGO, NULL, NULL,
+		&dvfs_fops);
+	if (!debugfs_file) {
+		dev_err(dvfs_dev, "failed to create debugfs file.\n");
+		debugfs_file = NULL;
+	}
 
 	dev_dbg(dvfs_dev, "registered\n");
 
@@ -729,6 +770,11 @@ static int tegra_dvfs_remove(struct platform_device *pdev)
 
 	dvfs_release(&dvfs_cpu);
 	dvfs_release(&dvfs_core);
+
+	if (debugfs_file) {
+		debugfs_remove(debugfs_file);
+		debugfs_file = NULL;
+	}
 
 	return 0;
 }
