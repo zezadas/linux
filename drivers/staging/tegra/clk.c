@@ -75,8 +75,6 @@ static int shared_emc_clk_prepare(struct clk_hw *hw)
 
 	pr_debug("%s: %s\n", __func__, __clk_get_name(hw->clk));
 
-	update_emc_clk_rate();
-
 	return 0;
 }
 
@@ -87,8 +85,6 @@ static void shared_emc_clk_unprepare(struct clk_hw *hw)
 	vclk->enabled = 0;
 
 	pr_debug("%s: %s\n", __func__, __clk_get_name(hw->clk));
-
-	update_emc_clk_rate();
 }
 
 static int shared_emc_clk_is_enabled(struct clk_hw *hw)
