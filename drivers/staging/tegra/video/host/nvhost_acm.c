@@ -35,6 +35,8 @@
 #define POWERGATE_DELAY 			10
 #define MAX_DEVID_LENGTH			16
 
+#define NVHOST_EMC_IDLE_RATE 100000000
+
 DEFINE_MUTEX(client_list_lock);
 
 struct nvhost_module_client {
@@ -134,8 +136,17 @@ static void to_state_clockgated_locked(struct nvhost_device *dev)
 				return;
 			}
 		}
-		for (i = 0; i < dev->num_clks; i++)
+		for (i = 0; i < dev->num_clks; i++) {
 			clk_disable_unprepare(dev->clk[i]);
+
+			if (dev->is_emc_client && i == dev->emc_idx) {
+				/*
+				 * Android graphics blobs don't always set emc rate
+				 * at transition to running state.
+				 */
+				clk_set_rate(dev->clk[i], NVHOST_EMC_IDLE_RATE);
+			}
+		}
 		if (dev->dev.parent)
 			nvhost_module_idle(to_nvhost_device(dev->dev.parent));
 	} else if (dev->powerstate == NVHOST_POWER_STATE_POWERGATED
@@ -163,7 +174,19 @@ static void to_state_running_locked(struct nvhost_device *dev)
 			nvhost_module_busy(to_nvhost_device(dev->dev.parent));
 
 		for (i = 0; i < dev->num_clks; i++) {
-			int err = clk_prepare_enable(dev->clk[i]);
+			int err;
+			if (dev->is_emc_client && i == dev->emc_idx) {
+				unsigned long rate = 0;
+				rate = clk_round_rate(dev->clk[i],
+						dev->clocks[i].default_rate);
+
+				/*
+				 * Android graphics blobs don't always set emc rate
+				 * at transition to running state.
+				 */
+				clk_set_rate(dev->clk[i], rate);
+			}
+			err = clk_prepare_enable(dev->clk[i]);
 			if (err) {
 				dev_err(&dev->dev, "Cannot turn on clock %s",
 					dev->clocks[i].name);
@@ -518,6 +541,12 @@ int nvhost_module_init(struct nvhost_device *dev)
 		clk_set_rate(c, rate);
 		clk_disable_unprepare(c);
 		dev->clk[i] = c;
+
+		if (!strncmp(dev->clocks[i].name, "emc", 3)) {
+			dev->is_emc_client = true;
+			dev->emc_idx = i;
+		}
+
 		i++;
 	}
 	dev->num_clks = i;
