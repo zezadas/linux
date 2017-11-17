@@ -171,9 +171,9 @@ static int register_shared_emc_clks(void)
 	register_shared_emc_clk(&virtual_emc_clks[DISP1], "disp1_emc", "tegradc.0");
 	register_shared_emc_clk(&virtual_emc_clks[DISP2], "disp2_emc", "tegradc.1");
 	register_shared_emc_clk(&virtual_emc_clks[HDMI], "hdmi_emc", "hdmi");
-	register_shared_emc_clk(&virtual_emc_clks[G3D], "3d_emc", "tegra_gr3d");
-	register_shared_emc_clk(&virtual_emc_clks[G2D], "2d_emc", "tegra_gr2d");
-	register_shared_emc_clk(&virtual_emc_clks[MPE], "mpe_emc", "tegra_mpe");
+	register_shared_emc_clk(&virtual_emc_clks[G3D], "3d_emc", "gr3d");
+	register_shared_emc_clk(&virtual_emc_clks[G2D], "2d_emc", "gr2d");
+	register_shared_emc_clk(&virtual_emc_clks[MPE], "mpe_emc", "mpe");
 	register_shared_emc_clk(&virtual_emc_clks[USBD], "usbd_emc", "c5000000.usb");
 	register_shared_emc_clk(&virtual_emc_clks[USB1], "usb1_emc", "c5000000.usb");
 	register_shared_emc_clk(&virtual_emc_clks[USB2], "usb2_emc", "c5004000.usb");
