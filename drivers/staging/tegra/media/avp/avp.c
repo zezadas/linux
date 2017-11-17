@@ -1856,6 +1856,11 @@ static int tegra_avp_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void tegra_avp_shutdown(struct platform_device *pdev)
+{
+	tegra_avp_remove(pdev);
+}
+
 int tegra_avp_load_lib(struct tegra_avp_info *avp, struct tegra_avp_lib *lib)
 {
 	int ret;
@@ -1938,6 +1943,7 @@ MODULE_DEVICE_TABLE(of, tegra_avp_of_match);
 static struct platform_driver tegra_avp_driver = {
 	.probe		= tegra_avp_probe,
 	.remove		= tegra_avp_remove,
+	.shutdown	= tegra_avp_shutdown,
 	.suspend	= tegra_avp_suspend,
 	.resume		= tegra_avp_resume,
 	.driver = {
