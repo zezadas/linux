@@ -125,6 +125,9 @@ struct nvhost_device {
 	bool is_dynamic;
 
 	struct reset_control *rst;
+
+	bool	is_emc_client;
+	bool	emc_idx;
 };
 
 struct nvhost_device_power_attr {
