@@ -916,6 +916,9 @@ void avp_svc_destroy(struct avp_svc_info *avp_svc)
 {
 	int i;
 
+	clk_set_rate(avp_svc->sclk, avp_svc->max_avp_rate);
+	clk_set_rate(avp_svc->pclk, avp_svc->max_pclk_rate);
+
 	for (i = 0; i < NUM_CLK_REQUESTS; i++)
 		if (avp_svc->clks[i].clk)
 			clk_put(avp_svc->clks[i].clk);
