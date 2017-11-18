@@ -29,4 +29,7 @@ void avp_svc_destroy(struct avp_svc_info *avp_svc);
 int avp_svc_start(struct avp_svc_info *svc);
 void avp_svc_stop(struct avp_svc_info *svc);
 
+void avp_svc_set_clk_active(struct avp_svc_info *avp_svc);
+void avp_svc_set_clk_idle(struct avp_svc_info *avp_svc);
+
 #endif

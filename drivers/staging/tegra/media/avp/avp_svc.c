@@ -956,3 +956,15 @@ void avp_svc_destroy(struct avp_svc_info *avp_svc)
 
 	kfree(avp_svc);
 }
+
+void avp_svc_set_clk_active(struct avp_svc_info *avp_svc)
+{
+	clk_set_rate(avp_svc->sclk, avp_svc->max_avp_rate);
+	clk_set_rate(avp_svc->pclk, avp_svc->max_pclk_rate);
+}
+
+void avp_svc_set_clk_idle(struct avp_svc_info *avp_svc)
+{
+	clk_set_rate(avp_svc->sclk, SCLK_IDLE_RATE);
+	clk_set_rate(avp_svc->pclk, PCLK_IDLE_RATE);
+}

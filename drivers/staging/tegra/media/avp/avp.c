@@ -1516,6 +1516,8 @@ static int tegra_avp_suspend(struct platform_device *pdev, pm_message_t state)
 	avp->suspending = true;
 	spin_unlock_irqrestore(&avp->state_lock, flags);
 
+	avp_svc_set_clk_active(avp->avp_svc);
+
 	ret = avp_enter_lp0(avp);
 	if (ret)
 		goto err;
@@ -1554,6 +1556,8 @@ static int tegra_avp_resume(struct platform_device *pdev)
 		goto out;
 
 	BUG_ON(!avp->resume_addr);
+
+	avp_svc_set_clk_idle(avp->avp_svc);
 
 	avp_reset(avp, avp->resume_addr);
 	avp->resume_addr = 0;
