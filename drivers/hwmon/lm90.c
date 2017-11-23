@@ -96,6 +96,8 @@
 #include <linux/sysfs.h>
 #include <linux/interrupt.h>
 #include <linux/regulator/consumer.h>
+#include <linux/pm_runtime.h>
+#include <linux/delay.h>
 
 /*
  * Addresses to scan
@@ -209,6 +211,9 @@ enum chips { lm90, adm1032, lm99, lm86, max6657, max6659, adt7461, max6680,
 #define MAX6696_STATUS2_ROT2	(1 << 5) /* remote emergency limit tripped */
 #define MAX6696_STATUS2_R2OT2	(1 << 6) /* remote2 emergency limit tripped */
 #define MAX6696_STATUS2_LOT2	(1 << 7) /* local emergency limit tripped */
+
+/* nct1008 */
+#define STANDBY_BIT			BIT(6)
 
 /*
  * Driver data (common to all clients)
@@ -1879,6 +1884,11 @@ static int lm90_probe(struct i2c_client *client,
 		}
 	}
 
+#if defined(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)
+	pm_runtime_set_active(&client->dev);
+	pm_runtime_enable(&client->dev);
+#endif
+
 	return 0;
 }
 
@@ -1914,11 +1924,74 @@ static void lm90_alert(struct i2c_client *client, enum i2c_alert_protocol type,
 	}
 }
 
+#if defined(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)
+static int lm90_suspend(struct device *dev)
+{
+	struct lm90_data *data = dev_get_drvdata(dev);
+	struct i2c_client *client = data->client;
+	u8 config;
+	int err;
+
+	dev_info(dev, "%s\n", __func__);
+
+	disable_irq(client->irq);
+
+	lm90_read_reg(client, LM90_REG_R_CONFIG1, &config);
+	err = i2c_smbus_write_byte_data(client, LM90_REG_W_CONFIG1,
+		config | STANDBY_BIT);
+	if (err < 0)
+		dev_err(dev, "%s, line=%d, i2c write error=%d\n",
+			__func__, __LINE__, err);
+
+	regulator_disable(data->regulator);
+
+	return 0;
+}
+
+static int lm90_resume(struct device *dev)
+{
+	struct lm90_data *data = dev_get_drvdata(dev);
+	struct i2c_client *client = data->client;
+	u8 config;
+	int err;
+
+	dev_info(dev, "%s\n", __func__);
+	err = regulator_enable(data->regulator);
+	if (err) {
+		dev_err(dev, "error enabling regulator. err=%d", err);
+		return err;
+	}
+
+	udelay(10);
+
+	lm90_read_reg(client, LM90_REG_R_CONFIG1, &config);
+	err = i2c_smbus_write_byte_data(client, LM90_REG_W_CONFIG1,
+		config & ~STANDBY_BIT);
+	if (err < 0)
+		dev_err(dev, "%s, line=%d, i2c write error=%d\n",
+			__func__, __LINE__, err);
+
+	enable_irq(client->irq);
+
+	return 0;
+}
+
+static const struct dev_pm_ops lm90_pm_ops = {
+	.suspend	= lm90_suspend,
+	.resume		= lm90_resume,
+};
+
+#define LM90_PM_OPS &lm90_pm_ops
+#else
+#define LM90_PM_OPS NULL
+#endif /* CONFIG_MACH_SAMSUNG_VARIATION_TEGRA */
+
 static struct i2c_driver lm90_driver = {
 	.class		= I2C_CLASS_HWMON,
 	.driver = {
 		.name	= "lm90",
 		.of_match_table = of_match_ptr(lm90_of_match),
+		.pm	= LM90_PM_OPS,
 	},
 	.probe		= lm90_probe,
 	.alert		= lm90_alert,
