@@ -395,13 +395,15 @@ static void do_svc_module_clock(struct avp_svc_info *avp_svc,
 	aclk = &avp_svc->clks[mod->clk_req];
 	if (msg->enable) {
 		if (aclk->refcnt++ == 0) {
-			clk_prepare_enable(avp_svc->emcclk);
+			if (msg->module_id == AVP_MODULE_ID_VDE)
+				clk_prepare_enable(avp_svc->emcclk);
+
 			clk_set_rate(avp_svc->sclk, avp_svc->max_avp_rate);
 			clk_set_rate(avp_svc->pclk, avp_svc->max_pclk_rate);
 			clk_prepare_enable(avp_svc->sclk);
 			if (aclk->clk)
 				clk_prepare_enable(aclk->clk);
-			pr_info("%s: sclk=%u\n", __func__, clk_get_rate(avp_svc->sclk));
+			pr_info("%s: sclk=%lu\n", __func__, clk_get_rate(avp_svc->sclk));
 		}
 	} else {
 		if (unlikely(aclk->refcnt == 0)) {
@@ -412,11 +414,14 @@ static void do_svc_module_clock(struct avp_svc_info *avp_svc,
 				clk_disable_unprepare(aclk->clk);
 			clk_set_rate(avp_svc->sclk, SCLK_IDLE_RATE);
 			clk_set_rate(avp_svc->pclk, PCLK_IDLE_RATE);
-			pr_info("%s: sclk=%u\n", __func__, clk_get_rate(avp_svc->sclk));
+			pr_info("%s: sclk=%lu\n", __func__, clk_get_rate(avp_svc->sclk));
 			clk_disable_unprepare(avp_svc->sclk);
-			clk_disable_unprepare(avp_svc->emcclk);
+
+			if (msg->module_id == AVP_MODULE_ID_VDE)
+				clk_disable_unprepare(avp_svc->emcclk);
 		}
 	}
+	pr_info("%s: %s refcnt=%d\n", __func__, mod->name, aclk->refcnt);
 	mutex_unlock(&avp_svc->clk_lock);
 	resp.err = 0;
 
