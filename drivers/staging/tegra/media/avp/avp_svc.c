@@ -394,7 +394,10 @@ static void do_svc_module_clock(struct avp_svc_info *avp_svc,
 	mutex_lock(&avp_svc->clk_lock);
 	aclk = &avp_svc->clks[mod->clk_req];
 	if (msg->enable) {
-		if (aclk->refcnt++ == 0) {
+		if (msg->module_id == AVP_MODULE_ID_VCP && aclk->refcnt > 0) {
+			pr_warn("avp_svc: '%s' clock already enabled\n",
+			       aclk->mod->name);
+		} else if (aclk->refcnt++ == 0) {
 			if (msg->module_id == AVP_MODULE_ID_VDE)
 				clk_prepare_enable(avp_svc->emcclk);
 
