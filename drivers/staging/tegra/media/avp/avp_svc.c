@@ -42,6 +42,12 @@
 
 #define TEGRA_CLK_RESET_BASE		0x60006000
 
+#define SCLK_IDLE_RATE 80000000
+#define PCLK_IDLE_RATE (SCLK_IDLE_RATE/2)
+
+#define SCLK_MAX_RATE 240000000
+#define PCLK_MAX_RATE (SCLK_MAX_RATE/3)
+
 enum {
 	AVP_DBG_TRACE_SVC		= 1U << 0,
 };
@@ -97,6 +103,7 @@ struct avp_svc_info {
 	/* used for dvfs */
 	struct clk			*sclk;
 	struct clk			*emcclk;
+	struct clk			*pclk;
 
 	struct mutex			clk_lock;
 
@@ -107,6 +114,7 @@ struct avp_svc_info {
 	struct nvmap_client		*nvmap_remote;
 	struct trpc_node		*rpc_node;
 	unsigned long			max_avp_rate;
+	unsigned long			max_pclk_rate;
 	unsigned long			emc_rate;
 
 	/* variable to check if video is present */
@@ -388,9 +396,12 @@ static void do_svc_module_clock(struct avp_svc_info *avp_svc,
 	if (msg->enable) {
 		if (aclk->refcnt++ == 0) {
 			clk_prepare_enable(avp_svc->emcclk);
+			clk_set_rate(avp_svc->sclk, avp_svc->max_avp_rate);
+			clk_set_rate(avp_svc->pclk, avp_svc->max_pclk_rate);
 			clk_prepare_enable(avp_svc->sclk);
 			if (aclk->clk)
 				clk_prepare_enable(aclk->clk);
+			pr_info("%s: sclk=%u\n", __func__, clk_get_rate(avp_svc->sclk));
 		}
 	} else {
 		if (unlikely(aclk->refcnt == 0)) {
@@ -399,7 +410,9 @@ static void do_svc_module_clock(struct avp_svc_info *avp_svc,
 		} else if (--aclk->refcnt == 0) {
 			if (aclk->clk)
 				clk_disable_unprepare(aclk->clk);
-// 			clk_set_rate(avp_svc->sclk, 0);
+			clk_set_rate(avp_svc->sclk, SCLK_IDLE_RATE);
+			clk_set_rate(avp_svc->pclk, PCLK_IDLE_RATE);
+			pr_info("%s: sclk=%u\n", __func__, clk_get_rate(avp_svc->sclk));
 			clk_disable_unprepare(avp_svc->sclk);
 			clk_disable_unprepare(avp_svc->emcclk);
 		}
@@ -503,17 +516,20 @@ static void do_svc_module_clock_set(struct avp_svc_info *avp_svc,
 			else
 				clk_set_rate(avp_svc->emcclk, 400000000);
 		}
+		pr_info("%s: msg->clk_freq=%u\n", __func__, msg->clk_freq);
 // 		ret = clk_set_rate(avp_svc->sclk, msg->clk_freq);
 	} else {
 		u32 rate;
 		aclk = &avp_svc->clks[mod->clk_req];
 
 		rate = clk_round_rate(aclk->clk,
-				      min(msg->clk_freq, (u32)300000000));
+				      min(msg->clk_freq, (u32)400000000));
 		DBG(AVP_DBG_TRACE_SVC,
 		    "avp_svc: Set module (%s) frequency to %d / %u Hz\n",
 		    mod->name, msg->clk_freq, rate);
 
+		pr_info("avp_svc: Set module (%s) frequency to %d / %u Hz\n",
+		    mod->name, msg->clk_freq, rate);
 		ret = clk_set_rate(aclk->clk, rate);
 	}
 	if (ret) {
@@ -804,7 +820,8 @@ void avp_svc_stop(struct avp_svc_info *avp_svc)
 			if (aclk->clk)
 				clk_disable_unprepare(aclk->clk);
 			/* sclk/emcclk was enabled once for every clock */
-// 			clk_set_rate(avp_svc->sclk, 0);
+			clk_set_rate(avp_svc->sclk, SCLK_IDLE_RATE);
+			clk_set_rate(avp_svc->pclk, PCLK_IDLE_RATE);
 			clk_disable_unprepare(avp_svc->sclk);
 			clk_disable_unprepare(avp_svc->emcclk);
 		}
@@ -869,8 +886,17 @@ struct avp_svc_info *avp_svc_init(struct platform_device *pdev,
 		ret = -ENOENT;
 		goto err_get_clks;
 	}
-	avp_svc->max_avp_rate = clk_round_rate(avp_svc->sclk, 240000000);
-// 	clk_set_rate(avp_svc->sclk, avp_svc->max_avp_rate);
+	avp_svc->max_avp_rate = clk_round_rate(avp_svc->sclk, SCLK_MAX_RATE);
+	clk_set_rate(avp_svc->sclk, SCLK_IDLE_RATE);
+
+	avp_svc->pclk = clk_get(&pdev->dev, "pclk");
+	if (IS_ERR(avp_svc->pclk)) {
+		pr_err("avp_svc: Couldn't get pclk for dvfs\n");
+		ret = -ENOENT;
+		goto err_get_clks;
+	}
+	avp_svc->max_pclk_rate = clk_round_rate(avp_svc->sclk, PCLK_MAX_RATE);
+	clk_set_rate(avp_svc->pclk, PCLK_IDLE_RATE);
 
 	avp_svc->emcclk = clk_get(&pdev->dev, "emc");
 	if (IS_ERR(avp_svc->emcclk)) {
@@ -903,6 +929,8 @@ err_get_clks:
 	for (i = 0; i < NUM_CLK_REQUESTS; i++)
 		if (avp_svc->clks[i].clk)
 			clk_put(avp_svc->clks[i].clk);
+	if (!IS_ERR_OR_NULL(avp_svc->pclk))
+		clk_put(avp_svc->pclk);
 	if (!IS_ERR_OR_NULL(avp_svc->sclk))
 		clk_put(avp_svc->sclk);
 	if (!IS_ERR_OR_NULL(avp_svc->emcclk))
@@ -922,6 +950,7 @@ void avp_svc_destroy(struct avp_svc_info *avp_svc)
 	for (i = 0; i < NUM_CLK_REQUESTS; i++)
 		if (avp_svc->clks[i].clk)
 			clk_put(avp_svc->clks[i].clk);
+	clk_put(avp_svc->pclk);
 	clk_put(avp_svc->sclk);
 	clk_put(avp_svc->emcclk);
 
