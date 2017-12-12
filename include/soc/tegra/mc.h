@@ -101,12 +101,14 @@ struct tegra_mc_soc {
 	const struct tegra_smmu_soc *smmu;
 
 	u32 intmask;
+
+	bool tegra20;
 };
 
 struct tegra_mc {
 	struct device *dev;
 	struct tegra_smmu *smmu;
-	void __iomem *regs;
+	void __iomem *regs, *regs2;
 	struct clk *clk;
 	int irq;
 
