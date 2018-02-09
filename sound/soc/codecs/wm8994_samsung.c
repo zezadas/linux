@@ -3721,7 +3721,7 @@ static int  wm8994_codec_remove(struct snd_soc_codec *codec)
 }
 
 #ifdef CONFIG_PM
-static int wm8994_suspend(struct snd_soc_codec *codec, pm_message_t state)
+static int wm8994_suspend(struct snd_soc_codec *codec)
 {
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 
