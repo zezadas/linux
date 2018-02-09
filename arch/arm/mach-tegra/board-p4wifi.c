@@ -470,6 +470,9 @@ static void p4_check_hwrev(void)
 void __init p4wifi_machine_init(void)
 {
 	pr_info("%s()\n", __func__);
+	tegra_ram_console_debug_init_mem(0x2E600000, 0x00100000);
+	tegra_ram_console_debug_init();
+
 
 	p4_release_bootloader_fb();
 
