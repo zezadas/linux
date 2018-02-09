@@ -674,7 +674,7 @@ typedef struct dhd_info {
 	struct tasklet_struct tasklet;
 	spinlock_t	sdlock;
 	spinlock_t	txqlock;
-	spinlock_t	rxqlock;
+	struct mutex	rxqlock;
 	spinlock_t	dhd_lock;
 
 	struct semaphore sdsem;
@@ -9182,7 +9182,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	/* Initialize the spinlocks */
 	spin_lock_init(&dhd->sdlock);
 	spin_lock_init(&dhd->txqlock);
-	spin_lock_init(&dhd->rxqlock);
+	mutex_init(&dhd->rxqlock);
 	spin_lock_init(&dhd->dhd_lock);
 	spin_lock_init(&dhd->rxf_lock);
 #ifdef WLTDLS
@@ -13659,7 +13659,7 @@ dhd_os_sdlock_rxq(dhd_pub_t *pub)
 	dhd_info_t *dhd;
 
 	dhd = (dhd_info_t *)(pub->info);
-	spin_lock_bh(&dhd->rxqlock);
+	mutex_lock(&dhd->rxqlock);
 }
 
 void
@@ -13668,7 +13668,7 @@ dhd_os_sdunlock_rxq(dhd_pub_t *pub)
 	dhd_info_t *dhd;
 
 	dhd = (dhd_info_t *)(pub->info);
-	spin_unlock_bh(&dhd->rxqlock);
+	mutex_unlock(&dhd->rxqlock);
 }
 
 static void
