@@ -341,7 +341,7 @@ int nvhost_intr_init(struct nvhost_intr *intr, u32 irq_gen, u32 irq_sync)
 	mutex_init(&intr->mutex);
 	intr->syncpt_irq = irq_sync;
 
-	init_kthread_worker(&intr->worker);
+	kthread_init_worker(&intr->worker);
 	intr->worker_thread = kthread_run(kthread_worker_fn,
 		&intr->worker, "host_syncpt");
 

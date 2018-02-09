@@ -427,7 +427,7 @@ bool nvmap_shrink_carveout(struct nvmap_carveout_node *node, size_t requested_si
 		sig = task->signal;
 		if (!task->mm || !sig)
 			goto end;
-		if (test_tsk_thread_flag(task, TIF_MEMDIE))
+		if (task_lmk_waiting(task) && task->mm)
 			goto end;
 
 		/* don't try to kill current */
@@ -502,7 +502,7 @@ end:
 		 * task should have access to the memory reserves.
 		 */
 		if (selected_task->mm)
-			mark_oom_victim(selected_task);
+			task_set_lmk_waiting(selected_task);
 		task_unlock(selected_task);
 		wait = true;
 	}
