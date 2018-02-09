@@ -82,7 +82,7 @@ static atomic_t instantiated = ATOMIC_INIT(0);
 /* sysfs name HeadsetObserver.java looks for to track headset state
  */
 static const unsigned int jack_cables[] = {
-	EXTCON_NONE,
+	EXTCON_JACK_HEADPHONE,
 };
 
 static const unsigned int sendend_cables[] = {
@@ -249,7 +249,7 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 
 	pr_info("%s : jack_type = %d\n", __func__, jack_type);
 	state = jack_type & (SEC_HEADSET_4POLE | SEC_HEADSET_3POLE) ? 1 : 0;
-	extcon_set_state(hi->switch_jack_detection, state);
+	extcon_set_state_sync(hi->switch_jack_detection, EXTCON_JACK_HEADPHONE, state);
 }
 
 static void handle_jack_not_inserted(struct sec_jack_info *hi)
@@ -359,7 +359,7 @@ void sec_jack_buttons_work(struct work_struct *work)
 	/* when button is released */
 	if (hi->pressed == 0) {
 		input_report_key(hi->input_dev, hi->pressed_code, 0);
-		extcon_set_state(hi->switch_sendend, 0);
+		extcon_set_state_sync(hi->switch_sendend, EXTCON_NONE, 0);
 		input_sync(hi->input_dev);
 		pr_debug("%s: keycode=%d, is released\n", __func__,
 			hi->pressed_code);
@@ -374,7 +374,7 @@ void sec_jack_buttons_work(struct work_struct *work)
 		    adc <= btn_zones[i].adc_high) {
 			hi->pressed_code = btn_zones[i].code;
 			input_report_key(hi->input_dev, btn_zones[i].code, 1);
-			extcon_set_state(hi->switch_sendend, 1);
+			extcon_set_state_sync(hi->switch_sendend, EXTCON_NONE, 1);
 			input_sync(hi->input_dev);
 			pr_debug("%s: keycode=%d, is pressed\n", __func__,
 				btn_zones[i].code);
