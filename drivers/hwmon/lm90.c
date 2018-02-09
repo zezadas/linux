@@ -1929,21 +1929,24 @@ static int lm90_suspend(struct device *dev)
 {
 	struct lm90_data *data = dev_get_drvdata(dev);
 	struct i2c_client *client = data->client;
-	u8 config;
+	int config;
 	int err;
+	struct regulator *regulator;
 
 	dev_info(dev, "%s\n", __func__);
 
 	disable_irq(client->irq);
 
-	lm90_read_reg(client, LM90_REG_R_CONFIG1, &config);
+	config = lm90_read_reg(client, LM90_REG_R_CONFIG1);
 	err = i2c_smbus_write_byte_data(client, LM90_REG_W_CONFIG1,
 		config | STANDBY_BIT);
 	if (err < 0)
 		dev_err(dev, "%s, line=%d, i2c write error=%d\n",
 			__func__, __LINE__, err);
 
-	regulator_disable(data->regulator);
+	regulator = devm_regulator_get(dev, "vcc");
+	if (regulator != NULL)
+		regulator_disable(regulator);
 
 	return 0;
 }
@@ -1952,19 +1955,23 @@ static int lm90_resume(struct device *dev)
 {
 	struct lm90_data *data = dev_get_drvdata(dev);
 	struct i2c_client *client = data->client;
-	u8 config;
+	int config;
 	int err;
+	struct regulator *regulator;
 
 	dev_info(dev, "%s\n", __func__);
-	err = regulator_enable(data->regulator);
-	if (err) {
-		dev_err(dev, "error enabling regulator. err=%d", err);
-		return err;
+	regulator = devm_regulator_get(dev, "vcc");
+	if (regulator != NULL) {
+		err = regulator_enable(regulator);
+		if (err) {
+			dev_err(dev, "error enabling regulator. err=%d", err);
+			return err;
+		}
 	}
 
 	udelay(10);
 
-	lm90_read_reg(client, LM90_REG_R_CONFIG1, &config);
+	config = lm90_read_reg(client, LM90_REG_R_CONFIG1);
 	err = i2c_smbus_write_byte_data(client, LM90_REG_W_CONFIG1,
 		config & ~STANDBY_BIT);
 	if (err < 0)
