@@ -283,13 +283,13 @@ static void p3_get_cable_status(struct battery_data *battery)
 		irq_set_irq_type(gpio_to_irq(battery->pdata->charger.connect_line),
 			IRQ_TYPE_LEVEL_HIGH);
 
-		extcon_set_state(battery->charging_connector, 1);
+		extcon_set_state_sync(battery->charging_connector, EXTCON_USB, 1);
 	} else {
 		battery->current_cable_status = CHARGER_BATTERY;
 		irq_set_irq_type(gpio_to_irq(battery->pdata->charger.connect_line),
 			IRQ_TYPE_LEVEL_LOW);
 
-		extcon_set_state(battery->charging_connector, 0);
+		extcon_set_state_sync(battery->charging_connector, EXTCON_USB, 0);
 
 		battery->info.batt_improper_ta = 0;  /* clear flag */
 	}
@@ -1862,12 +1862,19 @@ static int init_extcon_dev(struct platform_device *pdev)
 	int ret = 0;
 
 	battery->charging_connector = devm_extcon_dev_allocate(&pdev->dev, charger_cables);
-	battery->charging_connector->name = "p4-battery-charger";
+	if (IS_ERR(battery->charging_connector)) {
+		dev_err(&pdev->dev, "failed to allocate memory for extcon\n");
+		return PTR_ERR(battery->charging_connector);
+	}
+
 	ret = devm_extcon_dev_register(&pdev->dev, battery->charging_connector);
 	if (ret < 0) {
 		pr_err("%s : Failed to register extcon device\n", __func__);
 		return ret;
 	}
+
+	dev_info(&pdev->dev, "%s: Registered extcon dev as [%s]\n", __func__,
+		dev_name(battery->charging_connector->dev.parent));
 
 	return ret;
 }
