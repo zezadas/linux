@@ -144,6 +144,7 @@
  *
  */
 
+#define P4_BATTERY_EXTCON_DEV_NAME "p4_battery"
 
 #if 1/*for debugging, enable DEBUG_TRACE*/
 static int debug = DEBUG_INFO;
@@ -3456,24 +3457,26 @@ static struct attribute_group mxt_attr_group = {
 
 static int init_extcon_notifier(struct i2c_client *client, struct mxt_data *mxt)
 {
-	int error;
-	mxt->extcon_nb_obj = kzalloc(sizeof(struct extcon_specific_cable_nb),
-		GFP_KERNEL);
-	if (!mxt->extcon_nb_obj) {
-		dev_err(&client->dev, "Failed to allocate extcon nb obj.\n");
-		error = -ENOMEM;
+	int error = 0;
+
+	mxt->charging_connector_nb.notifier_call = mxt_charging_connector_cb;
+	mxt->cable = extcon_get_extcon_dev(P4_BATTERY_EXTCON_DEV_NAME);
+
+	if (mxt->cable == NULL) {
+		dev_err(&client->dev, "%s is not ready, probe deferred\n",
+			P4_BATTERY_EXTCON_DEV_NAME);
+		error = -EPROBE_DEFER;
 		goto err;
 	}
 
-	mxt->charging_connector_nb.notifier_call = mxt_charging_connector_cb;
-	mxt->charging_connector_nb.priority = INT_MAX;
-
-	error = extcon_register_interest(mxt->extcon_nb_obj,
-		"p4_battery", "USB", &mxt->charging_connector_nb);
-	if (error < 0) {
+	error = extcon_register_notifier(mxt->cable, EXTCON_USB,
+		&mxt->charging_connector_nb);
+	if (error) {
 		if (error == -ENODEV)
 			error = -EPROBE_DEFER;
-		dev_err(&client->dev, "Error registering extcon interest. error=%d\n", error);
+		dev_err(&client->dev, "failed to register extcon notifier. error=%d\n", error);
+		extcon_unregister_notifier(mxt->cable,
+			EXTCON_USB, &mxt->charging_connector_nb);
 	}
 
 err:
@@ -3758,7 +3761,8 @@ err_pdata:
 	if (input)
 		input_free_device(input);
 err_input_dev_alloc:
-	extcon_unregister_interest(mxt->extcon_nb_obj);
+	extcon_unregister_notifier(mxt->cable,
+		EXTCON_USB, &mxt->charging_connector_nb);
 err_init_extcon:
 	mxt_exit_gpio(client, mxt);
 err_parse_dt:

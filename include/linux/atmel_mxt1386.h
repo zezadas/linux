@@ -747,8 +747,8 @@ struct mxt_data {
 	struct report_id_map *rid_map;
 	struct mxt_object *object_table;
 
+	struct extcon_dev *cable;
 	struct notifier_block charging_connector_nb;
-	struct extcon_specific_cable_nb *extcon_nb_obj;
 
 	struct mutex mutex;
 #ifdef MXT_CALIBRATE_WORKAROUND
