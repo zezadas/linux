@@ -1614,6 +1614,17 @@ static int clk_core_set_rate_nolock(struct clk_core *core,
 	return 0;
 }
 
+int __clk_set_rate(struct clk *clk,
+				    unsigned long req_rate)
+{
+	if (!clk)
+		return 0;
+
+	return clk_core_set_rate_nolock(clk->core, req_rate);
+}
+EXPORT_SYMBOL_GPL(__clk_set_rate);
+
+
 /**
  * clk_set_rate - specify a new rate for clk
  * @clk: the clk whose rate is being changed
