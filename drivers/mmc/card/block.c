@@ -35,7 +35,6 @@
 #include <linux/capability.h>
 #include <linux/compat.h>
 #include <linux/pm_runtime.h>
-#include <linux/idr.h>
 
 #include <linux/mmc/ioctl.h>
 #include <linux/mmc/card.h>
@@ -80,14 +79,14 @@ static int perdev_minors = CONFIG_MMC_BLOCK_MINORS;
 /*
  * We've only got one major, so number of mmcblk devices is
  * limited to (1 << 20) / number of minors per device.  It is also
- * limited by the MAX_DEVICES below.
+ * currently limited by the size of the static bitmaps below.
  */
 static int max_devices;
 
 #define MAX_DEVICES 256
 
-static DEFINE_IDA(mmc_blk_ida);
-static DEFINE_SPINLOCK(mmc_blk_lock);
+/* TODO: Replace these with struct ida */
+static DECLARE_BITMAP(dev_use, MAX_DEVICES);
 
 /*
  * There is one mmc_blk_data per slot.
@@ -179,9 +178,7 @@ static void mmc_blk_put(struct mmc_blk_data *md)
 		int devidx = mmc_get_devidx(md->disk);
 		blk_cleanup_queue(md->queue.queue);
 
-		spin_lock(&mmc_blk_lock);
-		ida_remove(&mmc_blk_ida, devidx);
-		spin_unlock(&mmc_blk_lock);
+		__clear_bit(devidx, dev_use);
 
 		put_disk(md->disk);
 		kfree(md);
@@ -2486,23 +2483,10 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	struct mmc_blk_data *md;
 	int devidx, ret;
 
-again:
-	if (!ida_pre_get(&mmc_blk_ida, GFP_KERNEL))
-		return ERR_PTR(-ENOMEM);
-
-	spin_lock(&mmc_blk_lock);
-	ret = ida_get_new(&mmc_blk_ida, &devidx);
-	spin_unlock(&mmc_blk_lock);
-
-	if (ret == -EAGAIN)
-		goto again;
-	else if (ret)
-		return ERR_PTR(ret);
-
-	if (devidx >= max_devices) {
-		ret = -ENOSPC;
-		goto out;
-	}
+	devidx = find_first_zero_bit(dev_use, max_devices);
+	if (devidx >= max_devices)
+		return ERR_PTR(-ENOSPC);
+	__set_bit(devidx, dev_use);
 
 	md = kzalloc(sizeof(struct mmc_blk_data), GFP_KERNEL);
 	if (!md) {
@@ -2599,9 +2583,7 @@ again:
  err_kfree:
 	kfree(md);
  out:
-	spin_lock(&mmc_blk_lock);
-	ida_remove(&mmc_blk_ida, devidx);
-	spin_unlock(&mmc_blk_lock);
+	__clear_bit(devidx, dev_use);
 	return ERR_PTR(ret);
 }
 
