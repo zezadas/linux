@@ -208,8 +208,9 @@ void mmc_host_clk_release(struct mmc_host *host)
 	host->clk_requests--;
 	if (mmc_host_may_gate_card(host->card) &&
 	    !host->clk_requests)
-		schedule_delayed_work(&host->clk_gate_work,
-				      msecs_to_jiffies(host->clkgate_delay));
+		queue_delayed_work(host->clk_gate_wq,
+			&host->clk_gate_work,
+			msecs_to_jiffies(host->clkgate_delay));
 	spin_unlock_irqrestore(&host->clk_lock, flags);
 }
 
@@ -239,6 +240,8 @@ unsigned int mmc_host_clk_rate(struct mmc_host *host)
  */
 static inline void mmc_host_clk_init(struct mmc_host *host)
 {
+	char buf[16];
+
 	host->clk_requests = 0;
 	/* Hold MCI clock for 8 cycles by default */
 	host->clk_delay = 8;
@@ -248,6 +251,8 @@ static inline void mmc_host_clk_init(struct mmc_host *host)
 	 */
 	host->clkgate_delay = 0;
 	host->clk_gated = false;
+	snprintf(buf, sizeof(buf), "clkgate-wq-mmc%d", host->index);
+	host->clk_gate_wq = create_singlethread_workqueue(buf);
 	INIT_DELAYED_WORK(&host->clk_gate_work, mmc_host_clk_gate_work);
 	spin_lock_init(&host->clk_lock);
 	mutex_init(&host->clk_gate_mutex);
@@ -267,6 +272,7 @@ static inline void mmc_host_clk_exit(struct mmc_host *host)
 		mmc_host_clk_gate_delayed(host);
 	if (host->clk_gated)
 		mmc_host_clk_hold(host);
+	destroy_workqueue(host->clk_gate_wq);
 	/* There should be only one user now */
 	WARN_ON(host->clk_requests > 1);
 }
