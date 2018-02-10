@@ -18,6 +18,7 @@
 #include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/io.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -211,8 +212,8 @@ static void tegra_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 		return sdhci_set_clock(host, clock);
 
 	host_clk = tegra_host->ddr_signaling ? clock * 2 : clock;
-	clk_set_rate(pltfm_host->clk, host_clk);
-	host->max_clk = clk_get_rate(pltfm_host->clk);
+	__clk_set_rate(pltfm_host->clk, host_clk);
+	host->max_clk = __clk_get_rate(pltfm_host->clk);
 
 	sdhci_set_clock(host, clock);
 
