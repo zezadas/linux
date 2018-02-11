@@ -658,15 +658,15 @@ static int tegra_dvfs_probe(struct platform_device *pdev)
 {
 	int soc_speedo_id = tegra_sku_info.soc_speedo_id;
 	int cpu_process_id = tegra_sku_info.cpu_process_id;
-	int core_process_id = tegra_sku_info.soc_process_id;
+	int soc_process_id = tegra_sku_info.soc_process_id;
 
 	if (!tegradc_probed) {
 		pr_info("%s: defer probe\n", __func__);
 		return -EPROBE_DEFER;
 	}
 
-	pr_info("%s: soc_speedo_id=%d cpu_process_id=%d core_process_id=%d\n",
-		__func__, soc_speedo_id, cpu_process_id, core_process_id);
+	pr_info("%s: soc_speedo_id=%d cpu_process_id=%d soc_process_id=%d\n",
+		__func__, soc_speedo_id, cpu_process_id, soc_process_id);
 
 	dvfs_dev = &pdev->dev;
 
@@ -691,7 +691,7 @@ static int tegra_dvfs_probe(struct platform_device *pdev)
 	mutex_lock(&dvfs_lock);
 
 	dvfs_init(&dvfs_cpu, soc_speedo_id, cpu_process_id);
-	dvfs_init(&dvfs_core, soc_speedo_id, core_process_id);
+	dvfs_init(&dvfs_core, soc_speedo_id, soc_process_id);
 
 	dvfs_start_locked();
 
