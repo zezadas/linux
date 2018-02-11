@@ -85,11 +85,11 @@ static const int cpu_millivolts_process1[MAX_DVFS_FREQS] =
 static const int core_millivolts[7] = {950, 1000, 1100, 1200, 1225, 1275, CORE_MAX_VDD,};
 
 
-#define DVFS_CORE_CLIENT(_name, _speedo_id, _process_id, _freqs...)			\
+#define DVFS_CORE_CLIENT(_name, _process_id, _freqs...)			\
 	{								\
 		.clk = NULL,						\
 		.clk_name = #_name,					\
-		.speedo_id = _speedo_id,					\
+		.speedo_id = -1,					\
 		.process_id = _process_id,				\
 		.freqs = { _freqs, -1 },				\
 		.voltages_mv =  core_millivolts,				\
@@ -138,22 +138,21 @@ static struct dvfs_client dvfs_core_clients[] = {
 	// DVFS_CLIENT(disp1, 158000,	158000,	190000),
 	// DVFS_CLIENT(disp2, 158000,	158000,	190000),
 
-	DVFS_CORE_CLIENT(host1x, -1, -1, 133000,	166000),
-	DVFS_CORE_CLIENT(epp, -1, -1, 133000,	171000,	247000,	300000),
-	DVFS_CORE_CLIENT(2d, -1, -1, 133000,	171000,	247000,	300000),
-	DVFS_CORE_CLIENT(hdmi, -1, -1, 0,	0,	0,	148500),
-
-	DVFS_CORE_CLIENT(emc, -1, 2, 57000,  333000, 380000, 666000),
-	DVFS_CORE_CLIENT(3d, -1, 2, 218500, 256500, 323000, 380000, 400000),
-	DVFS_CORE_CLIENT(mpe, -1, 2, 190000,	237500,	300000),
-	DVFS_CORE_CLIENT(vi, -1, 2, 85000,	100000,	150000),
-	DVFS_CORE_CLIENT(csi, -1, 2, 0,	0,	0,	0, 72000),
-	DVFS_CORE_CLIENT(sclk, -1, 2, 152000,	180500,	229500,	260000, 285000,	300000),
-	DVFS_CORE_CLIENT(vde, -1, 2, 152000,	209000,	285000,	300000),
-	DVFS_CORE_CLIENT(mipi, -1, 2, 40000,	40000,	40000,	40000, 60000),
-	DVFS_CORE_CLIENT(usbd, -1, 2, 400000,	400000,	400000,	480000),
-	DVFS_CORE_CLIENT(usb2, -1, 2, 0,	0,	480000),
-	DVFS_CORE_CLIENT(usb3, -1, 2, 400000,	400000,	400000,	480000),
+	DVFS_CORE_CLIENT(host1x, -1, 133000,	166000),
+	DVFS_CORE_CLIENT(epp, -1, 133000,	171000,	247000,	300000),
+	DVFS_CORE_CLIENT(2d, -1, 133000,	171000,	247000,	300000),
+	DVFS_CORE_CLIENT(hdmi, -1, 0,	0,	0,	148500),
+	DVFS_CORE_CLIENT(emc, -1, 57000,  333000, 380000, 666000),
+	DVFS_CORE_CLIENT(3d, -1, 218500, 256500, 323000, 380000, 400000),
+	DVFS_CORE_CLIENT(mpe, 2, 190000,	237500,	300000),
+	DVFS_CORE_CLIENT(vi, -1, 85000,	100000,	150000),
+	DVFS_CORE_CLIENT(csi, -1, 0,	0,	0,	0, 72000),
+	DVFS_CORE_CLIENT(sclk, 2, 152000,	180500,	229500,	260000, 285000,	300000),
+	DVFS_CORE_CLIENT(vde, 2, 152000,	209000,	285000,	300000),
+	DVFS_CORE_CLIENT(mipi, -1, 40000,	40000,	40000,	40000, 60000),
+	DVFS_CORE_CLIENT(usbd, -1, 400000,	400000,	400000,	480000),
+	DVFS_CORE_CLIENT(usb2, -1, 0,	0,	480000),
+	DVFS_CORE_CLIENT(usb3, -1, 400000,	400000,	400000,	480000),
 };
 
 DVFS(cpu, dvfs_cpu_clients);
