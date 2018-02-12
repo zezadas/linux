@@ -36,6 +36,7 @@
 #include <linux/serial_core.h>
 #include <linux/tty.h>
 #include <linux/delay.h>
+#include <linux/clk.h>
 
 #ifndef N_BRCM_HCI
 /*
