@@ -1874,7 +1874,7 @@ static int init_extcon_dev(struct platform_device *pdev)
 	}
 
 	dev_info(&pdev->dev, "%s: Registered extcon dev as [%s]\n", __func__,
-		dev_name(battery->charging_connector->dev.parent));
+		dev_name(pdev->dev.parent));
 
 	return ret;
 }

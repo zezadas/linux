@@ -102,7 +102,7 @@ static struct gpio_event_input_info sec_jack_key_info = {
 // #if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
 	// .debounce_time.tv.nsec = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
 // #else
-	.debounce_time.tv64 = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
+	.debounce_time = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
 // #endif
 	.keymap = sec_jack_key_map,
 	.keymap_size = ARRAY_SIZE(sec_jack_key_map)
@@ -654,7 +654,8 @@ static int sec_jack_probe(struct platform_device *pdev)
 	hi->dev_id = pdev->id;
 
 	hi->switch_jack_detection = devm_extcon_dev_allocate(&pdev->dev, jack_cables);
-	hi->switch_jack_detection->name = "h2w";
+	// hi->switch_jack_detection->name = "h2w";
+	pr_info("%s: extcon dev name %s\n", __func__, dev_name(pdev->dev.parent));
 	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_jack_detection);
 	if (ret < 0) {
 		pr_err("%s : Failed to register switch device\n", __func__);
@@ -662,7 +663,7 @@ static int sec_jack_probe(struct platform_device *pdev)
 	}
 
 	hi->switch_sendend = devm_extcon_dev_allocate(&pdev->dev, sendend_cables);
-	hi->switch_sendend->name = "send_end";
+	// hi->switch_sendend->name = "send_end";
 	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_sendend);
 	if (ret < 0) {
 		printk(KERN_ERR "SEC JACK: Failed to register switch device\n");
