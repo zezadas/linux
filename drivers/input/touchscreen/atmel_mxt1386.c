@@ -285,7 +285,7 @@ static int mxt_charging_connector_cb(struct notifier_block *notifier,
 	struct extcon_dev *edev = (struct extcon_dev *)cmd;
 	struct mxt_data *mxt = container_of(notifier, struct mxt_data,
 		charging_connector_nb);
-	u32 state = edev->state;
+	u32 state = extcon_get_state(edev, 0);
 
 	pr_info("%s: old_state=%lu state=%u\n", __func__, event, state);
 
