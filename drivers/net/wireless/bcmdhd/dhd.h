@@ -2593,4 +2593,27 @@ wake_counts_t* dhd_get_wakecount(dhd_pub_t *dhdp);
 #ifdef BCM_ASLR_HEAP
 extern uint32 dhd_get_random_number(void);
 #endif /* BCM_ASLR_HEAP */
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+/**
+ * enum ieee80211_band - supported frequency bands
+ *
+ * The bands are assigned this way because the supported
+ * bitrates differ in these bands.
+ *
+ * @IEEE80211_BAND_2GHZ: 2.4GHz ISM band
+ * @IEEE80211_BAND_5GHZ: around 5GHz band (4.9-5.7)
+ * @IEEE80211_BAND_60GHZ: around 60 GHz band (58.32 - 64.80 GHz)
+ * @IEEE80211_NUM_BANDS: number of defined bands
+ */
+enum ieee80211_band {
+	IEEE80211_BAND_2GHZ = 0,
+	IEEE80211_BAND_5GHZ,
+	IEEE80211_BAND_60GHZ,
+
+	/* keep last */
+	IEEE80211_NUM_BANDS
+};
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0) */
+
 #endif /* _dhd_h_ */
