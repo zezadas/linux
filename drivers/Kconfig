@@ -1,4 +1,4 @@
-menu "Device Drivers"
+enu "Device Drivers"
 
 source "drivers/amba/Kconfig"
 
@@ -201,5 +201,11 @@ source "drivers/hwtracing/stm/Kconfig"
 source "drivers/hwtracing/intel_th/Kconfig"
 
 source "drivers/fpga/Kconfig"
+
+source "drivers/accessory/Kconfig"
+
+source "drivers/sensors/Kconfig"
+
+source "drivers/motor/Kconfig"
 
 endmenu
