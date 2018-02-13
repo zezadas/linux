@@ -405,12 +405,20 @@ start_readmac:
 		/* Reading the MAC Address from .mac.info file
 		   ( the existed file or just created file)
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, buf, 18, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, buf, 18);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 	} else {
 		/* Reading the MAC Address from
 		   .mac.info file( the existed file or just created file)
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, buf, 18, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, buf, 18);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 /* to prevent abnormal string display when mac address is displayed on the screen. */
 		buf[17] = '\0';
 		if (strncmp(buf, "00:00:00:00:00:00", 17) < 1) {
@@ -464,7 +472,11 @@ void sec_control_pm(dhd_pub_t *dhd, uint *power_mode)
 			__FUNCTION__, filepath, *power_mode));
 		return;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		kernel_read(fp, &power_val, 1, &fp->f_pos);
+#else
 		kernel_read(fp, fp->f_pos, &power_val, 1);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		DHD_ERROR(("[WIFI_SEC] %s: POWER_VAL = %c \r\n", __FUNCTION__, power_val));
 
 		if (power_val == '0') {
@@ -586,7 +598,11 @@ int dhd_sel_ant_from_file(dhd_pub_t *dhd)
 #endif /* !CUSTOM_SET_ANTNPM */
 		return ret;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, (char *)&ant_val, 4, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, (char *)&ant_val, 4);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		if (ret < 0) {
 			DHD_ERROR(("[WIFI_SEC] %s: File read error, ret=%d\n", __FUNCTION__, ret));
 			filp_close(fp, NULL);
@@ -671,7 +687,11 @@ int dhd_rsdb_mode_from_file(dhd_pub_t *dhd)
 		DHD_ERROR(("[WIFI_SEC] %s: File [%s] doesn't exist\n", __FUNCTION__, filepath));
 		return ret;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, (char *)&rsdb_mode, 4, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, (char *)&rsdb_mode, 4);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		if (ret < 0) {
 			DHD_ERROR(("[WIFI_SEC] %s: File read error, ret=%d\n", __FUNCTION__, ret));
 			filp_close(fp, NULL);
@@ -726,7 +746,11 @@ int dhd_logtrace_from_file(dhd_pub_t *dhd)
 		DHD_ERROR(("[WIFI_SEC] %s: File [%s] doesn't exist\n", __FUNCTION__, filepath));
 		return 0;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, (char *)&logtrace, 4, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, (char *)&logtrace, 4);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		if (ret < 0) {
 			DHD_ERROR(("[WIFI_SEC] %s: File read error, ret=%d\n", __FUNCTION__, ret));
 			filp_close(fp, NULL);
@@ -797,7 +821,11 @@ int sec_get_param_wfa_cert(dhd_pub_t *dhd, int mode, uint* read_val)
 			__FUNCTION__, filepath));
 		return BCME_ERROR;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		if (kernel_read(fp, (char *)&val, 4, &fp->f_pos) < 0) {
+#else
 		if (kernel_read(fp, fp->f_pos, (char *)&val, 4) < 0) {
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 			filp_close(fp, NULL);
 			/* File operation is failed so we will return error code */
 			DHD_ERROR(("[WIFI_SEC] %s: read failed, file path=%s\n",
@@ -912,7 +940,11 @@ uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p, char *clm_v
 			DHD_ERROR(("[WIFI_SEC] %s: Nvarm File open failed.\n", __FUNCTION__));
 			return -1;
 		} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+			ret = kernel_read(nvfp, temp_buf, sizeof(temp_buf), &nvfp->f_pos);
+#else
 			ret = kernel_read(nvfp, nvfp->f_pos, temp_buf, sizeof(temp_buf));
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 			filp_close(nvfp, NULL);
 		}
 
@@ -955,7 +987,11 @@ uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p, char *clm_v
 		DHD_ERROR(("[WIFI_SEC] %s: .wifiver.info File open failed.\n", __FUNCTION__));
 	} else {
 		memset(version_old_info, 0, sizeof(version_old_info));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, version_old_info, sizeof(version_info), &fp->f_pos);
+#else
 		ret = kernel_read(fp, fp->f_pos, version_old_info, sizeof(version_info));
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		filp_close(fp, NULL);
 		DHD_INFO(("[WIFI_SEC] kernel_read ret : %d.\n", ret));
 		if (strcmp(version_info, version_old_info) == 0) {
@@ -1011,7 +1047,11 @@ dhd_force_disable_singlcore_scan(dhd_pub_t *dhd)
 	if (IS_ERR(fp)) {
 		DHD_ERROR(("%s file open error\n", filepath));
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, (char *)vender, 5, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, (char *)vender, 5);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 
 		if (ret > 0 && NULL != strstr(vender, "wisol")) {
 			DHD_ERROR(("wisol module : set pm_bcnrx=0, set scan_ps=0\n"));
@@ -1095,7 +1135,11 @@ void dhd_adps_mode_from_file(dhd_pub_t *dhd)
 		}
 		return;
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		ret = kernel_read(fp, (char *)&adps_mode, 4, &fp->f_pos);
+#else
 		ret = kernel_read(fp, 0, (char *)&adps_mode, 4);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		if (ret < 0) {
 			DHD_ERROR(("[WIFI_SEC] %s: File read error, ret=%d\n", __FUNCTION__, ret));
 			filp_close(fp, NULL);

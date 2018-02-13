@@ -13265,15 +13265,21 @@ dhd_os_get_image_block(char *buf, int len, void *image)
 	}
 
 	size = i_size_read(file_inode(fp));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+	rdlen = kernel_read(fp, buf, MIN(len, size), &fp->f_pos);
+#else
 	rdlen = kernel_read(fp, fp->f_pos, buf, MIN(len, size));
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 
 	if (len >= size && size != rdlen) {
 		return -EIO;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
 	if (rdlen > 0) {
 		fp->f_pos += rdlen;
 	}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0) */
 
 	return rdlen;
 }
@@ -13304,7 +13310,11 @@ dhd_os_gets_image(dhd_pub_t *pub, char *str, int len, void *image)
 	if (!image)
 		return 0;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+	rd_len = kernel_read(fp, str, len, &fp->f_pos);
+#else
 	rd_len = kernel_read(fp, fp->f_pos, str, len);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 	str_end = strnchr(str, len, '\n');
 	if (str_end == NULL) {
 		goto err;
@@ -17087,7 +17097,11 @@ void dhd_get_memdump_info(dhd_pub_t *dhd)
 	}
 
 	/* Handle success case */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+	ret = kernel_read(fp, (char *)&mem_val, 4, &fp->f_pos);
+#else
 	ret = kernel_read(fp, 0, (char *)&mem_val, 4);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 	if (ret < 0) {
 		DHD_ERROR(("%s: File read error, ret=%d\n", __FUNCTION__, ret));
 		filp_close(fp, NULL);
@@ -17417,7 +17431,11 @@ void dhd_get_assert_info(dhd_pub_t *dhd)
 	if (IS_ERR(fp)) {
 		DHD_ERROR(("%s: File [%s] doesn't exist\n", __FUNCTION__, filepath));
 	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+		int ret = kernel_read(fp, (char *)&mem_val, 4, &fp->f_pos);
+#else
 		int ret = kernel_read(fp, 0, (char *)&mem_val, 4);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 		if (ret < 0) {
 			DHD_ERROR(("%s: File read error, ret=%d\n", __FUNCTION__, ret));
 		} else {
@@ -18512,7 +18530,11 @@ dhd_read_file(const char *filepath, char *buf, int buf_len)
 		return BCME_ERROR;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+	ret = kernel_read(fp, buf, buf_len, &fp->f_pos);
+#else
 	ret = kernel_read(fp, 0, buf, buf_len);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 	filp_close(fp, NULL);
 
 	/* restore previous address limit */
