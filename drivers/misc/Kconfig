@@ -506,6 +506,12 @@ config PCI_ENDPOINT_TEST
            Enable this configuration option to enable the host side test driver
            for PCI Endpoint.
 
+config SEC_MISC
+	tristate "driver for miscellaneous functions for P3 devices"
+	help
+	  Enable this to be able to support miscellaneous functions for P3 devices
+	  - tuning image converters(CMC623), updating touch firmwares.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
