@@ -209,4 +209,10 @@ source "drivers/tee/Kconfig"
 
 source "drivers/mux/Kconfig"
 
+source "drivers/accessory/Kconfig"
+
+source "drivers/sensors/Kconfig"
+
+source "drivers/motor/Kconfig"
+
 endmenu
