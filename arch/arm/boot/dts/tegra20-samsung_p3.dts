@@ -1306,6 +1306,7 @@
 		broken-cd;
 		no-1-8-v;
 		non-removable;
+		sd-ignore-pm-notify;
 	};
 
 	wifi {
