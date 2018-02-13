@@ -24,6 +24,7 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/kthread.h>
+#include <uapi/linux/sched/types.h>
 
 #include <video/tegra_dc_ext.h>
 
@@ -126,7 +127,7 @@ static int tegra_dc_ext_put_window(struct tegra_dc_ext_user *user,
 	mutex_lock(&win->lock);
 
 	if (win->user == user) {
-		flush_kthread_worker(&win->flip_worker);
+		kthread_flush_worker(&win->flip_worker);
 		win->user = 0;
 	} else {
 		ret = -EACCES;
@@ -172,7 +173,7 @@ void tegra_dc_ext_disable(struct tegra_dc_ext *ext)
 	 */
 	for (i = 0; i < ext->dc->n_windows; i++) {
 		struct tegra_dc_ext_win *win = &ext->win[i];
-		flush_kthread_worker(&win->flip_worker);
+		kthread_flush_worker(&win->flip_worker);
 	}
 }
 
@@ -568,7 +569,7 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 	if (!data)
 		return -ENOMEM;
 
-	init_kthread_work(&data->flip_work, tegra_dc_ext_flip_worker);
+	kthread_init_work(&data->flip_work, tegra_dc_ext_flip_worker);
 	data->ext = ext;
 
 #ifdef CONFIG_ANDROID
@@ -680,7 +681,7 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 		ret = -EINVAL;
 		goto unlock;
 	}
-	queue_kthread_work(&ext->win[work_index].flip_worker, &data->flip_work);
+	kthread_queue_work(&ext->win[work_index].flip_worker, &data->flip_work);
 
 	unlock_windows_for_flip(user, args);
 
@@ -1016,7 +1017,7 @@ static int tegra_dc_ext_setup_windows(struct tegra_dc_ext *ext)
 			 ext->dc->ndev->id, 'a' + i);
 
 		/* Create SCHED_FIFO kthread */
-		init_kthread_worker(&win->flip_worker);
+		kthread_init_worker(&win->flip_worker);
 		win->worker_thread = kthread_run(kthread_worker_fn,
 			&win->flip_worker, name);
 
@@ -1128,7 +1129,7 @@ void tegra_dc_ext_unregister(struct tegra_dc_ext *ext)
 	for (i = 0; i < ext->dc->n_windows; i++) {
 		struct tegra_dc_ext_win *win = &ext->win[i];
 
-		flush_kthread_worker(&win->flip_worker);
+		kthread_flush_worker(&win->flip_worker);
 		kthread_stop(win->worker_thread);
 	}
 

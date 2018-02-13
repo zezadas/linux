@@ -24,6 +24,7 @@
 #include <linux/interrupt.h>
 #include <linux/slab.h>
 #include <linux/irq.h>
+#include <uapi/linux/sched/types.h>
 #include <trace/events/nvhost.h>
 #include "nvhost_channel.h"
 #include "nvhost_hwctx.h"
@@ -307,7 +308,7 @@ int nvhost_intr_add_action(struct nvhost_intr *intr, u32 id, u32 thresh,
 void *nvhost_intr_alloc_waiter()
 {
 	return kzalloc(sizeof(struct nvhost_waitlist),
-			GFP_KERNEL|__GFP_REPEAT);
+			GFP_KERNEL|__GFP_RETRY_MAYFAIL);
 }
 
 void nvhost_intr_put_ref(struct nvhost_intr *intr, u32 id, void *ref)
@@ -341,7 +342,7 @@ int nvhost_intr_init(struct nvhost_intr *intr, u32 irq_gen, u32 irq_sync)
 	mutex_init(&intr->mutex);
 	intr->syncpt_irq = irq_sync;
 
-	init_kthread_worker(&intr->worker);
+	kthread_init_worker(&intr->worker);
 	intr->worker_thread = kthread_run(kthread_worker_fn,
 		&intr->worker, "host_syncpt");
 

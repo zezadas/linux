@@ -44,6 +44,7 @@
 #include <linux/of_gpio.h>
 #include <linux/of_address.h>
 #include <linux/reset.h>
+#include <uapi/linux/sched/types.h>
 
 #include <video/videomode.h>
 #include <video/display_timing.h>
@@ -1092,7 +1093,7 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 		tegra_dc_trigger_windows(dc);
 
 		/* Schedule any additional bottom-half vblank actvities. */
-		queue_kthread_work(&dc->dc_worker, &dc->vblank_work);
+		kthread_queue_work(&dc->dc_worker, &dc->vblank_work);
 	}
 
 	if (status & FRAME_END_INT) {
@@ -1112,7 +1113,7 @@ static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status)
 		/* Check underflow */
 		tegra_dc_underflow_handler(dc);
 
-		queue_kthread_work(&dc->dc_worker, &dc->vblank_work);
+		kthread_queue_work(&dc->dc_worker, &dc->vblank_work);
 	}
 
 	if (status & FRAME_END_INT) {
@@ -2173,7 +2174,7 @@ static int tegra_dc_probe(struct nvhost_device *ndev,
 	INIT_DELAYED_WORK(&dc->disable_work, tegra_dc_delayed_disable_work);
 
 	/* Create SCHED_FIFO kthread */
-	init_kthread_worker(&dc->dc_worker);
+	kthread_init_worker(&dc->dc_worker);
 
 	dc->dc_worker_thread = kthread_run(kthread_worker_fn,
 		&dc->dc_worker, "dc_worker_thread");
@@ -2185,7 +2186,7 @@ static int tegra_dc_probe(struct nvhost_device *ndev,
 
 	sched_setscheduler(dc->dc_worker_thread, SCHED_FIFO, &param);
 
-	init_kthread_work(&dc->vblank_work, tegra_dc_vblank);
+	kthread_init_work(&dc->vblank_work, tegra_dc_vblank);
 
 	tegra_dc_init_lut_defaults(&dc->fb_lut);
 

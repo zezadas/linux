@@ -113,7 +113,7 @@ static long nvmap_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 static int nvmap_map(struct file *filp, struct vm_area_struct *vma);
 static void nvmap_vma_open(struct vm_area_struct *vma);
 static void nvmap_vma_close(struct vm_area_struct *vma);
-static int nvmap_vma_fault(struct vm_area_struct *vma, struct vm_fault *vmf);
+static int nvmap_vma_fault(struct vm_fault *vmf);
 
 static const struct file_operations nvmap_user_fops = {
 	.owner		= THIS_MODULE,
@@ -494,16 +494,16 @@ end:
 		}
 
 
-		task_lock(selected_task);
+		// task_lock(selected_task);
 		send_sig(SIGKILL, selected_task, 0);
 		/*
 		 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
 		 * infrastructure. There is no real reason why the selected
 		 * task should have access to the memory reserves.
 		 */
-		if (selected_task->mm)
-			mark_oom_victim(selected_task);
-		task_unlock(selected_task);
+		// if (selected_task->mm)
+		// 	mark_oom_victim(selected_task);
+		// task_unlock(selected_task);
 		wait = true;
 	}
 
@@ -978,12 +978,13 @@ static void nvmap_vma_close(struct vm_area_struct *vma)
 	vma->vm_private_data = NULL;
 }
 
-static int nvmap_vma_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+static int nvmap_vma_fault(struct vm_fault *vmf)
 {
+	struct vm_area_struct *vma = vmf->vma;
 	struct nvmap_vma_priv *priv;
 	unsigned long offs;
 
-	offs = (unsigned long)(vmf->virtual_address - vma->vm_start);
+	offs = (unsigned long)(vmf->address - vma->vm_start);
 	priv = vma->vm_private_data;
 	if (!priv || !priv->handle || !priv->handle->alloc)
 		return VM_FAULT_SIGBUS;
@@ -1000,7 +1001,7 @@ static int nvmap_vma_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		unsigned long pfn;
 		BUG_ON(priv->handle->carveout->base & ~PAGE_MASK);
 		pfn = ((priv->handle->carveout->base + offs) >> PAGE_SHIFT);
-		vm_insert_pfn(vma, (unsigned long)vmf->virtual_address, pfn);
+		vm_insert_pfn(vma, (unsigned long)vmf->address, pfn);
 		return VM_FAULT_NOPAGE;
 	} else {
 		struct page *page;

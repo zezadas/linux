@@ -33,6 +33,7 @@
 #include <linux/shrinker.h>
 #include <linux/moduleparam.h>
 #include <linux/nvmap.h>
+#include <linux/sched/clock.h>
 
 #include <asm/cacheflush.h>
 #include <asm/outercache.h>
@@ -89,8 +90,8 @@ static struct page *nvmap_page_pool_alloc_locked(struct nvmap_page_pool *pool)
 	if (pool->npages > 0) {
 		page = pool->page_array[--pool->npages];
 		pool->page_array[pool->npages] = NULL;
-		atomic_dec(&page->_count);
-		BUG_ON(atomic_read(&page->_count) != 1);
+		page_ref_dec(page);
+		BUG_ON(page_ref_count(page) != 1);
 	}
 	return page;
 }
@@ -113,8 +114,8 @@ static bool nvmap_page_pool_release_locked(struct nvmap_page_pool *pool,
 	int ret = false;
 
 	if (enable_pp && pool->npages < pool->max_pages) {
-		atomic_inc(&page->_count);
-		BUG_ON(atomic_read(&page->_count) != 2);
+		page_ref_inc(page);
+		BUG_ON(page_ref_count(page) != 2);
 		BUG_ON(pool->page_array[pool->npages] != NULL);
 		pool->page_array[pool->npages++] = page;
 		ret = true;

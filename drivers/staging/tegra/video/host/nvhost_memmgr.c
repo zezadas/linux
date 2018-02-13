@@ -20,6 +20,7 @@
 
 #include <linux/kernel.h>
 #include <linux/err.h>
+#include <asm-generic/bug.h>
 
 #include "nvhost_memmgr.h"
 #include "nvmap.h"

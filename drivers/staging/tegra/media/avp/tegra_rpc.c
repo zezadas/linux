@@ -32,6 +32,7 @@
 #include <linux/tegra_rpc.h>
 #include <linux/types.h>
 #include <linux/wait.h>
+#include <linux/sched/signal.h>
 
 #include "trpc.h"
 

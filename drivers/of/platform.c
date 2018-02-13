@@ -79,7 +79,7 @@ EXPORT_SYMBOL(of_find_device_by_node);
  * derive a unique name. If it cannot, then it will prepend names from
  * parent nodes until a unique name can be derived.
  */
-static void of_device_make_bus_id(struct device *dev)
+void of_device_make_bus_id(struct device *dev)
 {
 	struct device_node *node = dev->of_node;
 	const __be32 *reg;
