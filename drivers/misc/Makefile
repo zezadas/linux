@@ -60,6 +60,8 @@ obj-$(CONFIG_PCI_ENDPOINT_TEST)	+= pci_endpoint_test.o
 obj-$(CONFIG_SEC_MISC)		+= sec_misc.o
 obj-$(CONFIG_SEC_MISC)	+= stmpe811.o
 
+obj-$(CONFIG_SAMSUNG_JACK)	+= sec_jack.o
+
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_heap.o
