@@ -35,7 +35,6 @@
 #include <linux/capability.h>
 #include <linux/compat.h>
 #include <linux/pm_runtime.h>
-#include <linux/idr.h>
 #include <linux/debugfs.h>
 
 #include <linux/mmc/ioctl.h>
@@ -79,13 +78,15 @@ static int perdev_minors = CONFIG_MMC_BLOCK_MINORS;
 /*
  * We've only got one major, so number of mmcblk devices is
  * limited to (1 << 20) / number of minors per device.  It is also
- * limited by the MAX_DEVICES below.
+ * currently limited by the size of the static bitmaps below.
  */
 static int max_devices;
 
 #define MAX_DEVICES 256
 
-static DEFINE_IDA(mmc_blk_ida);
+/* TODO: Replace these with struct ida */
+static DECLARE_BITMAP(dev_use, MAX_DEVICES);
+static DECLARE_BITMAP(name_use, MAX_DEVICES);
 
 /*
  * There is one mmc_blk_data per slot.
@@ -104,6 +105,7 @@ struct mmc_blk_data {
 	unsigned int	usage;
 	unsigned int	read_only;
 	unsigned int	part_type;
+	unsigned int	name_idx;
 	unsigned int	reset_done;
 #define MMC_BLK_READ		BIT(0)
 #define MMC_BLK_WRITE		BIT(1)
@@ -161,7 +163,7 @@ static void mmc_blk_put(struct mmc_blk_data *md)
 	if (md->usage == 0) {
 		int devidx = mmc_get_devidx(md->disk);
 		blk_cleanup_queue(md->queue.queue);
-		ida_simple_remove(&mmc_blk_ida, devidx);
+		__clear_bit(devidx, dev_use);
 		put_disk(md->disk);
 		kfree(md);
 	}
@@ -2047,7 +2049,10 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	struct mmc_blk_data *md;
 	int devidx, ret;
 
-	devidx = ida_simple_get(&mmc_blk_ida, 0, max_devices, GFP_KERNEL);
+	devidx = find_first_zero_bit(dev_use, max_devices);
+	if (devidx >= max_devices)
+		return ERR_PTR(-ENOSPC);
+	__set_bit(devidx, dev_use);
 	if (devidx < 0) {
 		/*
 		 * We get -ENOSPC because there are no more any available
@@ -2068,6 +2073,19 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 		ret = -ENOMEM;
 		goto out;
 	}
+
+	/*
+	 * !subname implies we are creating main mmc_blk_data that will be
+	 * associated with mmc_card with dev_set_drvdata. Due to device
+	 * partitions, devidx will not coincide with a per-physical card
+	 * index anymore so we keep track of a name index.
+	 */
+	if (!subname) {
+		md->name_idx = find_first_zero_bit(name_use, max_devices);
+		__set_bit(md->name_idx, name_use);
+	} else
+		md->name_idx = ((struct mmc_blk_data *)
+				dev_to_disk(parent)->private_data)->name_idx;
 
 	md->area_type = area_type;
 
@@ -2117,7 +2135,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	 */
 
 	snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
-		 "mmcblk%u%s", card->host->index, subname ? subname : "");
+		 "mmcblk%u%s", md->name_idx, subname ? subname : "");
 
 	if (mmc_card_mmc(card))
 		blk_queue_logical_block_size(md->queue.queue,
@@ -2150,7 +2168,6 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
  err_kfree:
 	kfree(md);
  out:
-	ida_simple_remove(&mmc_blk_ida, devidx);
 	return ERR_PTR(ret);
 }
 
@@ -2267,6 +2284,7 @@ static void mmc_blk_remove_parts(struct mmc_card *card,
 	struct list_head *pos, *q;
 	struct mmc_blk_data *part_md;
 
+	__clear_bit(md->name_idx, name_use);
 	list_for_each_safe(pos, q, &md->part) {
 		part_md = list_entry(pos, struct mmc_blk_data, part);
 		list_del(pos);
