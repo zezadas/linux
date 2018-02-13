@@ -57,6 +57,10 @@
 #include <linux/cpufreq.h>
 #endif /* ENABLE_ADAPTIVE_SCHED */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#include <uapi/linux/sched/types.h>
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
+
 #include <asm/uaccess.h>
 #include <asm/unaligned.h>
 
@@ -5849,8 +5853,10 @@ dhd_rx_frame(dhd_pub_t *dhdp, int ifidx, void *pktbuf, int numpkt, uint8 chan)
 #endif /* DHD_WAKE_STATUS */
 		}
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4, 10, 0)
 		if (ifp->net)
 			ifp->net->last_rx = jiffies;
+#endif
 
 		if (ntoh16(skb->protocol) != ETHER_TYPE_BRCM) {
 			dhdp->dstats.rx_bytes += skb->len;
@@ -8417,14 +8423,25 @@ dhd_allocate_if(dhd_pub_t *dhdpub, int ifidx, const char *name,
 		ifp->net->name[IFNAMSIZ - 1] = '\0';
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#ifdef WL_CFG80211
+	if (ifidx == 0)
+		ifp->net->priv_destructor = free_netdev;
+	else
+		ifp->net->priv_destructor = dhd_netdev_free;
+#else
+	ifp->net->priv_destructor = free_netdev;
+#endif /* WL_CFG80211 */
+#else /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 #ifdef WL_CFG80211
 	if (ifidx == 0)
 		ifp->net->destructor = free_netdev;
 	else
-		ifp->net->destructor = dhd_netdev_free;
-#else
+		ifp->net->priv_destructor = dhd_netdev_free;
+#else /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 	ifp->net->destructor = free_netdev;
 #endif /* WL_CFG80211 */
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0) */
 	strncpy(ifp->name, ifp->net->name, IFNAMSIZ);
 	ifp->name[IFNAMSIZ - 1] = '\0';
 	dhdinfo->iflist[ifidx] = ifp;
