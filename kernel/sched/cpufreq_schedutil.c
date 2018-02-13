@@ -166,7 +166,7 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 {
 	struct cpufreq_policy *policy = sg_policy->policy;
 	unsigned int freq = arch_scale_freq_invariant() ?
-				policy->cpuinfo.max_freq : policy->cur;
+				policy->user_policy.max : policy->cur;
 
 	freq = (freq + (freq >> 2)) * util / max;
 
@@ -273,7 +273,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	busy = sugov_cpu_is_busy(sg_cpu);
 
 	if (flags & SCHED_CPUFREQ_RT_DL) {
-		next_f = policy->cpuinfo.max_freq;
+		next_f = policy->user_policy.max;
 	} else {
 		sugov_get_util(&util, &max, sg_cpu->cpu);
 		sugov_iowait_boost(sg_cpu, &util, &max);
@@ -318,7 +318,7 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 			continue;
 		}
 		if (j_sg_cpu->flags & SCHED_CPUFREQ_RT_DL)
-			return policy->cpuinfo.max_freq;
+			return policy->user_policy.max;
 
 		j_util = j_sg_cpu->util;
 		j_max = j_sg_cpu->max;
@@ -354,7 +354,7 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
 
 	if (sugov_should_update_freq(sg_policy, time)) {
 		if (flags & SCHED_CPUFREQ_RT_DL)
-			next_f = sg_policy->policy->cpuinfo.max_freq;
+			next_f = sg_policy->policy->user_policy.max;
 		else
 			next_f = sugov_next_freq_shared(sg_cpu, time);
 
@@ -656,12 +656,11 @@ static int sugov_start(struct cpufreq_policy *policy)
 		sg_cpu->cpu = cpu;
 		sg_cpu->sg_policy = sg_policy;
 		sg_cpu->flags = SCHED_CPUFREQ_RT;
-		sg_cpu->iowait_boost_max = policy->cpuinfo.max_freq;
+		sg_cpu->iowait_boost_max = policy->user_policy.max;
 	}
 
 	for_each_cpu(cpu, policy->cpus) {
 		struct sugov_cpu *sg_cpu = &per_cpu(sugov_cpu, cpu);
-
 		cpufreq_add_update_util_hook(cpu, &sg_cpu->update_util,
 					     policy_is_shared(policy) ?
 							sugov_update_shared :
