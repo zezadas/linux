@@ -324,7 +324,7 @@ config BATTERY_MAX17040
 	  in handheld and portable equipment. The MAX17040 is configured
 	  to operate with a single lithium cell
 
-config BATTERY_MAX17042
+config BATTERY_MAX17042_P4
 	tristate "Maxim MAX17042/17047/17050/8997/8966 Fuel Gauge"
 	depends on I2C
 	select REGMAP_I2C
@@ -623,5 +623,20 @@ config CHARGER_RT9455
 	select REGMAP_I2C
 	help
 	  Say Y to enable support for Richtek RT9455 battery charger.
+
+config BATTERY_P4
+	tristate "P4 battery"
+	depends on I2C
+	help
+	 Say Y to include support for P4 battery & fuel gauge (I2C) fuel gauge chips.
+         FuelGuage Support includes interface to the MAX17042/40/43 chips as
+         applicable.
+
+config SAMSUNG_LPM_MODE
+	bool "Off charging mode support in P3 battery driver"
+	help
+	 Say Y to include support for P3 off charging support.
+         This includes the support for charging of the battery
+         in switch off mode.
 
 endif # POWER_SUPPLY

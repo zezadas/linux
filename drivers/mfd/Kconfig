@@ -1812,6 +1812,12 @@ config MFD_STM32_TIMERS
 	  for PWM and IIO Timer. This driver allow to share the
 	  registers between the others drivers.
 
+config TPS6586X_ADC
+	bool "TPS6586x ADC support"
+	depends on MFD_TPS6586X_P4
+	help
+	  If you say yes here you get support for the TPS6586X ADC feature.
+
 menu "Multimedia Capabilities Port drivers"
 	depends on ARCH_SA1100
 
