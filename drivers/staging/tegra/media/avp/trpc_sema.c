@@ -27,6 +27,7 @@
 #include <linux/uaccess.h>
 #include <linux/wait.h>
 #include <linux/module.h>
+#include <linux/version.h>
 
 #include "trpc_sema.h"
 
@@ -41,7 +42,11 @@ static int rpc_sema_minor = -1;
 
 static inline bool is_trpc_sema_file(struct file *file)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
+	dev_t rdev = file->f_path.dentry->d_inode->i_rdev;
+#else
 	dev_t rdev = file->f_dentry->d_inode->i_rdev;
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)) */
 
 	if (MAJOR(rdev) == MISC_MAJOR && MINOR(rdev) == rpc_sema_minor)
 		return true;
