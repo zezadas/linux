@@ -1425,8 +1425,10 @@ static void mpu3050_dt_parse_slave_pdata(struct i2c_client *client,
 	struct resource r_irq;
 	u32 val;
 
-	if (of_irq_to_resource(of_node, 0, &r_irq))
-		slave_pdata->irq = r_irq.start;
+	// if (of_irq_to_resource(of_node, 0, &r_irq))
+	// 	slave_pdata->irq = r_irq.start;
+
+	slave_pdata->irq = 0;
 
 	if (!of_property_read_u32(of_node, "adap-num", &val))
 		slave_pdata->adapt_num = val;
