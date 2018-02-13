@@ -260,21 +260,20 @@ si_sdiod_drive_strength_init(si_t *sih, osl_t *osh, uint32 drivestrength)
 
 	if (str_tab != NULL) {
 		uint32 cc_data_temp;
+		u32 drivestrength_sel = 0;
 		int i;
 
-		/* Pick the lowest available drive strength equal or greater than the
-		 * requested strength.	Drive strength of 0 requests tri-state.
-		 */
-		for (i = 0; drivestrength < str_tab[i].strength; i++)
-			;
-
-		if (i > 0 && drivestrength > str_tab[i].strength)
-			i--;
+		for (i = 0; str_tab[i].strength != 0; i++) {
+			if (drivestrength >= str_tab[i].strength) {
+				drivestrength_sel = str_tab[i].sel;
+				break;
+			}
+		}
 
 		W_REG(osh, &pmu->chipcontrol_addr, PMU_CHIPCTL1);
 		cc_data_temp = R_REG(osh, &pmu->chipcontrol_data);
 		cc_data_temp &= ~str_mask;
-		cc_data_temp |= str_tab[i].sel << str_shift;
+		cc_data_temp |= drivestrength_sel << str_shift;
 		W_REG(osh, &pmu->chipcontrol_data, cc_data_temp);
 		if (str_ovr_pmuval) { /* enables the selected drive strength */
 			W_REG(osh,  &pmu->chipcontrol_addr, str_ovr_pmuctl);
