@@ -1302,6 +1302,7 @@
 		status = "okay";
 		bus-width = <4>;
 		power-gpios = <&gpio TEGRA_GPIO(Q, 2) GPIO_ACTIVE_HIGH>;
+		max-frequency = <25000000>;
 		keep-power-in-suspend;
 		broken-cd;
 		no-1-8-v;
