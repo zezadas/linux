@@ -254,6 +254,9 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 		dhd_mmc_suspend = FALSE;
 		return err;
 	}
+
+	irq_set_irq_wake(390, 1);
+
 	smp_mb();
 
 	return 0;
@@ -271,6 +274,9 @@ static int bcmsdh_sdmmc_resume(struct device *pdev)
 	sdioh = sdio_get_drvdata(func);
 	dhd_mmc_suspend = FALSE;
 	bcmsdh_resume(sdioh->bcmsdh);
+
+	if (func->num == 2)
+		irq_set_irq_wake(390, 0);
 
 	smp_mb();
 	return 0;
