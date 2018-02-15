@@ -2952,7 +2952,14 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		host->bus_ops->remove(host);
 		mmc_claim_host(host);
 		mmc_detach_bus(host);
-		mmc_power_off(host);
+		// mmc_power_off(host);
+
+		if (host->card && host->card->type == MMC_TYPE_SDIO)
+			printk(KERN_INFO
+				"%s(): WLAN SKIP MMC_POWER_OFF\n", __func__);
+		else
+			mmc_power_off(host);
+
 		mmc_release_host(host);
 		host->pm_flags = 0;
 		break;
@@ -2964,7 +2971,13 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		spin_lock_irqsave(&host->lock, flags);
 		host->rescan_disable = 0;
 		spin_unlock_irqrestore(&host->lock, flags);
-		_mmc_detect_change(host, 0, false);
+
+		if (host->card && host->card->type == MMC_TYPE_SDIO)
+			printk(KERN_INFO
+				"%s(): WLAN SKIP DETECT CHANGE\n", __func__);
+		else
+			_mmc_detect_change(host, 0, false);
+		// _mmc_detect_change(host, 0, false);
 
 	}
 
