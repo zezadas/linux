@@ -335,10 +335,6 @@
 				nvidia,pins = "dap4";
 				nvidia,function = "dap4";
 			};
-			ddc {
-				nvidia,pins ="spif", "uac";
-				nvidia,function = "rsvd4";
-			};
 			spif {
 				nvidia,pins = "spif", "uac";
 				nvidia,function = "rsvd4";
