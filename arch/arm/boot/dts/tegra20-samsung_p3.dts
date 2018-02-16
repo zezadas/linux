@@ -120,6 +120,12 @@
 		dark-backlight = <0>;
 	};
 
+	iovmm-gart {
+		compatible = "nvidia,iovmm-gart";
+		reg = <0x7000F000 0x00000400	/* controller registers */
+		       0x58000000 0x02000000>;	/* GART aperture */
+	};
+
 	nvmap {
 		compatible = "nvidia,tegra-nvmap";
 		#address-cells = <1>;
