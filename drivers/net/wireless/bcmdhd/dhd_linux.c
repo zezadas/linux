@@ -6370,12 +6370,23 @@ dhd_rxf_thread(void *data)
 	/* This thread doesn't need any user-level access,
 	 * so get rid of all our resources
 	 */
+#if defined(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)
+	{
+		// HACK: lower priority of mmc0 (wifi) irq
+		// To prevent it from monopolizing resources.
+		struct sched_param param;
+		param.sched_priority = 20;
+		current->static_prio = DEFAULT_PRIO + 5; // task nice value
+		setScheduler(current, SCHED_NORMAL, &param);
+	}
+#else
 	if (dhd_rxf_prio > 0)
 	{
 		struct sched_param param;
 		param.sched_priority = (dhd_rxf_prio < MAX_RT_PRIO)?dhd_rxf_prio:(MAX_RT_PRIO-1);
 		setScheduler(current, SCHED_FIFO, &param);
 	}
+#endif
 
 #if defined(ARGOS_CPU_SCHEDULER) && defined(CONFIG_SCHED_HMP) && \
 	!defined(DHD_LB_IRQSET)
