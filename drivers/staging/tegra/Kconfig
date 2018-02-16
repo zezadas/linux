@@ -7,6 +7,19 @@ config TEGRA_DOWNSTREAM
 
 if TEGRA_DOWNSTREAM
 
+config TEGRA_IOVMM_GART
+	bool "Enable I/O virtual memory manager for GART"
+	depends on ARCH_TEGRA_2x_SOC
+	default y
+	select TEGRA_IOVMM
+	help
+	  Enables support for remapping discontiguous physical memory
+	  shared with the operating system into contiguous I/O virtual
+	  space through the GART hardware included on Tegra SoCs
+
+config TEGRA_IOVMM
+	bool
+
 source "drivers/staging/tegra/media/Kconfig"
 source "drivers/staging/tegra/video/Kconfig"
 
