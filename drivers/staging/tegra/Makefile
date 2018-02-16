@@ -8,3 +8,5 @@ obj-$(CONFIG_TEGRA_DOWNSTREAM) += clk.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += pageattr.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += powergate.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += tegra20-dvfs.o
+obj-$(CONFIG_TEGRA_IOVMM) += iovmm.o
+obj-$(CONFIG_TEGRA_IOVMM_GART) += iovmm-gart.o
