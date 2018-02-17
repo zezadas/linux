@@ -333,6 +333,7 @@ static const struct of_dev_auxdata *of_dev_lookup(const struct of_dev_auxdata *l
 	return NULL;
 }
 
+#ifdef CONFIG_TEGRA_DOWNSTREAM
 /**
  * Assume that all child devices belongs to nvhost
  */
@@ -368,6 +369,7 @@ static int of_nvhost_bus_create(struct device_node *node,
 
 	return rc;
 }
+#endif
 
 /**
  * of_platform_bus_create() - Create a device for a node and its children.
@@ -419,7 +421,7 @@ static int of_platform_bus_create(struct device_node *bus,
 		of_amba_device_create(bus, bus_id, platform_data, parent);
 		return 0;
 	}
-
+#ifdef CONFIG_TEGRA_DOWNSTREAM
 	if (of_device_is_compatible(bus, "nvhost-bus")) {
 		rc = of_nvhost_bus_create(bus, tegra20_auxdata_lookup);
 		// Some devices can be disabled which will return -ENODEV
@@ -427,7 +429,7 @@ static int of_platform_bus_create(struct device_node *bus,
 			of_node_set_flag(bus, OF_POPULATED_BUS);
 		return 0;
 	}
-
+#endif
 	dev = of_platform_device_create_pdata(bus, bus_id, platform_data, parent);
 	if (!dev || !of_match_node(matches, bus))
 		return 0;
