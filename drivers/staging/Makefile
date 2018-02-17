@@ -51,3 +51,4 @@ obj-$(CONFIG_CRYPTO_DEV_CCREE)	+= ccree/
 obj-$(CONFIG_DRM_VBOXVIDEO)	+= vboxvideo/
 obj-$(CONFIG_PI433)		+= pi433/
 obj-$(CONFIG_TEGRA_DOWNSTREAM)	+= tegra/
+obj-$(CONFIG_P4WIFI)		+= p4wifi/
