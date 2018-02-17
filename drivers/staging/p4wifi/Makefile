@@ -1,0 +1,1 @@
+obj-$(CONFIG_FB_TEGRA_CMC623) += cmc623.o
