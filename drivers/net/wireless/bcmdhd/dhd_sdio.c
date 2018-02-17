@@ -8740,13 +8740,13 @@ dhdsdio_suspend(void *context)
 		return BCME_OK;
 	}
 
-	DHD_LINUX_GENERAL_LOCK(bus->dhd, flags);
-	if (bus->dhd->busstate != DHD_BUS_DATA && bus->dhd->busstate != DHD_BUS_SUSPEND) {
-		DHD_ERROR(("not in a readystate to LPBK  is not inited\n"));
-		DHD_LINUX_GENERAL_UNLOCK(bus->dhd, flags);
-		return BCME_ERROR;
-	}
-	DHD_LINUX_GENERAL_UNLOCK(bus->dhd, flags);
+	// DHD_LINUX_GENERAL_LOCK(bus->dhd, flags);
+	// if (bus->dhd->busstate != DHD_BUS_DATA && bus->dhd->busstate != DHD_BUS_SUSPEND) {
+	// 	DHD_ERROR(("not in a readystate to LPBK  is not inited\n"));
+	// 	DHD_LINUX_GENERAL_UNLOCK(bus->dhd, flags);
+	// 	return BCME_ERROR;
+	// }
+	// DHD_LINUX_GENERAL_UNLOCK(bus->dhd, flags);
 	if (bus->dhd->dongle_reset) {
 		DHD_ERROR(("Dongle is in reset state.\n"));
 		return -EIO;
