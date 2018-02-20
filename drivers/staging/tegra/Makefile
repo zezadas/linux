@@ -5,6 +5,7 @@ obj-$(CONFIG_TEGRA_DOWNSTREAM) += video/
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += cache-v7.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += csi.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += clk.o
+obj-$(CONFIG_TEGRA_DOWNSTREAM) += mc.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += pageattr.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += powergate.o
 obj-$(CONFIG_TEGRA_DOWNSTREAM) += tegra20-dvfs.o
