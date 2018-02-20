@@ -1315,29 +1315,29 @@ static int tegra_dc_init(struct tegra_dc *dc)
 	int int_enable;
 
 	tegra_dc_writel(dc, 0x00000100, DC_CMD_GENERAL_INCR_SYNCPT_CNTRL);
-// 	if (dc->ndev->id == 0) {
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0A,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0B,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0C,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY1B,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAYHC,
-// 				      TEGRA_MC_PRIO_HIGH);
-// 	} else if (dc->ndev->id == 1) {
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0AB,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0BB,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0CB,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY1BB,
-// 				      TEGRA_MC_PRIO_MED);
-// 		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAYHCB,
-// 				      TEGRA_MC_PRIO_HIGH);
-// 	}
+	if (dc->ndev->id == 0) {
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0A,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0B,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0C,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY1B,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAYHC,
+				      TEGRA_MC_PRIO_HIGH);
+	} else if (dc->ndev->id == 1) {
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0AB,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0BB,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY0CB,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAY1BB,
+				      TEGRA_MC_PRIO_MED);
+		tegra_mc_set_priority(TEGRA_MC_CLIENT_DISPLAYHCB,
+				      TEGRA_MC_PRIO_HIGH);
+	}
 	tegra_dc_writel(dc, 0x00000100 | dc->vblank_syncpt,
 			DC_CMD_CONT_SYNCPT_VSYNC);
 	tegra_dc_writel(dc, 0x00004700, DC_CMD_INT_TYPE);
