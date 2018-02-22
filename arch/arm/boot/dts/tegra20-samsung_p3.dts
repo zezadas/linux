@@ -44,21 +44,6 @@
 			reg = <0x18012000 0x003E8000>;
 		};
 
-		framebuffer0: framebuffer0@2e700000 {
-			reg = <0x2e700000 0x00900000>;
-			no-map;
-		};
-
-		framebuffer1: framebuffer1@2f000000 {
-			reg = <0x2f000000 0x01000000>;
-			no-map;
-		};
-
-		generic: carveout@30000000 {
-			reg = <0x30000000 0x10000000>;
-			no-map;
-		};
-
 		android_logger: ram-console@2E600000 {
 			reg = <0x2E600000 0x00100000>;
 			no-map;
@@ -71,11 +56,6 @@
 			console-size	= <0x00020000>;
 			ftrace-size	= <0x00020000>;
 			pmsg-size	= <0x00020000>;
-		};
-
-		iram: carveout@40000400 {
-			reg = <0x40000400 0x3FC00>;
-			no-map;
 		};
 	};
 
@@ -115,167 +95,23 @@
 		dark-backlight = <0>;
 	};
 
-	nvmap {
-		compatible = "nvidia,tegra-nvmap";
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges;
-
-		carveouts {
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges;
-
-			iram {
-				reg = <0x40000400 0x3FC00>;
-				reg-names = "iram";
-				buddy-size = <0>;
-				usage-mask = <0x20000000>;
-			};
-
-			generic {
-				reg = <0x30000000 0x10000000>;
-				reg-names = "generic-0";
-				buddy-size = <0x8000>;
-				usage-mask = <0x1>;
-			};
-		};
-	};
-
 	host1x@50000000 {
-		compatible = "nvidia,tegra20-host1x", "nvhost-bus";
-		ranges;
-
-		mpe@54040000 {
-			clock-names = "mpe";
-			status = "okay";
-		};
-
-		gr3d@54180000 {
-			clock-names = "gr3d";
-			status = "okay";
-		};
-
-		gr2d@54140000 {
-			clocks = <&tegra_car TEGRA20_CLK_GR2D>,
-				 <&tegra_car TEGRA20_CLK_EPP>;
-			clock-names = "gr2d", "epp";
-			status = "okay";
-		};
-
-		epp@540c0000 {
-			clock-names = "epp";
-			status = "okay";
-		};
-
 		dc@54200000 {
-			reg = <0x54200000 0x00040000>,
-			      <0x2E700000 0x00900000>;
-			reg-names = "regs", "fbmem";
-			interrupt-names = "irq";
-			status = "okay";
-
 			rgb {
 				status = "okay";
 
-				display {
-					fb-win = <0>;
-					fb-xres = <1280>;
-					fb-yres = <800>;
-					fb-bpp = <32>;
-
-					dc-index = <0>;
-
-					flags = <1>; /* TEGRA_DC_FLAG_ENABLED */
-
-					type = <0>; /* TEGRA_DC_OUT_RGB */
-					order = <0>; /* TEGRA_DC_ORDER_RED_BLUE */
-					align = <0>; /* TEGRA_DC_ALIGN_MSB */
-					depth = <24>;
-					dither = <3>; /* TEGRA_DC_ERRDIFF_DITHER */
-
-					default-emc-rate = <300000000>;
-					min-emc-rate = <300000000>;
-
-					display-timings {
-						native-mode = <&timing0>;
-						timing0: cmc623-lsi {
-							clock-frequency = <68941176>;
-							hactive = <1280>;
-							vactive = <800>;
-							hfront-porch = <16>;
-							hback-porch = <64>;
-							hsync-len = <48>;
-							vsync-len = <3>;
-							vfront-porch = <2>;
-							vback-porch = <11>;
-						};
-						timing1: cmc623-fujitsu {
-							clock-frequency = <76000000>;
-							hactive = <1280>;
-							vactive = <800>;
-							hfront-porch = <16>;
-							hback-porch = <64>;
-							hsync-len = <48>;
-							vsync-len = <18>;
-							vfront-porch = <6>;
-							vback-porch = <76>;
-						};
-					};
-				};
+				nvidia,panel = <&panel>;
 			};
-		};
-
-
-		vi@54080000 {
-			compatible = "nvidia,tegra20-vi";
-			status = "disabled";
-		};
-
-		isp@54100000 {
-			compatible = "nvidia,tegra20-isp";
-			status = "disabled";
-		};
-
-		dc@54240000 {
-			compatible = "nvidia,tegra20-dc";
-			status = "disabled";
-
-			rgb {
-				status = "disabled";
-			};
-		};
-
-		hdmi@54280000 {
-			compatible = "nvidia,tegra20-hdmi";
-			status = "disabled";
-		};
-
-		tvo@542c0000 {
-			compatible = "nvidia,tegra20-tvo";
-			status = "disabled";
-		};
-
-		dsi@54300000 {
-			compatible = "nvidia,tegra20-dsi";
-			status = "disabled";
 		};
 	};
 
-	tegra-avp {
-		compatible = "nvidia,tegra20-avp";
-		interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "mbox_from_avp_pending";
-		clocks = <&tegra_car TEGRA20_CLK_COP>,
-			 <&tegra_car TEGRA20_CLK_VCP>,
-			 <&tegra_car TEGRA20_CLK_BSEA>,
-			 <&tegra_car TEGRA20_CLK_VDE>;
-		clock-names = "cop", "vcp", "bsea", "vde";
-		resets = <&tegra_car TEGRA20_CLK_COP>,
-			 <&tegra_car TEGRA20_CLK_VCP>,
-			 <&tegra_car TEGRA20_CLK_BSEA>,
-			 <&tegra_car TEGRA20_CLK_VDE>;
-		reset-names = "cop", "vcp", "bsea", "vde";
+	panel: panel {
+		compatible = "samsung,cmc623-panel";
+
+		/* power-supply = <&vdd_pnl_reg>; */
+
+		/* backlight = <&backlight>; */
+		/* ddc-i2c-bus = <&lvds_ddc>; */
 	};
 
 	pinmux@70000014 {
