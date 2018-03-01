@@ -1035,11 +1035,18 @@ static void brcmf_sdiod_host_fixup(struct mmc_host *host)
 	host->caps |= MMC_CAP_NONREMOVABLE;
 }
 
+extern int sdio_reset_comm(struct mmc_card *card);
+
 static int brcmf_sdiod_probe(struct brcmf_sdio_dev *sdiodev)
 {
 	int ret = 0;
 
 	sdiodev->num_funcs = 2;
+
+	if ((ret = sdio_reset_comm(sdiodev->func[0]->card))) {
+		brcmf_err("%s Failed, error = %d\n", __FUNCTION__, ret);
+		goto out;
+	}
 
 	sdio_claim_host(sdiodev->func[1]);
 
