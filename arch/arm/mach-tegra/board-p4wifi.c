@@ -252,7 +252,7 @@ void __init tegra_ram_console_debug_init(void)
 #define REBOOT_MODE_DOWNLOAD_FAILED     8
 #define REBOOT_MODE_DOWNLOAD_SUCCESS    9
 
-#define MISC_DEVICE "/dev/block/mmcblk0p6"
+#define MISC_DEVICE "/dev/mmcblk0p6"
 
 struct bootloader_message {
 	char command[32];
