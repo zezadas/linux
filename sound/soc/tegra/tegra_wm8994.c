@@ -275,7 +275,6 @@ static struct snd_soc_ops tegra_spdif_ops = {
 
 static int tegra_wm8994_init(struct snd_soc_pcm_runtime *rtd)
 {
-	pr_info("%s\n", __func__);
 	return 0;
 }
 
@@ -335,8 +334,6 @@ static int tegra_wm8994_driver_probe(struct platform_device *pdev)
 	struct snd_soc_card *card = &snd_soc_tegra_wm8994;
 	struct tegra_wm8994 *machine;
 	int ret;
-
-	pr_info("%s\n", __func__);
 
 	if (!pdev->dev.platform_data && !pdev->dev.of_node) {
 		dev_err(&pdev->dev, "No platform data supplied\n");
@@ -418,9 +415,6 @@ static int tegra_wm8994_driver_probe(struct platform_device *pdev)
 			ret);
 		goto err_fini_utils;
 	}
-
-		pr_info("%s: probed\n", __func__);
-
 
 	return 0;
 
