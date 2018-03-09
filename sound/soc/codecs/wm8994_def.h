@@ -236,7 +236,8 @@
 #define WM8994_GPIO_10                          0x709
 #define WM8994_GPIO_11                          0x70A
 #define WM8994_DIGITAL_PULLS                    0x720
-#define WM8994_PULL_CONTROL_2					0X721
+/* defined in mainline driver */
+// #define WM8994_PULL_CONTROL_2					0X721
 #define WM8994_INTERRUPT_STATUS_1               0x730
 #define WM8994_INTERRUPT_STATUS_2               0x731
 #define WM8994_INTERRUPT_STATUS_1_MASK          0x738
@@ -2405,9 +2406,12 @@
 /*
  * R771 (0x303) - AIF1 BCLK
  */
+#if 0
+/* defined in mainline driver */
 #define WM8994_AIF1_BCLK_DIV_MASK               0x00F0  /* AIF1_BCLK_DIV - [7:4] */
 #define WM8994_AIF1_BCLK_DIV_SHIFT                   4  /* AIF1_BCLK_DIV - [7:4] */
 #define WM8994_AIF1_BCLK_DIV_WIDTH                   4  /* AIF1_BCLK_DIV - [7:4] */
+#endif
 
 /*
  * R772 (0x304) - AIF1ADC LRCLK
@@ -2555,9 +2559,12 @@
 /*
  * R787 (0x313) - AIF2 BCLK
  */
+#if 0
+/* defined in mainline driver */
 #define WM8994_AIF2_BCLK_DIV_MASK               0x00F0  /* AIF2_BCLK_DIV - [7:4] */
 #define WM8994_AIF2_BCLK_DIV_SHIFT                   4  /* AIF2_BCLK_DIV - [7:4] */
 #define WM8994_AIF2_BCLK_DIV_WIDTH                   4  /* AIF2_BCLK_DIV - [7:4] */
+#endif
 
 /*
  * R788 (0x314) - AIF2ADC LRCLK
