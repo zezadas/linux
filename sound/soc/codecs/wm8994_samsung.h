@@ -10,6 +10,7 @@
 #define _WM8994_SAMSUNG_H
 
 #include <sound/soc.h>
+#include <linux/mfd/wm8994/registers.h>
 #include <linux/mfd/wm8994/wm8994_pdata.h>
 
 /* Sources for AIF1/2 SYSCLK - use with set_dai_sysclk() */
