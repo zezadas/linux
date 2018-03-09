@@ -583,8 +583,16 @@
 		#size-cells = <0>;
 
 		wm8994: wm8994@1B {
-			compatible = "samsung,wm8994";
+			compatible = "wlf,wm8994";
 			reg = <0x1B>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			wlf,ldo1ena =  <&gpio TEGRA_GPIO(X, 5) IRQ_TYPE_LEVEL_HIGH>;
+			/* wlf,ldo2ena =  <&gpio TEGRA_GPIO(X, 6) IRQ_TYPE_LEVEL_HIGH>; */
+
+			lineout1-se;
 		};
 	};
 	i2c@9 {
