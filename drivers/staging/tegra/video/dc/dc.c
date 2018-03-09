@@ -2410,7 +2410,7 @@ static void tegra_dc_shutdown(struct nvhost_device *ndev)
 	tegra_dc_disable(dc);
 }
 
-extern int suspend_set(const char *val, struct kernel_param *kp)
+extern int suspend_set(const char *val, const struct kernel_param *kp)
 {
 	if (!strcmp(val, "dump"))
 		dump_regs(tegra_dcs[0]);
@@ -2424,7 +2424,7 @@ extern int suspend_set(const char *val, struct kernel_param *kp)
 	return 0;
 }
 
-extern int suspend_get(char *buffer, struct kernel_param *kp)
+extern int suspend_get(char *buffer, const struct kernel_param *kp)
 {
 	return 0;
 }
@@ -2453,6 +2453,7 @@ struct nvhost_driver tegra_dc_driver = {
 #endif
 	.shutdown = tegra_dc_shutdown,
 };
+
 
 #ifndef MODULE
 static int __init parse_disp_params(char *options, struct tegra_dc_mode *mode)
