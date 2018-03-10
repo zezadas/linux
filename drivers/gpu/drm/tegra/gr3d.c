@@ -112,7 +112,6 @@ static int gr3d_reset(struct host1x_client *client)
 static const struct host1x_client_ops gr3d_client_ops = {
 	.init = gr3d_init,
 	.exit = gr3d_exit,
-	.reset = gr3d_reset,
 };
 
 static int gr3d_open_channel(struct tegra_drm_client *client,
@@ -341,12 +340,15 @@ static int gr3d_probe(struct platform_device *pdev)
 	gr3d->client.base.ops = &gr3d_client_ops;
 	gr3d->client.base.dev = &pdev->dev;
 	gr3d->client.base.class = HOST1X_CLASS_GR3D;
-	gr3d->client.base.module = HOST1X_MODULE_GR3D;
 	gr3d->client.base.syncpts = syncpts;
 	gr3d->client.base.num_syncpts = 1;
 
 	INIT_LIST_HEAD(&gr3d->client.list);
 	gr3d->client.ops = &gr3d_ops;
+
+	err = gr3d_reset(&gr3d->client.base);
+	if (err)
+		return err;
 
 	err = host1x_client_register(&gr3d->client.base);
 	if (err < 0) {
