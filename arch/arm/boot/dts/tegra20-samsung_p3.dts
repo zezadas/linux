@@ -594,6 +594,11 @@
 
 			lineout1-se;
 		};
+
+		wm8994_p4: wm8994_p4@1B {
+			compatible = "samsung,wm8994";
+			reg = <0x1B>;
+		};
 	};
 	i2c@9 {
 		compatible = "i2c-gpio";
@@ -1066,7 +1071,7 @@
 
 	sound {
 		compatible = "nvidia,tegra-audio-wm8994";
-		nvidia,model = "WM8994 NVIDIA Tegra P4WIFI";
+		nvidia,model = "wm8994-aif1";
 
 		nvidia,i2s-controller = <&tegra_i2s1>;
 		nvidia,audio-codec = <&wm8994>;
