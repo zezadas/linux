@@ -90,7 +90,6 @@ static int gr2d_reset(struct host1x_client *client)
 static const struct host1x_client_ops gr2d_client_ops = {
 	.init = gr2d_init,
 	.exit = gr2d_exit,
-	.reset = gr2d_reset,
 };
 
 static int gr2d_open_channel(struct tegra_drm_client *client,
@@ -210,7 +209,6 @@ static int gr2d_probe(struct platform_device *pdev)
 	gr2d->client.base.ops = &gr2d_client_ops;
 	gr2d->client.base.dev = dev;
 	gr2d->client.base.class = HOST1X_CLASS_GR2D;
-	gr2d->client.base.module = HOST1X_MODULE_GR2D;
 	gr2d->client.base.syncpts = syncpts;
 	gr2d->client.base.num_syncpts = 1;
 
