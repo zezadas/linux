@@ -97,6 +97,10 @@
 
 	host1x@50000000 {
 		dc@54200000 {
+			clocks = <&tegra_car TEGRA20_CLK_DISP1>,
+				 <&tegra_car TEGRA20_CLK_PLL_C>;
+			clock-names = "dc", "parent";
+
 			rgb {
 				status = "okay";
 
