@@ -1812,23 +1812,7 @@ static int wm8994_init(struct snd_soc_codec *codec,
 		return -ENOMEM;
 	}
 
-	snd_soc_write(codec, WM8994_SOFTWARE_RESET, 0x0000);
-
-	ret = snd_soc_read(codec, WM8994_SOFTWARE_RESET);
-
-	if (ret < 0) {
-		pr_err("Failed to read ID register\n");
-		return -ENODEV;
-	} else if (ret != 0x8994) {
-		pr_err("Device is not a WM8994, ID is %x\n",
-			ret);
-		ret = -EINVAL;
-		return ret;
-	} else
-		ret = 0;
-
-
-	wm8994->hw_version = snd_soc_read(codec, 0x100);
+	wm8994->hw_version = snd_soc_read(codec, WM8994_CHIP_REVISION);
 
 	/*
 	*Due to reducing sleep currunt
