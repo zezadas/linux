@@ -289,7 +289,7 @@ static struct snd_soc_dai_link tegra_wm8994_dai[] = {
 	{
 		.name = "WM8994",
 		.stream_name = "WM8994 PCM",
-		.codec_dai_name = "WM8994 PAIFRX",
+		.codec_dai_name = "wm8994-aif1",
 		.init = tegra_wm8994_init,
 
 		// .codec_name = "WM8994 I2C Codec.8-001b",
