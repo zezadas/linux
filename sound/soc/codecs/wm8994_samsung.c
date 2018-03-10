@@ -1706,7 +1706,7 @@ static struct snd_soc_dai_ops wm8994_ops = {
 
 struct snd_soc_dai_driver wm8994_dai[] = {
 	{
-		.name = "WM8994 PAIFRX",
+		.name = "wm8994-aif1",
 		.playback = {
 			.stream_name = "Playback",
 			.channels_min = 1,
