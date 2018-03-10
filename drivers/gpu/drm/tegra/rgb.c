@@ -130,8 +130,6 @@ static void tegra_rgb_encoder_disable(struct drm_encoder *encoder)
 	struct tegra_output *output = encoder_to_output(encoder);
 	struct tegra_rgb *rgb = to_rgb(output);
 
-	pr_info("%s\n", __func__);
-
 	if (output->panel)
 		drm_panel_disable(output->panel);
 
@@ -147,8 +145,6 @@ static void tegra_rgb_encoder_enable(struct drm_encoder *encoder)
 	struct tegra_output *output = encoder_to_output(encoder);
 	struct tegra_rgb *rgb = to_rgb(output);
 	u32 value;
-
-	pr_info("%s\n", __func__);
 
 	if (output->panel)
 		drm_panel_prepare(output->panel);
@@ -207,11 +203,8 @@ tegra_rgb_encoder_atomic_check(struct drm_encoder *encoder,
 	 * and hope that the desired frequency can be matched (or at least
 	 * matched sufficiently close that the panel will still work).
 	 */
-	pclk = 68941176;
 	div = ((clk_get_rate(rgb->clk) * 2) / pclk) - 2;
 	pclk = 0;
-
-	pr_info("%s: clk_get_rate(rgb->clk)=%lu\n", __func__, clk_get_rate(rgb->clk));
 
 	err = tegra_dc_state_setup_clock(dc, crtc_state, rgb->clk_parent,
 					 pclk, div);
@@ -257,7 +250,7 @@ int tegra_dc_rgb_probe(struct tegra_dc *dc)
 		return PTR_ERR(rgb->clk);
 	}
 
-	rgb->clk_parent = devm_clk_get(dc->dev, "pll_c");
+	rgb->clk_parent = devm_clk_get(dc->dev, "parent");
 	if (IS_ERR(rgb->clk_parent)) {
 		dev_err(dc->dev, "failed to get parent clock\n");
 		return PTR_ERR(rgb->clk_parent);

@@ -23,9 +23,6 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_plane_helper.h>
 
-extern void cmc623_suspend(void);
-extern void cmc623_resume(void);
-
 struct tegra_dc_soc_info {
 	bool supports_border_color;
 	bool supports_interlacing;
@@ -1122,8 +1119,8 @@ int tegra_dc_state_setup_clock(struct tegra_dc *dc,
 {
 	struct tegra_dc_state *state = to_dc_state(crtc_state);
 
-	// if (!clk_has_parent(dc->clk, clk))
-	// 	return -EINVAL;
+	if (!clk_has_parent(dc->clk, clk))
+		return -EINVAL;
 
 	state->clk = clk;
 	state->pclk = pclk;
@@ -1137,9 +1134,7 @@ static void tegra_dc_commit_state(struct tegra_dc *dc,
 {
 	u32 value;
 	int err;
-	pr_info("%s\n", __func__);
 
-#if 0
 	err = clk_set_parent(dc->clk, state->clk);
 	if (err < 0)
 		dev_err(dc->dev, "failed to set parent clock: %d\n", err);
@@ -1159,13 +1154,6 @@ static void tegra_dc_commit_state(struct tegra_dc *dc,
 				"failed to set clock rate to %lu Hz\n",
 				state->pclk);
 	}
-#endif
-
-	err = clk_set_rate(state->clk, 586000000);
-	if (err < 0)
-		dev_err(dc->dev,
-			"failed to set clock rate to %lu Hz\n",
-			state->pclk);
 
 	DRM_DEBUG_KMS("rate: %lu, div: %u\n", clk_get_rate(dc->clk),
 		      state->div);
@@ -2031,18 +2019,15 @@ static int tegra_dc_probe(struct platform_device *pdev)
 		return PTR_ERR(dc->rst);
 	}
 
-	cmc623_suspend();
-
 	if (!dc->soc->broken_reset)
 		reset_control_assert(dc->rst);
-
-	cmc623_resume();
 
 	if (dc->soc->has_powergate) {
 		if (dc->pipe == 0)
 			dc->powergate = TEGRA_POWERGATE_DIS;
 		else
 			dc->powergate = TEGRA_POWERGATE_DISB;
+
 		tegra_powergate_power_off(dc->powergate);
 	}
 
@@ -2109,8 +2094,6 @@ static int tegra_dc_suspend(struct device *dev)
 	struct tegra_dc *dc = dev_get_drvdata(dev);
 	int err;
 
-	cmc623_suspend();
-
 	if (!dc->soc->broken_reset) {
 		err = reset_control_assert(dc->rst);
 		if (err < 0) {
@@ -2155,8 +2138,6 @@ static int tegra_dc_resume(struct device *dev)
 			}
 		}
 	}
-
-	cmc623_resume();
 
 	return 0;
 }
