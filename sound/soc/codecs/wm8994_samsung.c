@@ -1986,7 +1986,6 @@ static int  wm8994_codec_remove(struct snd_soc_codec *codec)
 
 	destroy_workqueue(wm8994_workq);
 
-	kfree(wm8994_priv);
 	return 0;
 }
 
