@@ -254,8 +254,8 @@ int wm8994_write(struct snd_soc_codec *codec,
 		unsigned int reg, unsigned int value);
 void wm8994_register_dump(struct snd_soc_codec *codec);
 int wm8994_configure_clock(struct snd_soc_codec *codec, int en);
-void wm8994_disable_path(struct snd_soc_codec *codec);
-void wm8994_disable_rec_path(struct snd_soc_codec *codec);
+void wm8994_disable_path(struct snd_soc_codec *codec, enum audio_path path);
+void wm8994_disable_rec_path(struct snd_soc_codec *codec, enum mic_path mic);
 void wm8994_record_main_mic(struct snd_soc_codec *codec);
 void wm8994_record_headset_mic(struct snd_soc_codec *codec);
 void wm8994_record_bluetooth(struct snd_soc_codec *codec);

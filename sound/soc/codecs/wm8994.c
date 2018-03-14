@@ -641,6 +641,10 @@ SOC_SINGLE("AIF2DAC 3D Stereo Switch", WM8994_AIF2_DAC_FILTERS_2,
 	   8, 1, 0),
 };
 
+extern struct snd_kcontrol_new wm8994_p4_snd_controls[2];
+
+
+
 static const struct snd_kcontrol_new wm8994_eq_controls[] = {
 SOC_SINGLE_TLV("AIF1DAC1 EQ1 Volume", WM8994_AIF1_DAC1_EQ_GAINS_1, 11, 31, 0,
 	       eq_tlv),
@@ -4265,6 +4269,16 @@ static int wm8994_component_probe(struct snd_soc_component *component)
 			     ARRAY_SIZE(wm8994_snd_controls));
 	snd_soc_dapm_new_controls(dapm, wm8994_dapm_widgets,
 				  ARRAY_SIZE(wm8994_dapm_widgets));
+
+	ret = snd_soc_add_codec_controls(codec, wm8994_p4_snd_controls,
+			     ARRAY_SIZE(wm8994_p4_snd_controls));
+	if (ret != 0)
+		dev_err(codec->dev,
+			"Failed to add WM8994 p4 controls: %d\n", ret);
+	else
+		dev_err(codec->dev,
+			"Added WM8994 p4 controls: %d\n", ret);
+
 
 	switch (control->type) {
 	case WM8994:
