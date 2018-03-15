@@ -180,12 +180,17 @@ static int panel_simple_disable(struct drm_panel *panel)
 	return 0;
 }
 
+extern void cmc623_suspend(void);
+extern void cmc623_resume(void);
+
 static int panel_simple_unprepare(struct drm_panel *panel)
 {
 	struct panel_simple *p = to_panel_simple(panel);
 
 	if (!p->prepared)
 		return 0;
+
+	cmc623_suspend();
 
 	gpiod_set_value_cansleep(p->enable_gpio, 0);
 
@@ -214,6 +219,8 @@ static int panel_simple_prepare(struct drm_panel *panel)
 	}
 
 	gpiod_set_value_cansleep(p->enable_gpio, 1);
+
+	cmc623_resume();
 
 	if (p->desc->delay.prepare)
 		msleep(p->desc->delay.prepare);
@@ -1649,6 +1656,50 @@ static const struct panel_desc qd43003c0_40 = {
 	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
 };
 
+/* 
+ *	For Magna D10E50T6332 TFT Display timing controller:
+ *	Signal					Min. 			Typ.			Max
+ *	Frame Frequency(TV)			815			-			850
+ *	Vertical Active Display Term(TVD) 	- 			800			-
+ *	One Line Scanning Time(TH)		1350			1408			1460
+ *	Horizontal Active Display Term(THD) 	-			1280			-
+ *
+ *	Total clocks per line (TH) = hsw + hfp + columns (THD) + hbp
+ *			     1408  = 48  + 16  + 1280          + 64
+ *						  
+ *	Total LCD lines (TV) 	  = vsw + vfp + rows (TVD)  + vbp
+ *			816	  = 3   + 1   + 800	    + 12
+ *					
+ *	From this data,
+ *	- single line takes (48 + 16 + 1280 + 64) clocks = 1408 clocks/line
+ *	- full frame takes (3 + 1 + 800 + 12) lines = 816 lines/frame
+ *	- full frame in clocks = 1408 * 816 = 1148928 clocks/frame
+ *	- 20MHz, the LCD would refresh at 20M/1148928 = 17.4Hz
+ *	- 70MHz, the LCD would refresh at 68.94M/1148928 = 60Hz
+ */
+static const struct drm_display_mode samsung_cmc623_mode = {
+	.clock = 68750,
+	.hdisplay = 1280,
+	.hsync_start = 1280 + 16,
+	.hsync_end = 1280 + 16 + 48,
+	.htotal = 1280 + 16 + 48 +64,
+	.vdisplay = 800,
+	.vsync_start = 800 + 2,
+	.vsync_end = 800 + 2 + 3,
+	.vtotal = 800 + 2 + 3 + 11,
+	.vrefresh = 60,
+};
+
+static const struct panel_desc samsung_cmc623 = {
+	.modes = &samsung_cmc623_mode,
+	.num_modes = 1,
+	.bpc = 8,
+	.size = {
+		.width = 217,
+		.height = 135,
+	},
+};
+
 static const struct drm_display_mode samsung_lsn122dl01_c01_mode = {
 	.clock = 271560,
 	.hdisplay = 2560,
@@ -2177,6 +2228,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "samsung,lsn122dl01-c01",
 		.data = &samsung_lsn122dl01_c01,
+	}, {
+		.compatible = "samsung,cmc623-panel",
+		.data = &samsung_cmc623,
 	}, {
 		.compatible = "samsung,ltn101nt05",
 		.data = &samsung_ltn101nt05,
