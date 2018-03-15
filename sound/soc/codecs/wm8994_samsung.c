@@ -1812,8 +1812,7 @@ static int wm8994_init(struct snd_soc_codec *codec,
 		return -ENOMEM;
 	}
 
-
-	wm8994->hw_version = snd_soc_read(codec, 0x100);
+	wm8994->hw_version = snd_soc_read(codec, WM8994_CHIP_REVISION);
 
 	/*
 	*Due to reducing sleep currunt
