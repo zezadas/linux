@@ -1498,42 +1498,11 @@ max17042_get_pdata(struct device *dev)
 }
 #endif
 
-static int init_gpio(struct max17042_chip *chip)
-{
-	struct i2c_client *client = chip->client;
-	struct max17042_platform_data *pdata = chip->pdata;
-	int gpio = pdata->ifconsense;
-	int err;
-
-	err = devm_gpio_request(&client->dev, gpio, "GPIO_IFCONSENSE");
-	if (err < 0) {
-		dev_err(&client->dev,
-			"failed to request GPIO %d, error %d\n",
-						gpio, err);
-		err = -EINVAL;
-		return err;
-	}
-
-	gpio_direction_input(gpio);
-
-	return 0;
-}
-
 static int parse_dt(struct max17042_chip *chip, struct device_node *of_node)
 {
-	struct i2c_client *client = chip->client;
 	struct max17042_platform_data *pdata = chip->pdata;
-	int gpio;
 	u32 val;
 	int err = 0;
-
-	gpio = of_get_gpio(of_node, 0);
-	if (!gpio_is_valid(gpio)) {
-		dev_err(&client->dev,
-			"gpio (GPIO_IFCONSENSE) is not valid. err=%d\n", err);
-		return -EINVAL;
-	}
-	pdata->ifconsense = gpio;
 
 	if (!of_property_read_u32(of_node, "sdi-capacity", &val))
 		pdata->sdi_capacity = val;
@@ -1555,7 +1524,6 @@ int fg_i2c_probe(struct i2c_client *client,  const struct i2c_device_id *id)
 {
 	struct device_node *np = client->dev.of_node;
 	struct max17042_chip *chip;
-	int fg_irg;
 	int err;
 
 	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
@@ -1574,10 +1542,6 @@ int fg_i2c_probe(struct i2c_client *client,  const struct i2c_device_id *id)
 				"error parsing device tree node. err=%d\n", err);
 			goto err_parse_dt;
 		}
-
-		err = init_gpio(chip);
-		if (err < 0)
-			goto err_parse_dt;
 	}
 
 	i2c_set_clientdata(client, chip);
@@ -1606,10 +1570,9 @@ int fg_i2c_probe(struct i2c_client *client,  const struct i2c_device_id *id)
 	mutex_init(&chip->fg_lock);
 
 	/* Request IRQ */
-	fg_irg = gpio_to_irq(chip->client->irq);
-	if (request_irq(fg_irg, max17042_irq_handler,
+	if (request_irq(client->irq, max17042_irq_handler,
 			IRQF_TRIGGER_FALLING, "jig on irq", client))
-		pr_err("Can NOT request irq 'IRQ_JIG_ON' %d ", fg_irg);
+		pr_err("Can NOT request irq 'IRQ_JIG_ON' %d ", client->irq);
 
 	fg_read_model_data();
 	fg_periodic_read();
