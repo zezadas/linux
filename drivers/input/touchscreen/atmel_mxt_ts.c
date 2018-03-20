@@ -331,6 +331,8 @@ struct mxt_data {
 	struct gpio_desc *touch_en;
 	struct gpio_desc *touch_rst;
 
+	struct work_struct suspend_work;
+	int suspended;
 };
 
 struct mxt_vb2_buffer {
@@ -2882,16 +2884,74 @@ static ssize_t mxt_update_fw_store(struct device *dev,
 	return count;
 }
 
+
+static int __maybe_unused mxt_suspend(struct device *dev);
+static int __maybe_unused mxt_resume(struct device *dev);
+
+static void mxt_suspend_work_handler(struct work_struct *work)
+{
+	struct mxt_data *data = container_of(work, struct mxt_data, suspend_work);
+
+	dev_dbg(&data->client->dev, "%s\n", __func__);
+
+	if (data->suspended) {
+		mxt_suspend(&data->client->dev);
+		disable_irq(data->client->irq);
+	} else {
+		enable_irq(data->client->irq);
+		mxt_resume(&data->client->dev);
+	}
+}
+
+static ssize_t mxt_suspend_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+    struct mxt_data *mxt = dev_get_drvdata(dev);
+    int len;
+
+    len = sprintf(buf, "%d\n", !!mxt->suspended);
+    if (len <= 0)
+        dev_err(dev, "%s: Invalid sprintf len: %d\n", __func__, len);
+
+    return len;
+}
+
+static ssize_t mxt_suspend_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+    struct mxt_data *data = dev_get_drvdata(dev);
+    long val;
+    int err;
+
+    err = kstrtol(buf, 10, &val);
+	if (err < 0) {
+		dev_err(dev, "%s error=%d", __func__, err);
+		return 0;
+	}
+    val = !!val;
+
+	if (data->suspended != val) {
+		dev_info(&data->client->dev, "%s(val=%ld)\n", __func__, val);
+		data->suspended = val;
+		queue_work(system_freezable_wq, &data->suspend_work);
+	}
+
+    return count;
+}
+
 static DEVICE_ATTR(fw_version, S_IRUGO, mxt_fw_version_show, NULL);
 static DEVICE_ATTR(hw_version, S_IRUGO, mxt_hw_version_show, NULL);
 static DEVICE_ATTR(object, S_IRUGO, mxt_object_show, NULL);
 static DEVICE_ATTR(update_fw, S_IWUSR, NULL, mxt_update_fw_store);
+static DEVICE_ATTR(suspended, S_IRUGO | S_IWUSR, mxt_suspend_show,
+                   mxt_suspend_store);
 
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_fw_version.attr,
 	&dev_attr_hw_version.attr,
 	&dev_attr_object.attr,
 	&dev_attr_update_fw.attr,
+	&dev_attr_suspended.attr,
 	NULL
 };
 
@@ -3302,6 +3362,9 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 			error);
 		goto err_free_object;
 	}
+
+	data->suspended = 0;
+	INIT_WORK(&data->suspend_work, mxt_suspend_work_handler);
 
 	return 0;
 
