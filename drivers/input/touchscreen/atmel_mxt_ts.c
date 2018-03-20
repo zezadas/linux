@@ -3311,7 +3311,7 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		error = mxt_init_p4wifi(client, data);
 		if (error) {
 			dev_err(&client->dev, "Failed to initialize for p4wifi\n");
-			goto err_free_mem;
+			return error;
 		}
 	}
 
