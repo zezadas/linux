@@ -1488,29 +1488,6 @@ static struct mpu3050_platform_data *mpu3050_dt_parse_pdata(
 	return pdata;
 }
 
-static int p3_mpu3050_init(struct i2c_client *client)
-{
-	struct device_node *of_node = client->dev.of_node;
-	int gpio = -1;
-	int err;
-
-	gpio = of_get_gpio(of_node, 0);
-
-	if (gpio_is_valid(gpio)) {
-		err = devm_gpio_request(&client->dev, gpio, "mpu3050_int");
-		if (err < 0) {
-			dev_err(&client->dev,
-				"failed to request GPIO %d, error %d\n",
-							gpio, err);
-			return err;
-		}
-
-		gpio_direction_input(gpio);
-	}
-
-	return 0;
-}
-
 int mpu3050_probe(struct i2c_client *client, const struct i2c_device_id *devid)
 {
 	struct mpu3050_platform_data *pdata;
@@ -1538,13 +1515,6 @@ int mpu3050_probe(struct i2c_client *client, const struct i2c_device_id *devid)
 	this_client = client;
 	mldl_cfg = &mpu->mldl_cfg;
 	pdata = mpu3050_dt_parse_pdata(client);
-
-	res = p3_mpu3050_init(client);
-	if (res < 0) {
-		dev_err(&client->dev,
-			"failed to request init gpio 'mpu3050_int' error %d\n", res);
-		goto out_alloc_data_failed;
-	}
 
 	if (!pdata) {
 		dev_warn(&this_client->adapter->dev,
