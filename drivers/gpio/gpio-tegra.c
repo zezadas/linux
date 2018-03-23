@@ -31,6 +31,9 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/pm.h>
 
+#include "../../arch/arm/mach-tegra/gpio-sec.h"
+struct sec_gpio_table_st sec_gpio_table;
+
 #define GPIO_BANK(x)		((x) >> 5)
 #define GPIO_PORT(x)		(((x) >> 3) & 0x3)
 #define GPIO_BIT(x)		((x) & 0x7)
@@ -304,6 +307,75 @@ static void tegra_gpio_irq_handler(struct irq_desc *desc)
 }
 
 #ifdef CONFIG_PM_SLEEP
+void tegra_set_sleep_gpio_table(void)
+{
+	int cnt;
+	struct sec_slp_gpio_cfg_st *sleep_gpio_table = sec_gpio_table.sleep_gpio_table;
+	int n_sleep_gpio_table = sec_gpio_table.n_sleep_gpio_table;
+
+	if(!sleep_gpio_table) {
+		pr_err("%s: gpio_table is null\n", __func__);
+		return;
+	}
+
+	for (cnt = 0; cnt < n_sleep_gpio_table; cnt++) {
+		int slp_ctrl = sleep_gpio_table[cnt].slp_ctrl;
+		unsigned int gpio = sleep_gpio_table[cnt].gpio;
+		int dir = sleep_gpio_table[cnt].dir;
+		int val = sleep_gpio_table[cnt].val;
+
+
+		if (slp_ctrl == YES) {
+			tegra_gpio_enable(gpio);
+
+			if (dir == GPIO_OUTPUT) {
+				tegra_gpio_mask_write(GPIO_MSK_OE(gpio), gpio, 1);
+				if (val != GPIO_LEVEL_NONE) {
+					tegra_gpio_mask_write(GPIO_MSK_OUT(gpio), gpio, val);
+				}
+			} else if (dir == GPIO_INPUT) {
+				tegra_gpio_mask_write(GPIO_MSK_OE(gpio), gpio, 0);
+			}
+		}
+	}
+}
+
+void tegra_set_gpio_init_table(void)
+{
+	int cnt;
+	struct sec_gpio_cfg_st *gpio_table = sec_gpio_table.init_gpio_table;
+	int n_gpio_table = sec_gpio_table.n_init_gpio_table;
+
+	if(!gpio_table) {
+		pr_err("%s: gpio_table is null\n", __func__);
+		return;
+	}
+
+	for (cnt = 0; cnt < n_gpio_table; cnt++) {
+		int attr = gpio_table[cnt].attr;
+		unsigned int gpio = gpio_table[cnt].gpio;
+		int dir = gpio_table[cnt].dir;
+		int val = gpio_table[cnt].val;
+
+		if (attr == GPIO) {
+			tegra_gpio_enable(gpio);
+
+			if (dir == GPIO_OUTPUT) {
+				tegra_gpio_mask_write(GPIO_MSK_OE(gpio), gpio, 1);
+				if (val != GPIO_LEVEL_NONE) {
+					tegra_gpio_mask_write(GPIO_MSK_OUT(gpio), gpio, val);
+				}
+			} else if (dir == GPIO_INPUT) {
+				tegra_gpio_mask_write(GPIO_MSK_OE(gpio), gpio, 0);
+			} else {
+				tegra_gpio_disable(gpio);
+			}
+		} else {
+			tegra_gpio_disable(gpio);
+		}
+	}
+}
+
 static int tegra_gpio_resume(struct device *dev)
 {
 	unsigned long flags;
@@ -353,6 +425,7 @@ static int tegra_gpio_suspend(struct device *dev)
 		}
 	}
 	local_irq_restore(flags);
+	tegra_set_sleep_gpio_table();
 	return 0;
 }
 
@@ -575,6 +648,8 @@ static int tegra_gpio_probe(struct platform_device *pdev)
 
 	tegra_gpio_debuginit();
 
+	tegra_set_gpio_init_table();
+
 	return 0;
 }
 
@@ -589,6 +664,7 @@ static struct platform_driver tegra_gpio_driver = {
 
 static int __init tegra_gpio_init(void)
 {
+	tegra_gpio_register_table(&sec_gpio_table);
 	return platform_driver_register(&tegra_gpio_driver);
 }
 postcore_initcall(tegra_gpio_init);
