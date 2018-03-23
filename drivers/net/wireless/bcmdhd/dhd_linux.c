@@ -4891,6 +4891,7 @@ dhd_start_xmit(struct sk_buff *skb, struct net_device *net)
 	if (DHD_BUS_CHECK_SUSPEND_OR_SUSPEND_IN_PROGRESS(&dhd->pub)) {
 		DHD_ERROR(("%s: bus is in suspend(%d) or suspending(0x%x) state!!\n",
 			__FUNCTION__, dhd->pub.busstate, dhd->pub.dhd_bus_busy_state));
+		netif_stop_queue(net);
 		DHD_BUS_BUSY_CLEAR_IN_TX(&dhd->pub);
 #ifdef PCIE_FULL_DONGLE
 		/* Stop tx queues if suspend is in progress */
