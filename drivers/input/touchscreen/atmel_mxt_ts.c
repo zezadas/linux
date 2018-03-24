@@ -2435,7 +2435,7 @@ static ssize_t mxt_suspend_store(struct device *dev,
 	if (data->suspended != val) {
 		dev_info(&data->client->dev, "%s(val=%ld)\n", __func__, val);
 		data->suspended = val;
-		queue_work(system_freezable_wq, &data->suspend_work);
+		queue_work(system_highpri_wq, &data->suspend_work);
 	}
 
     return count;
