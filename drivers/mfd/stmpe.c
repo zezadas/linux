@@ -464,6 +464,14 @@ static const struct mfd_cell stmpe_ts_cell = {
 };
 
 /*
+ * ADC (STMPE811)
+ */
+static const struct mfd_cell stmpe_adc_cell = {
+	.name		= "stmpe-adc",
+	.of_compatible	= "st,stmpe-adc",
+};
+
+/*
  * STMPE811 or STMPE610
  */
 
@@ -496,6 +504,10 @@ static struct stmpe_variant_block stmpe811_blocks[] = {
 		.cell	= &stmpe_ts_cell,
 		.irq	= STMPE811_IRQ_TOUCH_DET,
 		.block	= STMPE_BLOCK_TOUCHSCREEN,
+	},
+	{
+		.cell	= &stmpe_adc_cell,
+		.block	= STMPE_BLOCK_ADC,
 	},
 };
 
@@ -533,6 +545,19 @@ static struct stmpe_variant_info stmpe811 = {
 	.blocks		= stmpe811_blocks,
 	.num_blocks	= ARRAY_SIZE(stmpe811_blocks),
 	.num_irqs	= STMPE811_NR_INTERNAL_IRQS,
+	.enable		= stmpe811_enable,
+	.get_altfunc	= stmpe811_get_altfunc,
+};
+
+static struct stmpe_variant_info stmpe811_noirq = {
+	.name		= "stmpe811",
+	.id_val		= 0x0811,
+	.id_mask	= 0xffff,
+	.num_gpios	= 8,
+	.af_bits	= 1,
+	.regs		= stmpe811_regs,
+	.blocks		= stmpe811_blocks,
+	.num_blocks	= ARRAY_SIZE(stmpe811_blocks),
 	.enable		= stmpe811_enable,
 	.get_altfunc	= stmpe811_get_altfunc,
 };
@@ -1021,6 +1046,7 @@ static struct stmpe_variant_info *stmpe_variant_info[STMPE_NBR_PARTS] = {
  */
 static struct stmpe_variant_info *stmpe_noirq_variant_info[STMPE_NBR_PARTS] = {
 	[STMPE801]	= &stmpe801_noirq,
+	[STMPE811]	= &stmpe811_noirq,
 };
 
 static irqreturn_t stmpe_irq(int irq, void *data)
