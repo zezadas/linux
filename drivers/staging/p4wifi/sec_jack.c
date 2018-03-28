@@ -36,6 +36,7 @@
 #include <linux/gpio.h>
 #include <linux/gpio_event.h>
 #include <linux/sec_jack.h>
+#include <linux/stmpe-adc.h>
 
 #include <asm/system_info.h>
 
@@ -130,9 +131,6 @@ static struct gpio_event_platform_data sec_jack_input_data = {
 	.info = sec_jack_input_info,
 	.info_count = ARRAY_SIZE(sec_jack_input_info),
 };
-
-extern int stmpe_probed;
-extern s16 stmpe811_adc_get_value(u8 channel);
 
 static void sec_jack_set_micbias_state(
 	struct sec_jack_platform_data *pdata, bool on);
@@ -458,7 +456,7 @@ static int sec_jack_get_adc_value(void)
 	if (system_rev < 0x2)
 		ret = 2000; /* temporary fix: adc_get_value(0); */
 	else
-		ret = stmpe811_adc_get_value(4);
+		stmpe_adc_get_data(4, &ret);
 	pr_info("%s: adc_value=%d\n", __func__, ret);
 	return  ret;
 }
@@ -626,11 +624,6 @@ static int sec_jack_probe(struct platform_device *pdev)
 	struct sec_jack_info *hi;
 	struct sec_jack_platform_data *pdata = NULL;
 	int ret;
-
-	if (!stmpe_probed) {
-		pr_info("%s: probe defer. waiting for stmpe811.\n", __func__);
-		return -EPROBE_DEFER;
-	}
 
 	if (pdev->dev.platform_data) {
 		pdata = pdev->dev.platform_data;
