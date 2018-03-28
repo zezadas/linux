@@ -1016,31 +1016,31 @@
 		jack-zones {
 			jack_zone0 {
 				adc-high = <0>;
-				delay-ms = <0>;
+				delay-ms = <1>;
 				check-count = <2>;
 				jack-type = <2>; /* SEC_HEADSET_3POLE */
 			};
 			jack_zone1 {
 				adc-high = <900>;
-				delay-ms = <0>;
+				delay-ms = <1>;
 				check-count = <20>;
 				jack-type = <2>; /* SEC_HEADSET_3POLE */
 			};
 			jack_zone2 {
 				adc-high = <2000>;
-				delay-ms = <0>;
+				delay-ms = <1>;
 				check-count = <2>;
 				jack-type = <1>; /* SEC_HEADSET_4POLE */
 			};
 			jack_zone3 {
 				adc-high = <3800>;
-				delay-ms = <0>;
+				delay-ms = <1>;
 				check-count = <2>;
 				jack-type = <1>; /* SEC_HEADSET_4POLE */
 			};
 			jack_zone4 {
 				adc-high = <0x7fffffff>;
-				delay-ms = <0>;
+				delay-ms = <1>;
 				check-count = <50>;
 				jack-type = <2>; /* SEC_HEADSET_3POLE */
 			};
