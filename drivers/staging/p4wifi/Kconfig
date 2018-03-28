@@ -21,6 +21,7 @@ config FB_TEGRA_CMC623
 config SAMSUNG_JACK
 	bool "3.5MM ear jack driver for Samsung devices"
 	depends on INPUT && EXTCON
+	depends on STMPE_ADC
 	default n
 	---help---
 	 This is 3.5MM ear jack driver for Samsung devices.
