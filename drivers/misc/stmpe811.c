@@ -422,7 +422,7 @@ static int stmpe811_adc_i2c_probe(struct i2c_client *client,  const struct i2c_d
 	stmpe811_write_register(STMPE811_ADC_CAPT, 0xD0);
 
 #else //P3, P4, P4 LTE
-	stmpe811_write_register(STMPE811_SYS_CTRL2, 0x00); // enable adc & ts clock
+	stmpe811_write_register(STMPE811_SYS_CTRL2, 0x0E); // enable adc & ts clock
 	stmpe811_i2c_read(client, STMPE811_SYS_CTRL2, data, (u8)1);
 	printk("STMPE811_SYS_CTRL2 = 0x%x..\n", data[0]);
 
