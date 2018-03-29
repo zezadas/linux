@@ -627,6 +627,7 @@ config CHARGER_RT9455
 config BATTERY_P4
 	tristate "P4 battery"
 	depends on I2C
+	depends on STMPE_ADC
 	help
 	 Say Y to include support for P4 battery & fuel gauge (I2C) fuel gauge chips.
          FuelGuage Support includes interface to the MAX17042/40/43 chips as

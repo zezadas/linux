@@ -37,6 +37,7 @@
 #else
 #include <linux/extcon.h>
 #endif
+#include <linux/stmpe-adc.h>
 
 #include <asm/system_info.h>
 
@@ -177,8 +178,7 @@ static bool check_UV_charging_case(void);
 static void p3_bat_status_update(struct power_supply *bat_ps);
 
 #ifdef CONFIG_SEC_MISC
-extern int stmpe_probed;
-static bool check_samsung_charger(struct max8903_charger_data *data);
+static bool check_samsung_charger(struct battery_data *data);
 #endif
 
 static inline bool charger_connected(struct battery_data *battery)
@@ -280,7 +280,7 @@ static void p3_program_alarm(struct battery_data *battery, int seconds)
 static void p3_get_cable_status(struct battery_data *battery)
 {
 	if (check_ta_conn(battery)) {
-		if (check_samsung_charger(&battery->pdata->charger))
+		if (check_samsung_charger(battery))
 			battery->current_cable_status = CHARGER_AC;
 		else
 			battery->current_cable_status = CHARGER_USB;
@@ -617,7 +617,7 @@ static void p3_set_chg_en(struct battery_data *battery, int enable)
 	if (enable) {
 		if (chg_en_val) {
 			if (battery->current_cable_status == CHARGER_AC) {
-				if (check_samsung_charger(&battery->pdata->charger)) {
+				if (check_samsung_charger(battery)) {
 					pr_info("%s: samsung charger!!\n",
 						__func__);
 					p3_set_charging(battery, 1);
@@ -1623,14 +1623,16 @@ static int p3_usb_path_init(struct max8903_charger_data *data){
 	return 0;
 }
 
-static bool check_samsung_charger(struct max8903_charger_data *data)
+static bool check_samsung_charger(struct battery_data *data)
 {
+	struct p3_battery_platform_data *pdata = data->pdata;
+	struct max8903_charger_data *charger_data = &pdata->charger;
 	bool result;
 	int sum = 0;
 	int count;
 	int vol_1;
 	usb_path_type old_usb_sel_status;
-	struct regulator *reg = data->regulator;
+	struct regulator *reg = charger_data->regulator;
 	int ret;
 
 	/* when device wakes from suspend due to charger being plugged
@@ -1654,15 +1656,18 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 	}
 
 	old_usb_sel_status = usb_sel_status;
-	p3_set_usb_path(data, USB_SEL_ADC);
+	p3_set_usb_path(charger_data, USB_SEL_ADC);
 
 	mdelay(100);
 
 	if (system_rev < 0x02)
 		result = false;
 	else {
-		for (count = 0; count < 2; count++)
-			sum += stmpe811_adc_get_value(6);
+		for (count = 0; count < 2; count++) {
+			s16 data;
+			stmpe_adc_get_data(6, &data);
+			sum += data;
+		}
 
 		vol_1 = sum / 2;
 		pr_info("%s: samsung_charger_adc = %d !!\n", __func__, vol_1);
@@ -1675,7 +1680,7 @@ static bool check_samsung_charger(struct max8903_charger_data *data)
 
 	mdelay(50);
 
-	p3_set_usb_path(data, old_usb_sel_status);
+	p3_set_usb_path(charger_data, old_usb_sel_status);
 
 	if (is_enabled == 0)
 		regulator_disable(reg);
@@ -1695,27 +1700,29 @@ static bool check_samsung_charger(struct max8903_charger_data *)
 }
 #endif
 
-static void p3_bat_gpio_init(struct max8903_charger_data *data)
+static void p3_bat_gpio_init(struct battery_data *data)
 {
+	struct p3_battery_platform_data *pdata = data->pdata;
+	struct max8903_charger_data *charger_data = &pdata->charger;
 	pr_info("%s\n", __func__);
 
-	gpio_request(data->enable_line, "GPIO_TA_EN");
-	gpio_direction_output(data->enable_line, 0);
+	gpio_request(charger_data->enable_line, "GPIO_TA_EN");
+	gpio_direction_output(charger_data->enable_line, 0);
 
-	gpio_request(data->connect_line, "GPIO_TA_nCONNECTED");
-	gpio_direction_input(data->connect_line);
+	gpio_request(charger_data->connect_line, "GPIO_TA_nCONNECTED");
+	gpio_direction_input(charger_data->connect_line);
 
-	gpio_request(data->fullcharge_line, "GPIO_TA_nCHG");
-	gpio_direction_input(data->fullcharge_line);
+	gpio_request(charger_data->fullcharge_line, "GPIO_TA_nCHG");
+	gpio_direction_input(charger_data->fullcharge_line);
 
-	gpio_request(data->currentset_line, "GPIO_CURR_ADJ");
+	gpio_request(charger_data->currentset_line, "GPIO_CURR_ADJ");
 	if (check_samsung_charger(data))
-		gpio_direction_output(data->currentset_line, 1);
+		gpio_direction_output(charger_data->currentset_line, 1);
 	else
-		gpio_direction_output(data->currentset_line, 0);
+		gpio_direction_output(charger_data->currentset_line, 0);
 
-	gpio_request(data->alert_line, "GPIO_FUEL_ALRT");
-	gpio_direction_input(data->alert_line);
+	gpio_request(charger_data->alert_line, "GPIO_FUEL_ALRT");
+	gpio_direction_input(charger_data->alert_line);
 
 	pr_info("%s() Battery GPIO initialized.\n", __func__);
 }
@@ -1906,13 +1913,6 @@ static int p3_bat_probe(struct platform_device *pdev)
 	unsigned long trigger;
 	int irq_num;
 
-#ifdef CONFIG_SEC_MISC
-	if (!stmpe_probed) {
-		pr_info("%s: probe defer. waiting for stmpe811.\n", __func__);
-		return -EPROBE_DEFER;
-	}
-#endif
-
 	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
 	if (!pdata) {
 		pr_err("%s: no platform data.\n", __func__);
@@ -1941,7 +1941,7 @@ static int p3_bat_probe(struct platform_device *pdev)
 	pr_info("%s parse done.\n", __func__);
 #endif
 
-	p3_bat_gpio_init(&pdata->charger);
+	p3_bat_gpio_init(battery);
 	ret = p3_usb_path_init(&pdata->charger);
 	if (ret < 0) {
 		kfree(battery);
