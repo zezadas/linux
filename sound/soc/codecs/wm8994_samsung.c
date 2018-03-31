@@ -540,28 +540,30 @@ static int wm8994_set_mic_path(struct snd_kcontrol *kcontrol,
 
 	DEBUG_LOG("");
 
-	wm8994->codec_state |= CAPTURE_ACTIVE;
-
 	switch (ucontrol->value.integer.value[0]) {
 	case 0:
 		wm8994->rec_path = MAIN;
+		wm8994->codec_state |= CAPTURE_ACTIVE;
 #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 		wm8994->pdata->set_dap_connection(0);
 #endif
 		break;
 	case 1:
 		wm8994->rec_path = EAR;
+		wm8994->codec_state |= CAPTURE_ACTIVE;
 #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 		wm8994->pdata->set_dap_connection(0);
 #endif
 		break;
 	case 2:
 		wm8994->rec_path = BT_REC;
+		wm8994->codec_state |= CAPTURE_ACTIVE;
 #ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
 		wm8994->pdata->set_dap_connection(1);
 #endif
 		break;
 	case 3:
+		wm8994->codec_state &= ~CAPTURE_ACTIVE;
 		wm8994_disable_rec_path(codec);
 		return 0;
 	default:
@@ -608,6 +610,7 @@ static int wm8994_set_path(struct snd_kcontrol *kcontrol,
 	switch (path_num) {
 	case OFF:
 		DEBUG_LOG("Switching off output path");
+		wm8994->codec_state &= ~PLAYBACK_ACTIVE;
 		break;
 	case RCV:
 	case SPK:
@@ -619,17 +622,20 @@ static int wm8994_set_path(struct snd_kcontrol *kcontrol,
 	case SPK_LINEOUT:
 		DEBUG_LOG("routing to %s\n", mc->texts[path_num]);
 		wm8994->ringtone_active = RING_OFF;
+		wm8994->codec_state |= PLAYBACK_ACTIVE;
 		break;
 	case RING_SPK:
 	case RING_HP:
 	case RING_NO_MIC:
 		DEBUG_LOG("routing to %s\n", mc->texts[path_num]);
 		wm8994->ringtone_active = RING_ON;
+		wm8994->codec_state |= PLAYBACK_ACTIVE;
 		path_num -= 5;
 		break;
 	case RING_SPK_HP:
 		DEBUG_LOG("routing to %s\n", mc->texts[path_num]);
 		wm8994->ringtone_active = RING_ON;
+		wm8994->codec_state |= PLAYBACK_ACTIVE;
 		path_num -= 4;
 		break;
 	default:
@@ -637,8 +643,6 @@ static int wm8994_set_path(struct snd_kcontrol *kcontrol,
 		return -ENODEV;
 		break;
 	}
-
-	wm8994->codec_state |= PLAYBACK_ACTIVE;
 
 	if (wm8994->codec_state & CALL_ACTIVE) {
 		wm8994->codec_state &= ~(CALL_ACTIVE);
@@ -1675,6 +1679,7 @@ void wm8994_shutdown(struct snd_pcm_substream *substream,
 		wm8994->cur_path = OFF;
 		wm8994->rec_path = MIC_OFF;
 		wm8994->ringtone_active = RING_OFF;
+#if 1
 		snd_soc_write(codec, WM8994_SOFTWARE_RESET,
 			snd_soc_read(codec, WM8994_SOFTWARE_RESET));
 		/*
@@ -1686,7 +1691,7 @@ void wm8994_shutdown(struct snd_pcm_substream *substream,
 		val &= ~(WM8994_DMICDAT1_PD);
 		snd_soc_write(codec, WM8994_PULL_CONTROL_2, val);
 #endif
-
+#endif
 		return;
 	}
 
@@ -1998,15 +2003,27 @@ static int  wm8994_codec_remove(struct snd_soc_codec *codec)
 static int wm8994_codec_suspend(struct snd_soc_codec *codec, pm_message_t state)
 {
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
+	unsigned int val;
 
-	DEBUG_LOG("Codec State = [0x%X], Stream State = [0x%X]",
+	DEBUG_LOG_ERR("Codec State = [0x%X], Stream State = [0x%X]",
 			wm8994->codec_state, wm8994->stream_state);
 
 	if (wm8994->codec_state == DEACTIVE &&
 		wm8994->stream_state == PCM_STREAM_DEACTIVE) {
 		wm8994->power_state = CODEC_OFF;
+#if 1
 		snd_soc_write(codec, WM8994_SOFTWARE_RESET,
 			snd_soc_read(codec, WM8994_SOFTWARE_RESET));
+		/*
+		*Due to reducing sleep currunt
+		*CS/ADDR pull control register should be changed to pull up
+		*/
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+		val = snd_soc_read(codec, WM8994_PULL_CONTROL_2);
+		val &= ~(WM8994_DMICDAT1_PD);
+		snd_soc_write(codec, WM8994_PULL_CONTROL_2, val);
+#endif
+#endif
 		wm8994_ldo_control(wm8994->pdata, 0);
 	}
 
@@ -2018,10 +2035,13 @@ static int wm8994_codec_resume(struct snd_soc_codec *codec)
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 
 	DEBUG_LOG("%s..", __func__);
+	DEBUG_LOG_ERR("Codec State = [0x%X], Stream State = [0x%X]",
+			wm8994->codec_state, wm8994->stream_state);
 	DEBUG_LOG_ERR("------WM8994 Revision = [%d]-------",
 		      wm8994->hw_version);
 
 	if (wm8994->power_state == CODEC_OFF) {
+		DEBUG_LOG_ERR("Power State = [0x%X]", wm8994->power_state);
 		/* Turn on sequence by recommend Wolfson.*/
 		wm8994_ldo_control(wm8994->pdata, 1);
 	}
