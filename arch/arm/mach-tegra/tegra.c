@@ -97,6 +97,10 @@ static void __init tegra_dt_init_late(void)
 	if (IS_ENABLED(CONFIG_ARCH_TEGRA_2x_SOC) &&
 	    of_machine_is_compatible("compal,paz00"))
 		tegra_paz00_wifikill_init();
+
+	if (IS_ENABLED(CONFIG_ARCH_TEGRA_2x_SOC) &&
+	    of_machine_is_compatible("nvidia,samsung_p3"))
+		p4wifi_machine_init();
 }
 
 static const char * const tegra_dt_board_compat[] = {
@@ -107,7 +111,7 @@ static const char * const tegra_dt_board_compat[] = {
 	NULL
 };
 
-DT_MACHINE_START(TEGRA_DT, "NVIDIA Tegra SoC (Flattened Device Tree)")
+DT_MACHINE_START(TEGRA_DT, "p3")
 	.l2c_aux_val	= 0x3c400001,
 	.l2c_aux_mask	= 0xc20fc3fe,
 	.smp		= smp_ops(tegra_smp_ops),
