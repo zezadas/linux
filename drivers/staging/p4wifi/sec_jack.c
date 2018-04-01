@@ -24,7 +24,12 @@
 #include <linux/platform_device.h>
 #include <linux/errno.h>
 #include <linux/err.h>
+#include <linux/version.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+#include <linux/extcon-provider.h>
+#else
 #include <linux/extcon.h>
+#endif
 #include <linux/input.h>
 #include <linux/timer.h>
 #include <linux/slab.h>
@@ -82,7 +87,11 @@ static atomic_t instantiated = ATOMIC_INIT(0);
 /* sysfs name HeadsetObserver.java looks for to track headset state
  */
 static const unsigned int jack_cables[] = {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+	EXTCON_JACK_HEADPHONE,
+#else
 	EXTCON_NONE,
+#endif
 };
 
 static const unsigned int sendend_cables[] = {
@@ -102,7 +111,11 @@ static struct gpio_event_input_info sec_jack_key_info = {
 // #if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
 	// .debounce_time.tv.nsec = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
 // #else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+	.debounce_time = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
+#else
 	.debounce_time.tv64 = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
+#endif
 // #endif
 	.keymap = sec_jack_key_map,
 	.keymap_size = ARRAY_SIZE(sec_jack_key_map)
@@ -249,7 +262,11 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 
 	pr_info("%s : jack_type = %d\n", __func__, jack_type);
 	state = jack_type & (SEC_HEADSET_4POLE | SEC_HEADSET_3POLE) ? 1 : 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+	extcon_set_state_sync(hi->switch_jack_detection, EXTCON_JACK_HEADPHONE, state);
+#else
 	extcon_set_state(hi->switch_jack_detection, state);
+#endif
 }
 
 static void handle_jack_not_inserted(struct sec_jack_info *hi)
@@ -359,7 +376,11 @@ void sec_jack_buttons_work(struct work_struct *work)
 	/* when button is released */
 	if (hi->pressed == 0) {
 		input_report_key(hi->input_dev, hi->pressed_code, 0);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+		extcon_set_state_sync(hi->switch_sendend, EXTCON_NONE, 0);
+#else
 		extcon_set_state(hi->switch_sendend, 0);
+#endif
 		input_sync(hi->input_dev);
 		pr_debug("%s: keycode=%d, is released\n", __func__,
 			hi->pressed_code);
@@ -374,7 +395,11 @@ void sec_jack_buttons_work(struct work_struct *work)
 		    adc <= btn_zones[i].adc_high) {
 			hi->pressed_code = btn_zones[i].code;
 			input_report_key(hi->input_dev, btn_zones[i].code, 1);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+			extcon_set_state_sync(hi->switch_sendend, EXTCON_NONE, 1);
+#else
 			extcon_set_state(hi->switch_sendend, 1);
+#endif
 			input_sync(hi->input_dev);
 			pr_debug("%s: keycode=%d, is pressed\n", __func__,
 				btn_zones[i].code);
@@ -653,16 +678,23 @@ static int sec_jack_probe(struct platform_device *pdev)
 	 */
 	hi->dev_id = pdev->id;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 	hi->switch_jack_detection = devm_extcon_dev_allocate(&pdev->dev, jack_cables);
+#else
 	hi->switch_jack_detection->name = "h2w";
+#endif
+	pr_info("%s: extcon dev name %s\n", __func__, dev_name(pdev->dev.parent));
 	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_jack_detection);
 	if (ret < 0) {
 		pr_err("%s : Failed to register switch device\n", __func__);
 		goto err_extcon_dev_register;
 	}
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 	hi->switch_sendend = devm_extcon_dev_allocate(&pdev->dev, sendend_cables);
+#else
 	hi->switch_sendend->name = "send_end";
+#endif
 	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_sendend);
 	if (ret < 0) {
 		printk(KERN_ERR "SEC JACK: Failed to register switch device\n");
