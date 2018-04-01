@@ -1035,9 +1035,9 @@ static int mmc_sdio_power_restore(struct mmc_host *host)
 		if (!(host->caps2 & MMC_CAP2_SDIO_IRQ_NOTHREAD)) {
 			wake_up_process(host->sdio_irq_thread);
 		} else if (host->caps & MMC_CAP_SDIO_IRQ) {
-			mmc_host_clk_hold(host);
+			// mmc_host_clk_hold(host);
 			host->ops->enable_sdio_irq(host, 1);
-			mmc_host_clk_release(host);
+			// mmc_host_clk_release(host);
 		}
 	}
 
