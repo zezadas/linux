@@ -37,6 +37,7 @@
 #include <linux/io.h>
 #include <linux/timer.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 
 #include "mpu.h"
 #include "mltypes.h"
@@ -58,9 +59,17 @@ struct timerirq_data {
 
 static struct miscdevice *timerirq_dev_data;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+static void timerirq_handler(struct timer_list *t)
+#else
 static void timerirq_handler(unsigned long arg)
+#endif
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+	struct timerirq_data *data = from_timer(data, t, timer);
+#else
 	struct timerirq_data *data = (struct timerirq_data *)arg;
+#endif
 	struct timeval irqtime;
 
 	/* dev_info(data->dev->this_device,
@@ -101,8 +110,11 @@ static int start_timerirq(struct timerirq_data *data)
 	data->data_ready = FALSE;
 
 	init_completion(&data->timer_done);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+	timer_setup(&data->timer, timerirq_handler, 0);
+#else
 	setup_timer(&data->timer, timerirq_handler, (unsigned long)data);
-
+#endif
 	return mod_timer(&data->timer,
 			jiffies + msecs_to_jiffies(data->period));
 }
