@@ -26,6 +26,9 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_plane_helper.h>
 
+extern void cmc623_suspend(void);
+extern void cmc623_resume(void);
+
 static void tegra_dc_stats_reset(struct tegra_dc_stats *stats)
 {
 	stats->frames = 0;
@@ -1464,25 +1467,28 @@ static void tegra_dc_commit_state(struct tegra_dc *dc,
 {
 	u32 value;
 	int err;
+	pr_info("%s\n", __func__);
 
-	err = clk_set_parent(dc->clk, state->clk);
-	if (err < 0)
-		dev_err(dc->dev, "failed to set parent clock: %d\n", err);
-
-	/*
-	 * Outputs may not want to change the parent clock rate. This is only
-	 * relevant to Tegra20 where only a single display PLL is available.
-	 * Since that PLL would typically be used for HDMI, an internal LVDS
-	 * panel would need to be driven by some other clock such as PLL_P
-	 * which is shared with other peripherals. Changing the clock rate
-	 * should therefore be avoided.
-	 */
-	if (state->pclk > 0) {
-		err = clk_set_rate(state->clk, state->pclk);
+	if (!IS_ENABLED(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)) {
+		err = clk_set_parent(dc->clk, state->clk);
 		if (err < 0)
-			dev_err(dc->dev,
-				"failed to set clock rate to %lu Hz\n",
-				state->pclk);
+			dev_err(dc->dev, "failed to set parent clock: %d\n", err);
+
+		/*
+		 * Outputs may not want to change the parent clock rate. This is only
+		 * relevant to Tegra20 where only a single display PLL is available.
+		 * Since that PLL would typically be used for HDMI, an internal LVDS
+		 * panel would need to be driven by some other clock such as PLL_P
+		 * which is shared with other peripherals. Changing the clock rate
+		 * should therefore be avoided.
+		 */
+		if (state->pclk > 0) {
+			err = clk_set_rate(state->clk, state->pclk);
+			if (err < 0)
+				dev_err(dc->dev,
+					"failed to set clock rate to %lu Hz\n",
+					state->pclk);
+		}
 	}
 
 	DRM_DEBUG_KMS("rate: %lu, div: %u\n", clk_get_rate(dc->clk),
@@ -1494,10 +1500,12 @@ static void tegra_dc_commit_state(struct tegra_dc *dc,
 		tegra_dc_writel(dc, value, DC_DISP_DISP_CLOCK_CONTROL);
 	}
 
-	err = clk_set_rate(dc->clk, state->pclk);
-	if (err < 0)
-		dev_err(dc->dev, "failed to set clock %pC to %lu Hz: %d\n",
-			dc->clk, state->pclk, err);
+	if (!IS_ENABLED(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)) {
+		err = clk_set_rate(dc->clk, state->pclk);
+		if (err < 0)
+			dev_err(dc->dev, "failed to set clock %pC to %lu Hz: %d\n",
+				dc->clk, state->pclk, err);
+	}
 }
 
 static void tegra_dc_stop(struct tegra_dc *dc)
@@ -2217,6 +2225,11 @@ static int tegra_dc_probe(struct platform_device *pdev)
 	if (err < 0)
 		return err;
 
+	if (IS_ENABLED(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA)) {
+		usleep_range(2000, 4000);
+		cmc623_suspend();
+	}
+
 	usleep_range(2000, 4000);
 
 	err = reset_control_assert(dc->rst);
@@ -2232,7 +2245,6 @@ static int tegra_dc_probe(struct platform_device *pdev)
 			dc->powergate = TEGRA_POWERGATE_DIS;
 		else
 			dc->powergate = TEGRA_POWERGATE_DISB;
-
 		tegra_powergate_power_off(dc->powergate);
 	}
 
@@ -2299,6 +2311,9 @@ static int tegra_dc_suspend(struct device *dev)
 	struct tegra_dc *dc = dev_get_drvdata(dev);
 	int err;
 
+	if (IS_ENABLED(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA))
+		cmc623_suspend();
+
 	err = reset_control_assert(dc->rst);
 	if (err < 0) {
 		dev_err(dev, "failed to assert reset: %d\n", err);
@@ -2338,6 +2353,9 @@ static int tegra_dc_resume(struct device *dev)
 			return err;
 		}
 	}
+
+	if (IS_ENABLED(CONFIG_MACH_SAMSUNG_VARIATION_TEGRA))
+		cmc623_resume();
 
 	return 0;
 }
