@@ -26,6 +26,11 @@
 
 #include "clk.h"
 
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+#include <dt-bindings/clock/tegra20-car.h>
+extern int cmc623_current_type;
+#endif
+
 #define CLK_OUT_ENB_L			0x010
 #define CLK_OUT_ENB_H			0x014
 #define CLK_OUT_ENB_U			0x018
@@ -259,6 +264,30 @@ void __init tegra_init_from_table(struct tegra_clk_init_table *tbl,
 			continue;
 		}
 
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+		if (tbl->clk_id == TEGRA20_CLK_PLL_C) {
+			if (cmc623_current_type == 0) {
+				tbl->rate = 586000000;
+			} else if (cmc623_current_type == 1) {
+				tbl->rate = 570000000;
+			}
+
+			pr_info("%s: cmc623_current_type=%d, pll_c rate=%lu\n",
+				__func__, cmc623_current_type, tbl->rate);
+		}
+
+		if (tbl->clk_id == TEGRA20_CLK_DISP1) {
+			if (cmc623_current_type == 0) {
+				tbl->rate = 586000000;
+			} else if (cmc623_current_type == 1) {
+				tbl->rate = 570000000;
+			}
+
+			pr_info("%s: cmc623_current_type=%d, disp1 rate=%lu\n",
+				__func__, cmc623_current_type, tbl->rate);
+		}
+#endif
+
 		if (tbl->parent_id < clk_max) {
 			struct clk *parent = clks[tbl->parent_id];
 			if (clk_set_parent(clk, parent)) {
@@ -269,6 +298,9 @@ void __init tegra_init_from_table(struct tegra_clk_init_table *tbl,
 			}
 		}
 
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+		if (tbl->clk_id != TEGRA20_CLK_PLL_C && tbl->clk_id != TEGRA20_CLK_DISP1)
+#endif
 		if (tbl->rate)
 			if (clk_set_rate(clk, tbl->rate)) {
 				pr_err("%s: Failed to set rate %lu of %s\n",
@@ -277,6 +309,9 @@ void __init tegra_init_from_table(struct tegra_clk_init_table *tbl,
 				WARN_ON(1);
 			}
 
+#ifdef CONFIG_MACH_SAMSUNG_VARIATION_TEGRA
+		if (tbl->clk_id != TEGRA20_CLK_PLL_C && tbl->clk_id != TEGRA20_CLK_DISP1)
+#endif
 		if (tbl->state)
 			if (clk_prepare_enable(clk)) {
 				pr_err("%s: Failed to enable %s\n", __func__,
