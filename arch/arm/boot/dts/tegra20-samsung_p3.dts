@@ -1169,19 +1169,11 @@
 			compatible = "brcm,bcm43438-bt";
 			/* max-speed = <2000000>; */
 
-			/* power */
-			device-wakeup-gpio = <&gpio TEGRA_GPIO(J, 5) GPIO_ACTIVE_HIGH>;
-			/* reset */
-			bcm-reset-gpio = <&gpio TEGRA_GPIO(W, 1) GPIO_ACTIVE_HIGH>;
-			ext-wake-gpio = <&gpio TEGRA_GPIO(S, 1) GPIO_ACTIVE_HIGH>;
-
+			device-wakeup-gpio = <&gpio TEGRA_GPIO(S, 1) GPIO_ACTIVE_HIGH>;
 			host-wakeup-gpios = <&gpio TEGRA_GPIO(S, 2) GPIO_ACTIVE_HIGH>;
-		/*
-		bt_en-gpio = <&gpio TEGRA_GPIO(J, 5) GPIO_ACTIVE_HIGH>;
-		bt_nrst-gpio = <&gpio TEGRA_GPIO(W, 1) GPIO_ACTIVE_HIGH>;
-		bt_ext_wake-gpio = <&gpio TEGRA_GPIO(S, 1) GPIO_ACTIVE_HIGH>;
-		bt_host_wake-gpio = <&gpio TEGRA_GPIO(S, 2) GPIO_ACTIVE_HIGH>;
-		*/
+
+			power-gpio = <&gpio TEGRA_GPIO(J, 5) GPIO_ACTIVE_HIGH>;
+			reset-gpio = <&gpio TEGRA_GPIO(W, 1) GPIO_ACTIVE_HIGH>;
 
 			clocks = <&tegra_car TEGRA20_CLK_UARTC>;
 			clock-names = "uartc";
