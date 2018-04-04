@@ -158,4 +158,13 @@ config DRM_PANEL_SITRONIX_ST7789V
 	  Say Y here if you want to enable support for the Sitronix
 	  ST7789V controller for 240x320 LCD panels
 
+config DRM_PANEL_CMC623
+	tristate "CMC623 panel"
+	depends on OF
+	depends on BACKLIGHT_CMC623_PWM && FB_TEGRA_CMC623
+	help
+	  Say Y here if you want to enable support for the CMC623 panel
+	  in the Samsung Galaxy Tab 10.1
+
+
 endmenu
