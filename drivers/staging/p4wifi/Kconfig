@@ -12,4 +12,10 @@ config SEC_MISC
 	  Enable this to be able to support miscellaneous functions for P3 devices
 	  - tuning image converters(CMC623), updating touch firmwares.
 
+config FB_TEGRA_CMC623
+	bool "Samsung CMC623"
+	default y
+	help
+	  This enables support for Samsung CMC623 image converter
+
 endif # P4WIFI
