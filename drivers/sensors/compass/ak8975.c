@@ -561,7 +561,9 @@ int akm8975_probe(struct i2c_client *client,
 {
 	struct device_node *of_node = client->dev.of_node;
 	struct device *magnetic_sensor_device = NULL;
+#ifdef CONFIG_SEC_MISC
 	struct device *sec_ak8975_dev = NULL;
+#endif
 	struct akm8975_data *akm;
 	struct akm8975_platform_data *pdata = NULL;
 	int err = 0;
@@ -670,6 +672,7 @@ int akm8975_probe(struct i2c_client *client,
 				__func__, err);
 	}
 
+#ifdef CONFIG_SEC_MISC
 	sec_ak8975_dev = device_create(sec_class, NULL, 0, akm,
 			"sec_ak8975");
 	if (IS_ERR(sec_ak8975_dev))
@@ -703,6 +706,7 @@ int akm8975_probe(struct i2c_client *client,
 			&dev_attr_ak8975_chk_registers);
 		goto exit_device_create_file2;
 	}
+#endif
 #endif
 
 	printk(KERN_INFO "%s done\n", __func__);

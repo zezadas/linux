@@ -1361,7 +1361,10 @@ static struct device_attribute *accel_sensor_attrs[] = {
 };
 #endif /* FACTORY_TEST */
 
+#ifdef CONFIG_SEC_MISC
 static struct device *sec_mpu3050_dev;
+#endif
+
 static struct device *accel_sensor_device;
 #endif
 
@@ -1664,6 +1667,7 @@ int mpu3050_probe(struct i2c_client *client, const struct i2c_device_id *devid)
 		       __func__, res);
 	}
 
+#ifdef CONFIG_SEC_MISC
 	sec_mpu3050_dev = device_create(sec_class, NULL, 0, NULL,
 					"sec_mpu3050");
 	if (IS_ERR(sec_mpu3050_dev))
@@ -1681,7 +1685,7 @@ int mpu3050_probe(struct i2c_client *client, const struct i2c_device_id *devid)
 		device_remove_file(sec_mpu3050_dev, &dev_attr_gyro_power_on);
 		return -1;
 	}
-
+#endif /* CONFIG_SEC_MISC */
 #endif
 	return res;
 
