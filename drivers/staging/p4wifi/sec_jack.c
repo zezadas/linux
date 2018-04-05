@@ -34,9 +34,12 @@
 #include <linux/timer.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
-#include <linux/gpio_event.h>
 #include <linux/sec_jack.h>
 #include <linux/stmpe-adc.h>
+
+#ifdef CONFIG_INPUT_GPIO
+#include <linux/gpio_event.h>
+#endif
 
 #include <asm/system_info.h>
 
@@ -66,7 +69,9 @@ struct sec_jack_info {
 	int dev_id;
 	int pressed;
 	int pressed_code;
+#ifdef CONFIG_INPUT_GPIO
 	struct platform_device *send_key_dev;
+#endif
 	unsigned int cur_jack_type;
 
 	/* sysfs name HeadsetObserver.java looks for to track headset state */
@@ -99,6 +104,7 @@ static const unsigned int sendend_cables[] = {
 	EXTCON_NONE,
 };
 
+#ifdef CONFIG_INPUT_GPIO
 static struct gpio_event_direct_entry sec_jack_key_map[] = {
 	{
 		.code	= KEY_UNKNOWN,
@@ -131,6 +137,7 @@ static struct gpio_event_platform_data sec_jack_input_data = {
 	.info = sec_jack_input_info,
 	.info_count = ARRAY_SIZE(sec_jack_input_info),
 };
+#endif
 
 static void sec_jack_set_micbias_state(
 	struct sec_jack_platform_data *pdata, bool on);
@@ -170,8 +177,12 @@ static int sec_jack_buttons_connect(struct input_handler *handler,
 	int i;
 
 	/* bind input_handler to input device related to only sec_jack */
-	if (dev->name != sec_jack_input_data.name)
+	if (strncmp(dev->name, "sec_jack", 8)) {
+		pr_err("%s: not connecting: %s", __func__, dev->name);
 		return -ENODEV;
+	}
+
+	pr_info("%s: connected input device: %s", __func__, dev->name);
 
 	hi = handler->private;
 	pdata = hi->pdata;
@@ -235,6 +246,11 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 	if (jack_type == hi->cur_jack_type) {
 		if (jack_type != SEC_HEADSET_4POLE)
 			sec_jack_set_micbias_state(pdata, false);
+		return;
+	}
+
+	if (!hi->input_dev) {
+		pr_err("%s: input_dev is NULL\n", __func__);
 		return;
 	}
 
@@ -654,7 +670,9 @@ static int sec_jack_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+#ifdef CONFIG_INPUT_GPIO
 	sec_jack_key_map[0].gpio = pdata->send_end_gpio;
+#endif
 
 	hi = kzalloc(sizeof(struct sec_jack_info), GFP_KERNEL);
 	if (hi == NULL) {
@@ -743,6 +761,7 @@ static int sec_jack_probe(struct platform_device *pdev)
 		goto err_request_detect_irq;
 	}
 
+#ifdef CONFIG_INPUT_GPIO
 	hi->send_key_dev = platform_device_register_data(NULL,
 			GPIO_EVENT_DEV_NAME,
 			hi->dev_id,
@@ -754,7 +773,7 @@ static int sec_jack_probe(struct platform_device *pdev)
 		ret = PTR_ERR(hi->send_key_dev);
 		goto err_enable_irq_wake;
 	}
-
+#endif
 
 	/* to handle insert/removal when we're sleeping in a call */
 	ret = enable_irq_wake(hi->det_irq);
@@ -771,8 +790,10 @@ static int sec_jack_probe(struct platform_device *pdev)
 	return 0;
 
 err_regsister_data:
+#ifdef CONFIG_INPUT_GPIO
 	platform_device_unregister(hi->send_key_dev);
 err_enable_irq_wake:
+#endif
 	free_irq(hi->det_irq, hi);
 err_request_detect_irq:
 	input_unregister_handler(&hi->handler);
@@ -785,7 +806,9 @@ err_extcon_dev_register_send_end:
 	devm_extcon_dev_unregister(&pdev->dev, hi->switch_jack_detection);
 err_extcon_dev_register:
 	gpio_free(pdata->det_gpio);
+#ifdef CONFIG_INPUT_GPIO
 err_gpio_request:
+#endif
 	kfree(hi);
 err_kzalloc:
 	atomic_set(&instantiated, 0);
@@ -803,10 +826,12 @@ static int sec_jack_remove(struct platform_device *pdev)
 	disable_irq_wake(hi->det_irq);
 	free_irq(hi->det_irq, hi);
 	destroy_workqueue(hi->queue);
+#ifdef CONFIG_INPUT_GPIO
 	if (hi->send_key_dev) {
 		platform_device_unregister(hi->send_key_dev);
 		hi->send_key_dev = NULL;
 	}
+#endif
 	input_unregister_handler(&hi->handler);
 	wakeup_source_trash(&hi->det_wakeup_source);
 	devm_extcon_dev_unregister(&pdev->dev, hi->switch_sendend);
