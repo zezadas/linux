@@ -37,10 +37,6 @@
 #include <linux/sec_jack.h>
 #include <linux/stmpe-adc.h>
 
-#ifdef CONFIG_INPUT_GPIO
-#include <linux/gpio_event.h>
-#endif
-
 #include <asm/system_info.h>
 
 #define MAX_ZONE_LIMIT		10
@@ -69,16 +65,10 @@ struct sec_jack_info {
 	int dev_id;
 	int pressed;
 	int pressed_code;
-#ifdef CONFIG_INPUT_GPIO
-	struct platform_device *send_key_dev;
-#endif
 	unsigned int cur_jack_type;
 
 	/* sysfs name HeadsetObserver.java looks for to track headset state */
 	struct extcon_dev *switch_jack_detection;
-
-	/* To support AT+FCESTEST=1 */
-	struct extcon_dev *switch_sendend;
 };
 
 /* with some modifications like moving all the gpio structs inside
@@ -103,41 +93,6 @@ static const unsigned int jack_cables[] = {
 static const unsigned int sendend_cables[] = {
 	EXTCON_NONE,
 };
-
-#ifdef CONFIG_INPUT_GPIO
-static struct gpio_event_direct_entry sec_jack_key_map[] = {
-	{
-		.code	= KEY_UNKNOWN,
-	},
-};
-
-static struct gpio_event_input_info sec_jack_key_info = {
-	.info.func = gpio_event_input_func,
-	.info.no_suspend = true,
-	.type = EV_KEY,
-// #if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
-	// .debounce_time.tv.nsec = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
-// #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
-	.debounce_time = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
-#else
-	.debounce_time.tv64 = SEND_KEY_CHECK_TIME_MS * NSEC_PER_MSEC,
-#endif
-// #endif
-	.keymap = sec_jack_key_map,
-	.keymap_size = ARRAY_SIZE(sec_jack_key_map)
-};
-
-static struct gpio_event_info *sec_jack_input_info[] = {
-	&sec_jack_key_info.info,
-};
-
-static struct gpio_event_platform_data sec_jack_input_data = {
-	.name = "sec_jack",
-	.info = sec_jack_input_info,
-	.info_count = ARRAY_SIZE(sec_jack_input_info),
-};
-#endif
 
 static void sec_jack_set_micbias_state(
 	struct sec_jack_platform_data *pdata, bool on);
@@ -390,11 +345,6 @@ void sec_jack_buttons_work(struct work_struct *work)
 	/* when button is released */
 	if (hi->pressed == 0) {
 		input_report_key(hi->input_dev, hi->pressed_code, 0);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
-		extcon_set_state_sync(hi->switch_sendend, EXTCON_NONE, 0);
-#else
-		extcon_set_state(hi->switch_sendend, 0);
-#endif
 		input_sync(hi->input_dev);
 		pr_debug("%s: keycode=%d, is released\n", __func__,
 			hi->pressed_code);
@@ -409,11 +359,6 @@ void sec_jack_buttons_work(struct work_struct *work)
 		    adc <= btn_zones[i].adc_high) {
 			hi->pressed_code = btn_zones[i].code;
 			input_report_key(hi->input_dev, btn_zones[i].code, 1);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
-			extcon_set_state_sync(hi->switch_sendend, EXTCON_NONE, 1);
-#else
-			extcon_set_state(hi->switch_sendend, 1);
-#endif
 			input_sync(hi->input_dev);
 			pr_debug("%s: keycode=%d, is pressed\n", __func__,
 				btn_zones[i].code);
@@ -542,7 +487,6 @@ static struct sec_jack_platform_data* sec_jack_parse_dt(struct platform_device *
 	}
 
 	pdata->det_gpio = of_get_named_gpio(np, "det-gpio", 0);
-	pdata->send_end_gpio = of_get_named_gpio(np, "send-end-gpio", 0);
 	pdata->micbias_enable_gpio = of_get_named_gpio(np, "micbias-enable", 0);
 	pdata->ear_micbias_enable_gpio =
 		of_get_named_gpio(np, "ear-micbias-enable", 0);
@@ -617,7 +561,6 @@ static struct sec_jack_platform_data* sec_jack_parse_dt(struct platform_device *
 	}
 
 	pr_info("%s: det_gpio=%d\n", __func__, pdata->det_gpio);
-	pr_info("%s: send_end_gpio=%d\n", __func__, pdata->send_end_gpio);
 	pr_info("%s: micbias_enable_gpio=%d\n", __func__, pdata->micbias_enable_gpio);
 	pr_info("%s: ear_micbias_enable_gpio=%d\n", __func__, pdata->ear_micbias_enable_gpio);
 	pr_info("%s: ear_micbias_alt_enable_gpio=%d\n", __func__, pdata->ear_micbias_alt_enable_gpio);
@@ -670,10 +613,6 @@ static int sec_jack_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-#ifdef CONFIG_INPUT_GPIO
-	sec_jack_key_map[0].gpio = pdata->send_end_gpio;
-#endif
-
 	hi = kzalloc(sizeof(struct sec_jack_info), GFP_KERNEL);
 	if (hi == NULL) {
 		pr_err("%s : Failed to allocate memory.\n", __func__);
@@ -701,16 +640,6 @@ static int sec_jack_probe(struct platform_device *pdev)
 		goto err_extcon_dev_register;
 	}
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
-	hi->switch_sendend = devm_extcon_dev_allocate(&pdev->dev, sendend_cables);
-#else
-	hi->switch_sendend->name = "send_end";
-#endif
-	ret = devm_extcon_dev_register(&pdev->dev, hi->switch_sendend);
-	if (ret < 0) {
-		printk(KERN_ERR "SEC JACK: Failed to register switch device\n");
-		goto err_extcon_dev_register_send_end;
-	}
 	wakeup_source_init(&hi->det_wakeup_source, "sec_jack_det");
 
 	INIT_WORK(&hi->buttons_work, sec_jack_buttons_work);
@@ -761,20 +690,6 @@ static int sec_jack_probe(struct platform_device *pdev)
 		goto err_request_detect_irq;
 	}
 
-#ifdef CONFIG_INPUT_GPIO
-	hi->send_key_dev = platform_device_register_data(NULL,
-			GPIO_EVENT_DEV_NAME,
-			hi->dev_id,
-			&sec_jack_input_data,
-			sizeof(sec_jack_input_data));
-
-	if (IS_ERR(hi->send_key_dev)) {
-		pr_err("%s: Failed to register input device.", __func__);
-		ret = PTR_ERR(hi->send_key_dev);
-		goto err_enable_irq_wake;
-	}
-#endif
-
 	/* to handle insert/removal when we're sleeping in a call */
 	ret = enable_irq_wake(hi->det_irq);
 	if (ret) {
@@ -790,10 +705,6 @@ static int sec_jack_probe(struct platform_device *pdev)
 	return 0;
 
 err_regsister_data:
-#ifdef CONFIG_INPUT_GPIO
-	platform_device_unregister(hi->send_key_dev);
-err_enable_irq_wake:
-#endif
 	free_irq(hi->det_irq, hi);
 err_request_detect_irq:
 	input_unregister_handler(&hi->handler);
@@ -801,14 +712,9 @@ err_register_input_handler:
 	destroy_workqueue(hi->queue);
 err_create_wq_failed:
 	wakeup_source_trash(&hi->det_wakeup_source);
-	devm_extcon_dev_unregister(&pdev->dev, hi->switch_sendend);
-err_extcon_dev_register_send_end:
 	devm_extcon_dev_unregister(&pdev->dev, hi->switch_jack_detection);
 err_extcon_dev_register:
 	gpio_free(pdata->det_gpio);
-#ifdef CONFIG_INPUT_GPIO
-err_gpio_request:
-#endif
 	kfree(hi);
 err_kzalloc:
 	atomic_set(&instantiated, 0);
@@ -826,18 +732,10 @@ static int sec_jack_remove(struct platform_device *pdev)
 	disable_irq_wake(hi->det_irq);
 	free_irq(hi->det_irq, hi);
 	destroy_workqueue(hi->queue);
-#ifdef CONFIG_INPUT_GPIO
-	if (hi->send_key_dev) {
-		platform_device_unregister(hi->send_key_dev);
-		hi->send_key_dev = NULL;
-	}
-#endif
 	input_unregister_handler(&hi->handler);
 	wakeup_source_trash(&hi->det_wakeup_source);
-	devm_extcon_dev_unregister(&pdev->dev, hi->switch_sendend);
 	devm_extcon_dev_unregister(&pdev->dev, hi->switch_jack_detection);
 	devm_gpio_free(&pdev->dev, hi->pdata->det_gpio);
-	devm_gpio_free(&pdev->dev, pdata->send_end_gpio);
 	devm_gpio_free(&pdev->dev, pdata->micbias_enable_gpio);
 
 	if (system_rev < 0x3)
