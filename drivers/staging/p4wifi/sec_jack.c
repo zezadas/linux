@@ -177,7 +177,7 @@ static int sec_jack_buttons_connect(struct input_handler *handler,
 	int i;
 
 	/* bind input_handler to input device related to only sec_jack */
-	if (strncmp(dev->name, "sec_jack", 8)) {
+	if (strncmp(dev->name, "gpio-keys", 8)) {
 		pr_err("%s: not connecting: %s", __func__, dev->name);
 		return -ENODEV;
 	}
