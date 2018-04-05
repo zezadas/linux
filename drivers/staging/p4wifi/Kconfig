@@ -3,3 +3,13 @@ config P4WIFI
 	default n
 	help
 	  Say Y to build Samsung Galaxy Tab 10.1 drivers.
+
+if P4WIFI
+
+config SEC_MISC
+	tristate "driver for miscellaneous functions for P3 devices"
+	help
+	  Enable this to be able to support miscellaneous functions for P3 devices
+	  - tuning image converters(CMC623), updating touch firmwares.
+
+endif # P4WIFI
