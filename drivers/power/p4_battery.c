@@ -1540,9 +1540,9 @@ static const char* get_usb_path_name(usb_path_type usb_path)
 	case USB_SEL_AP_USB:
 		return "USB_SEL_AP_USB";
 	case USB_SEL_CP_USB:
-		return "USB_SEL_AP_USB";
+		return "USB_SEL_CP_USB";
 	case USB_SEL_ADC:
-		return "USB_SEL_AP_USB";
+		return "USB_SEL_ADC";
 	default:
 		break;
 	}
