@@ -35,7 +35,7 @@
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/sec_jack.h>
-#include <linux/stmpe-adc.h>
+#include <linux/iio/consumer.h>
 
 #include <asm/system_info.h>
 
@@ -67,6 +67,8 @@ struct sec_jack_info {
 	int pressed_code;
 	unsigned int cur_jack_type;
 
+	struct iio_channel *adc_channel;
+
 	/* sysfs name HeadsetObserver.java looks for to track headset state */
 	struct extcon_dev *switch_jack_detection;
 };
@@ -96,7 +98,7 @@ static const unsigned int sendend_cables[] = {
 
 static void sec_jack_set_micbias_state(
 	struct sec_jack_platform_data *pdata, bool on);
-static int sec_jack_get_adc_value(void);
+static int sec_jack_get_adc_value(struct sec_jack_info *info);
 
 /* gpio_input driver does not support to read adc value.
  * We use input filter to support 3-buttons of headset
@@ -258,7 +260,7 @@ static void determine_jack_type(struct sec_jack_info *hi)
 	sec_jack_set_micbias_state(pdata, true);
 
 	while (gpio_get_value(pdata->det_gpio) ^ npolarity) {
-		adc = sec_jack_get_adc_value();
+		adc = sec_jack_get_adc_value(hi);
 		pr_debug("%s: adc = %d\n", __func__, adc);
 
 		/* determine the type of headset based on the
@@ -352,7 +354,7 @@ void sec_jack_buttons_work(struct work_struct *work)
 	}
 
 	/* when button is pressed */
-	adc = sec_jack_get_adc_value();
+	adc = sec_jack_get_adc_value(hi);
 
 	for (i = 0; i < pdata->num_buttons_zones; i++)
 		if (adc >= btn_zones[i].adc_low &&
@@ -411,15 +413,26 @@ static void sec_jack_set_micbias_state(
 		gpio_set_value(pdata->ear_micbias_enable_gpio, on);
 }
 
-static int sec_jack_get_adc_value(void)
+static int sec_jack_get_adc_value(struct sec_jack_info *info)
 {
-	s16 ret;
+	int val, ret;
 	if (system_rev < 0x2)
-		ret = 2000; /* temporary fix: adc_get_value(0); */
-	else
-		stmpe_adc_get_data(4, &ret);
-	pr_info("%s: adc_value=%d\n", __func__, ret);
-	return  ret;
+		val = 2000; /* temporary fix: adc_get_value(0); */
+	else {
+		if (!info->adc_channel)
+			pr_err("%s: info->adc_channel is NULL\n", __func__);
+
+		if (!info->adc_channel->indio_dev)
+			pr_err("%s: info->adc_channel->indio_dev is NULL\n", __func__);
+
+		ret = iio_read_channel_raw(info->adc_channel, &val);
+		if (ret < 0) {
+			pr_err("%s: iio read channel failed. (%d)\n", __func__, ret);
+			val = 0;
+		}
+	}
+	pr_info("%s: adc_value=%d\n", __func__, val);
+	return  val;
 }
 
 static int sec_jack_init_gpio(struct platform_device *pdev,
@@ -578,6 +591,28 @@ static struct sec_jack_platform_data* sec_jack_parse_dt(struct platform_device *
 }
 #endif
 
+static int sec_jack_setup_adc_channel(
+	struct sec_jack_info *info,
+	struct platform_device *pdev)
+{
+	struct iio_channel *chan;
+	int ret = 0;
+
+	if (!info)
+		return -EINVAL;
+
+	chan = iio_channel_get(NULL, "stmpe-adc-ch4");
+	if (IS_ERR(chan)) {
+		ret = PTR_ERR(chan);
+		dev_err(&pdev->dev, "failed to get stmpe811-adc-ch4 (%d)\n",
+			ret);
+		return ret;
+	}
+	info->adc_channel = chan;
+
+	return ret;
+}
+
 static int sec_jack_probe(struct platform_device *pdev)
 {
 	struct sec_jack_info *hi;
@@ -621,6 +656,10 @@ static int sec_jack_probe(struct platform_device *pdev)
 	}
 
 	hi->pdata = pdata;
+
+	ret = sec_jack_setup_adc_channel(hi, pdev);
+	if (ret)
+		goto err_extcon_dev_register;
 
 	/* make the id of our gpi_event device the same as our platform device,
 	 * which makes it the responsiblity of the board file to make sure
@@ -716,6 +755,7 @@ err_create_wq_failed:
 err_extcon_dev_register:
 	gpio_free(pdata->det_gpio);
 	kfree(hi);
+	kfree(pdata);
 err_kzalloc:
 	atomic_set(&instantiated, 0);
 
