@@ -542,8 +542,14 @@ static int stmpe811_enable(struct stmpe *stmpe, unsigned int blocks,
 
 static int stmpe811_get_altfunc(struct stmpe *stmpe, enum stmpe_block block)
 {
-	/* 0 for touchscreen, 1 for GPIO */
-	return block != STMPE_BLOCK_TOUCHSCREEN;
+	/* 0 for touchscreen / ADC, 1 for GPIO */
+	switch (block) {
+	case STMPE_BLOCK_TOUCHSCREEN:
+	case STMPE_BLOCK_ADC:
+		return 0;
+	default:
+		return 1;
+	}
 }
 
 static struct stmpe_variant_info stmpe811 = {
