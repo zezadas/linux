@@ -736,17 +736,6 @@
 			atl-vfcapacity = <0x4630>;
 		};
 	};
-	i2c@7 {
-		compatible = "i2c-gpio";
-		gpios = <
-			&gpio TEGRA_GPIO(W, 2)
-				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* sda */
-			&gpio TEGRA_GPIO(X, 3)
-				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
-		i2c-gpio,delay-us = <1>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-	};
 	i2c@8 {
 		compatible = "i2c-gpio";
 		gpios = <
