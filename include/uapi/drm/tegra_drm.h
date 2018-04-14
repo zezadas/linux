@@ -29,6 +29,17 @@
 extern "C" {
 #endif
 
+struct drm_tegra_plane_csc_blob {
+	__u32 yof;
+	__u32 kyrgb;
+	__u32 kur;
+	__u32 kvr;
+	__u32 kug;
+	__u32 kvg;
+	__u32 kub;
+	__u32 kvb;
+};
+
 #define DRM_TEGRA_GEM_CREATE_TILED			(1 << 0)
 #define DRM_TEGRA_GEM_CREATE_BOTTOM_UP			(1 << 1)
 #define DRM_TEGRA_GEM_CREATE_HOST1X_GATHER		(1 << 2)
@@ -791,7 +802,7 @@ struct drm_tegra_cmdstream_reloc {
 			 *
 			 * Buffer object index within @bo_table_ptr.
 			 */
-			__u32 bo_index : 8;
+			__u32 bo_index : 6;
 
 			/**
 			 * @bo_offset:
@@ -802,7 +813,7 @@ struct drm_tegra_cmdstream_reloc {
 			 * Offset in words that is added to buffer object's
 			 * memory address for gather relocations.
 			 */
-			__u32 bo_offset : 24;
+			__u32 bo_offset : 26;
 		};
 
 		/**
@@ -885,7 +896,7 @@ struct drm_tegra_cmdstream_extend_op {
 	};
 };
 
-#define DRM_TEGRA_BO_TABLE_MAX_ENTRIES_NUM	256
+#define DRM_TEGRA_BO_TABLE_MAX_ENTRIES_NUM	64
 
 #define DRM_TEGRA_BO_TABLE_WRITE		(1 << 0)
 #define DRM_TEGRA_BO_TABLE_EXPLICIT_FENCE	(1 << 1)
