@@ -99,7 +99,7 @@ static void bluedroid_pm_work(struct work_struct *work)
 	if (!gpiod_get_value_cansleep(bluedroid_pm->host_wake)) {
 		/* BT can sleep */
 		dev_dbg(bluedroid_pm->dev, "Tx and Rx are idle, BT sleeping");
-		gpiod_set_value_cansleep(bluedroid_pm->ext_wake, 1);
+		gpiod_set_value_cansleep(bluedroid_pm->ext_wake, 0);
 		wake_unlock(&bluedroid_pm->wake_lock);
 	} else {
 		/* Try again later */
@@ -125,7 +125,7 @@ static int bluedroid_pm_tty_ioctl(struct tty_struct *tty, struct file *file,
 	switch (cmd) {
 	case TIO_ASSERT_BT_WAKE:
 		dev_dbg(bluedroid_pm->dev, "TIO_ASSERT_BT_WAKE\n");
-		gpiod_set_value_cansleep(bluedroid_pm->ext_wake, 0);
+		gpiod_set_value_cansleep(bluedroid_pm->ext_wake, 1);
 		wake_lock(&bluedroid_pm->wake_lock);
 		cancel_delayed_work_sync(&bluedroid_pm->retry_work);
 		return 0;
