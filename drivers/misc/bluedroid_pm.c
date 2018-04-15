@@ -245,14 +245,14 @@ static int bluedroid_pm_probe(struct platform_device *pdev)
 	bluedroid_pm->dev = &pdev->dev;
 
 	bluedroid_pm->gpio_enable = devm_gpiod_get(bluedroid_pm->dev,
-					"bt_en", GPIOD_OUT_HIGH);
+					"bt_en", GPIOD_OUT_LOW);
 	if (IS_ERR(bluedroid_pm->gpio_enable)) {
 		dev_err(bluedroid_pm->dev, "enable gpio not registered\n");
 		return PTR_ERR(bluedroid_pm->gpio_enable);
 	}
 
 	bluedroid_pm->gpio_reset = devm_gpiod_get(bluedroid_pm->dev,
-					"bt_nrst", GPIOD_OUT_HIGH);
+					"bt_nrst", GPIOD_OUT_LOW);
 	if (IS_ERR(bluedroid_pm->gpio_reset)) {
 		dev_err(bluedroid_pm->dev, "enable gpio not registered\n");
 		return PTR_ERR(bluedroid_pm->gpio_reset);
