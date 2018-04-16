@@ -408,7 +408,8 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 
 		/* Cards with density > 2GiB are sector addressed */
 		if (card->ext_csd.sectors > (2u * 1024 * 1024 * 1024) / 512) {
-			if (card->host->caps & MMC_CAP_NONREMOVABLE) {
+			if (card->host->caps & MMC_CAP_NONREMOVABLE &&
+				of_machine_is_compatible("samsung,p4wifi")) {
  				/*
 				 * Size is in 256K chunks, i.e. 512 sectors each.
  				 * This algorithm is defined and used by NVIDIA,
