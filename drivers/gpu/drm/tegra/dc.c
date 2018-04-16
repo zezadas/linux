@@ -13,6 +13,7 @@
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+#include <linux/cmc623.h>
 
 #include <soc/tegra/pmc.h>
 
@@ -2218,6 +2219,11 @@ static int tegra_dc_probe(struct platform_device *pdev)
 	err = clk_prepare_enable(dc->clk);
 	if (err < 0)
 		return err;
+
+	if (of_machine_is_compatible("samsung,p4wifi")) {
+		usleep_range(2000, 4000);
+		cmc623_suspend();
+	}
 
 	usleep_range(2000, 4000);
 
