@@ -1053,8 +1053,23 @@ static struct tegra_clk_init_table init_table[] __initdata = {
 	{ TEGRA20_CLK_CLK_MAX, TEGRA20_CLK_CLK_MAX, 0, 0 },
 };
 
+static void __init tegra20_clock_apply_quirks(void)
+{
+	if (of_machine_is_compatible("samsung,p4wifi")) {
+		struct tegra_clk_init_table *tbl = init_table;
+		int clk_max = TEGRA20_CLK_CLK_MAX;
+		for (; tbl->clk_id < clk_max; tbl++) {
+			if (tbl->clk_id == TEGRA20_CLK_DISP1) {
+				tbl->parent_id = TEGRA20_CLK_PLL_D_OUT0;
+				tbl->rate = 68750000;
+			}
+		}
+	}
+}
+
 static void __init tegra20_clock_apply_init_table(void)
 {
+	tegra20_clock_apply_quirks();
 	tegra_init_from_table(init_table, clks, TEGRA20_CLK_CLK_MAX);
 }
 
