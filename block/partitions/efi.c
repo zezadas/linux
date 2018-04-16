@@ -674,6 +674,7 @@ static int find_valid_gpt(struct parsed_partitions *state, gpt_header **gpt,
 #define SYSTEM_LABEL    "AP"
 #define CACHE_LABEL     "CC"
 #define DATA_LABEL      "UA"
+#define HIDDEN_LABEL    "HD"
 
 // MAG4FA
 // #define SYSTEM_START    0x11c00
@@ -687,7 +688,7 @@ static int find_valid_gpt(struct parsed_partitions *state, gpt_header **gpt,
 
 #define SYSTEM_SIZE     0x121000
 #define CACHE_SIZE      0xe0000
-
+#define NEW_HIDDEN_SIZE  (16 * 1024 * 1024 / 512)
 
 static void get_partition_label(struct partition_meta_info *info, gpt_entry *pte,
 	char *buf, size_t buf_sz)
@@ -784,6 +785,9 @@ int efi_partition(struct parsed_partitions *state)
 	u64 cache_size = 0;
 	u64 data_start = 0;
 	u64 data_size = 0;
+	u64 hidden_start = 0;
+	u64 hidden_size = 0;
+
 	char buf[2];
 	size_t buf_sz = sizeof(buf);
 #endif /* CONFIG_BIGSYS */
@@ -818,9 +822,12 @@ int efi_partition(struct parsed_partitions *state)
 			data_start = start;
 			data_size = size;
 		}
+		else if (label_equals(buf, buf_sz, HIDDEN_LABEL)) {
+			hidden_start = start;
+			hidden_size = size;
+		}
 	}
 
-	pr_info("\tstart - end = size\n");
 	pr_info("Original GUID Partition table:\n");
 	pr_info("\t System 0x%lx 0x%lx\n",
 		(unsigned long) system_start, (unsigned long) system_size);
@@ -828,6 +835,8 @@ int efi_partition(struct parsed_partitions *state)
 		(unsigned long) cache_start, (unsigned long) cache_size);
 	pr_info("\t Data 0x%lx 0x%lx\n",
 		(unsigned long) data_start, (unsigned long) data_size);
+	pr_info("\t Hidden 0x%lx 0x%lx\n",
+		(unsigned long) hidden_start, (unsigned long) hidden_size);
 
 	use_bigsys = validate_partition_layout(system_start, system_size,
 		cache_start, cache_size, data_start, data_size);
@@ -861,17 +870,18 @@ int efi_partition(struct parsed_partitions *state)
 				system_size = size;
 			} else if (start == cache_start &&
 					label_equals(buf, buf_sz, CACHE_LABEL)) {
-				// Skip the cache partition.
-				start = system_start;
-				size = 0;
-				cache_start = start;
-				cache_size = size;
-
-				continue;
+				cache_start = hidden_start + NEW_HIDDEN_SIZE;
+				cache_size = hidden_size - NEW_HIDDEN_SIZE;
+				start = cache_start;
+				size = cache_size;
 			} else if (start == data_start &&
 					label_equals(buf, buf_sz, DATA_LABEL)) {
 				data_start = start;
 				data_size = size;
+			} else if (start == hidden_start &&
+					label_equals(buf, buf_sz, HIDDEN_LABEL)) {
+				hidden_size = NEW_HIDDEN_SIZE;
+				size = hidden_size;
 			}
 		}
 #endif /* CONFIG_BIGSYS */
@@ -908,6 +918,8 @@ int efi_partition(struct parsed_partitions *state)
 			(unsigned long) cache_start, (unsigned long) cache_size);
 		pr_info("\t Data 0x%lx 0x%lx\n",
 			(unsigned long) data_start, (unsigned long) data_size);
+		pr_info("\t Hidden 0x%lx 0x%lx\n",
+			(unsigned long) hidden_start, (unsigned long) hidden_size);
 	}
 #endif /* CONFIG_BIGSYS */
 
