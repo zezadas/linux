@@ -33,7 +33,7 @@ struct reg_entry {
 	unsigned long value;
 };
 
-static const struct reg_entry rgb_enable[] = {
+static struct reg_entry rgb_enable[] = {
 	{ DC_COM_PIN_OUTPUT_ENABLE(0),   0x00000000 },
 	{ DC_COM_PIN_OUTPUT_ENABLE(1),   0x00000000 },
 	{ DC_COM_PIN_OUTPUT_ENABLE(2),   0x00000000 },
@@ -55,7 +55,7 @@ static const struct reg_entry rgb_enable[] = {
 	{ DC_COM_PIN_OUTPUT_SELECT(6),   0x00020000 },
 };
 
-static const struct reg_entry rgb_disable[] = {
+static struct reg_entry rgb_disable[] = {
 	{ DC_COM_PIN_OUTPUT_SELECT(6),   0x00000000 },
 	{ DC_COM_PIN_OUTPUT_SELECT(5),   0x00000000 },
 	{ DC_COM_PIN_OUTPUT_SELECT(4),   0x00000000 },
@@ -214,6 +214,29 @@ static const struct drm_encoder_helper_funcs tegra_rgb_encoder_helper_funcs = {
 	.atomic_check = tegra_rgb_encoder_atomic_check,
 };
 
+void tegra_dc_rgb_apply_quirks(void)
+{
+	if (of_machine_is_compatible("samsung,p4wifi")) {
+		unsigned int i, num;
+		struct reg_entry *entry;
+
+		num = ARRAY_SIZE(rgb_enable);
+		for (i = 0; i < num; i++) {
+			entry = &rgb_enable[i];
+			if (entry->offset == DC_COM_PIN_OUTPUT_POLARITY(1))
+				entry->value = 0x51000000;
+		}
+
+		num = ARRAY_SIZE(rgb_disable);
+		for (i = 0; i < num; i++) {
+			entry = &rgb_disable[i];
+			if (entry->offset == DC_COM_PIN_OUTPUT_POLARITY(1))
+				entry->value = 0x51000000;
+		}
+
+	}
+}
+
 int tegra_dc_rgb_probe(struct tegra_dc *dc)
 {
 	struct device_node *np;
@@ -253,6 +276,8 @@ int tegra_dc_rgb_probe(struct tegra_dc *dc)
 		dev_err(dc->dev, "failed to set parent clock: %d\n", err);
 		return err;
 	}
+
+	tegra_dc_rgb_apply_quirks();
 
 	dc->rgb = &rgb->output;
 
