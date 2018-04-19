@@ -245,8 +245,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 
 	if (pdata->dc_valid) {
 		if (gpio_is_valid(pdata->dok)) {
-			ret = devm_gpio_request(dev, pdata->dok,
-						data->psy_desc.name);
+			ret = devm_gpio_request(dev, pdata->dok, "dok");
 			if (ret) {
 				dev_err(dev,
 					"Failed GPIO request for dok: %d err %d\n",
@@ -263,7 +262,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(pdata->dcm)) {
-		ret = devm_gpio_request(dev, pdata->dcm, data->psy_desc.name);
+		ret = devm_gpio_request(dev, pdata->dcm, "dcm");
 		if (ret) {
 			dev_err(dev,
 				"Failed GPIO request for dcm: %d err %d\n",
@@ -277,8 +276,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 
 	if (pdata->usb_valid) {
 		if (gpio_is_valid(pdata->uok)) {
-			ret = devm_gpio_request(dev, pdata->uok,
-						data->psy_desc.name);
+			ret = devm_gpio_request(dev, pdata->uok, "uok");
 			if (ret) {
 				dev_err(dev,
 					"Failed GPIO request for uok: %d err %d\n",
@@ -296,7 +294,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(pdata->cen)) {
-		ret = devm_gpio_request(dev, pdata->cen, data->psy_desc.name);
+		ret = devm_gpio_request(dev, pdata->cen, "cen");
 		if (ret) {
 			dev_err(dev,
 				"Failed GPIO request for cen: %d err %d\n",
@@ -308,7 +306,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(pdata->chg)) {
-		ret = devm_gpio_request(dev, pdata->chg, data->psy_desc.name);
+		ret = devm_gpio_request(dev, pdata->chg, "chg");
 		if (ret) {
 			dev_err(dev,
 				"Failed GPIO request for chg: %d err %d\n",
@@ -318,7 +316,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(pdata->flt)) {
-		ret = devm_gpio_request(dev, pdata->flt, data->psy_desc.name);
+		ret = devm_gpio_request(dev, pdata->flt, "flt");
 		if (ret) {
 			dev_err(dev,
 				"Failed GPIO request for flt: %d err %d\n",
@@ -328,7 +326,7 @@ static int max8903_setup_gpios(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(pdata->usus)) {
-		ret = devm_gpio_request(dev, pdata->usus, data->psy_desc.name);
+		ret = devm_gpio_request(dev, pdata->usus, "usus");
 		if (ret) {
 			dev_err(dev,
 				"Failed GPIO request for usus: %d err %d\n",
