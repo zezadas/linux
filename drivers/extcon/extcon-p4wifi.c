@@ -32,8 +32,6 @@
 #include <linux/iio/consumer.h>
 #include <linux/regulator/consumer.h>
 
-#include <linux/stmpe-adc.h>
-
 #include <asm/system_info.h>
 
 typedef enum
@@ -263,11 +261,14 @@ static int p4wifi_usb_init_gpios(struct platform_device *pdev,
 
 	dev_dbg(dev, "%s\n", __func__);
 
-	gpio = devm_gpiod_get(dev, "connect", GPIOD_IN);
+	gpio = devm_gpiod_get_optional(dev, "connect", GPIOD_IN);
 	if (IS_ERR(gpio)) {
 		ret = PTR_ERR(gpio);
 		dev_err(dev, "cannot get connect-gpio (%d)\n", ret);
-		goto done;
+		if (ret != -ENODEV && ret != -EBUSY)
+			goto done;
+		ret = 0;
+		gpio = NULL;
 	}
 	data->connect_gpio = gpio;
 
@@ -328,20 +329,22 @@ static int p4wifi_usb_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	irq = gpiod_to_irq(data->connect_gpio);
-	ret = devm_request_threaded_irq(dev, irq,
-			NULL, p4wifi_usb_connect_irq_handler,
-			IRQF_TRIGGER_FALLING |
-			IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-			"p4wifi-usb-connect", data);
-	if (ret) {
-		dev_err(dev, "Cannot request irq %d for Fault (%d)\n", irq, ret);
-		return ret;
-	}
+	if (data->connect_gpio) {
+		irq = gpiod_to_irq(data->connect_gpio);
+		ret = devm_request_threaded_irq(dev, irq,
+				NULL, p4wifi_usb_connect_irq_handler,
+				IRQF_TRIGGER_FALLING |
+				IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+				"p4wifi-usb-connect", data);
+		if (ret) {
+			dev_err(dev, "Cannot request irq %d for Fault (%d)\n", irq, ret);
+			return ret;
+		}
 
-	ret = enable_irq_wake(irq);
-	if (ret)
-		dev_err(dev, "failed to enable_irq wake (%d)\n", ret);
+		ret = enable_irq_wake(irq);
+		if (ret)
+			dev_err(dev, "failed to enable_irq wake (%d)\n", ret);
+	}
 
 	data->edev = devm_extcon_dev_allocate(&pdev->dev,
 						    p4wifi_extcon_cable);
