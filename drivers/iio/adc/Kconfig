@@ -653,6 +653,17 @@ config SD_ADC_MODULATOR
 	  This driver can also be built as a module.  If so, the module
 	  will be called sd_adc_modulator.
 
+config STMPE811_ADC
+	tristate "STMicroelectronics STMPE811 ADC"
+	depends on OF
+	depends on MFD_STMPE
+	help
+	  Say Y here if you want support for STMicroelectronics
+	  STMPE811 ADC controllers.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called stmpe-adc.
+
 config STM32_ADC_CORE
 	tristate "STMicroelectronics STM32 adc core"
 	depends on ARCH_STM32 || COMPILE_TEST
