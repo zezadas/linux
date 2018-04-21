@@ -50,6 +50,7 @@ struct bcm4751_power_platform_data {
 
 static DEFINE_MUTEX(gps_mutex);
 
+#ifdef CONFIG_SEC_MISC
 static struct miscdevice sec_gps_device = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = "sec_gps",
@@ -57,7 +58,7 @@ static struct miscdevice sec_gps_device = {
 
 extern struct class *sec_class;
 struct device *sec_gps_dev;
-
+#endif /* CONFIG_SEC_MISC */
 
 static int set_power(struct bcm4751_power_platform_data *pdata, int state)
 {
@@ -130,6 +131,8 @@ static int bcm4751_power_rfkill_set_power(void *data, bool blocked)
 
 	return 0;
 }
+
+#ifdef CONFIG_SEC_MISC
 
 static ssize_t gpio_n_rst_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -204,6 +207,8 @@ static ssize_t gpio_pwr_en_store(struct device *dev, struct device_attribute *at
 
 static DEVICE_ATTR(pwr_en, S_IRUGO | S_IWUSR, gpio_pwr_en_show, gpio_pwr_en_store);
 
+#endif /* CONFIG_SEC_MISC */
+
 static void sec_gps_hw_init(struct platform_device *pdev,
 	struct bcm4751_power_platform_data *pdata)
 {
@@ -267,6 +272,7 @@ static int bcm4751_power_probe(struct platform_device *pdev)
 
 	sec_gps_hw_init(pdev, pdata);
 
+#ifdef CONFIG_SEC_MISC
 	ret = misc_register(&sec_gps_device);
 	if (ret < 0) {
 		printk(KERN_ERR "%s: misc_register failed!\n", __func__);
@@ -294,7 +300,7 @@ static int bcm4751_power_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto fail_after_device_create;
 	}
-
+#endif
 
 	pdata->rfkill = rfkill_alloc("gps_rfkill", &pdev->dev,
 			RFKILL_TYPE_GPS, &bcm4751_power_rfkill_ops, pdata);
@@ -312,7 +318,9 @@ static int bcm4751_power_probe(struct platform_device *pdev)
 		goto fail_after_rkill_alloc;
 	}
 
+#ifdef CONFIG_SEC_MISC
 	sec_gps_dev->platform_data = pdata;
+#endif
 
 	pdata->dev = &pdev->dev;
 	pdev->dev.platform_data = pdata;
@@ -325,10 +333,12 @@ fail_after_rkill_alloc:
 	rfkill_unregister(pdata->rfkill);
 	rfkill_destroy(pdata->rfkill);
 fail_after_device_create:
+#ifdef CONFIG_SEC_MISC
 	device_destroy(sec_class, 0);
 fail_after_misc_reg:
 	misc_deregister(&sec_gps_device);
 fail:
+#endif
 	return ret;
 }
 
@@ -339,12 +349,15 @@ static int bcm4751_power_remove(struct platform_device *pdev)
 	rfkill_unregister(pdata->rfkill);
 	rfkill_destroy(pdata->rfkill);
 
+#ifdef CONFIG_SEC_MISC
 	device_remove_file(sec_gps_dev, &dev_attr_pwr_en);
 	device_remove_file(sec_gps_dev, &dev_attr_nrst);
 
 	device_destroy(sec_class, 0);
 
 	misc_deregister(&sec_gps_device);
+#endif
+
 	devm_regulator_put(pdata->gps_lna);
 
 	devm_gpio_free(&pdev->dev, pdata->reset_gpio);
