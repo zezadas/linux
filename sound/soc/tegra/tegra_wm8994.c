@@ -60,7 +60,6 @@ static int tegra_wm8994_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	struct snd_soc_codec *codec = rtd->codec;
 	struct snd_soc_card *card = rtd->card;
 	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(card);
 	int srate, mclk, i2s_daifmt;
@@ -252,24 +251,11 @@ static int tegra_spdif_hw_params(struct snd_pcm_substream *substream,
 
 static int tegra_hw_free(struct snd_pcm_substream *substream)
 {
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(rtd->card);
-
 	return 0;
 }
 
 static struct snd_soc_ops tegra_wm8994_ops = {
 	.hw_params = tegra_wm8994_hw_params,
-	.hw_free = tegra_hw_free,
-};
-
-static struct snd_soc_ops tegra_wm8994_bt_sco_ops = {
-	.hw_params = tegra_bt_sco_hw_params,
-	.hw_free = tegra_hw_free,
-};
-
-static struct snd_soc_ops tegra_spdif_ops = {
-	.hw_params = tegra_spdif_hw_params,
 	.hw_free = tegra_hw_free,
 };
 
