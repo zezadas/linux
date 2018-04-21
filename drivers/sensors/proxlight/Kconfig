@@ -1,0 +1,17 @@
+#
+# PROXIMITY & LIGHT Sensor Configuration
+#
+config PROXLIGHT
+	bool "PROXIMITY & LIGHT Sensor"
+	default n
+	help
+	  This option enables proximity sensors
+
+config SENSORS_BH1721FVC
+	tristate "ROHM BH1721FVC ambient light sensor"
+	default n
+	depends on PROXLIGHT
+	help
+	  Say Y here if you have ROHM BH1721FVC hooked to an I2C bus.
+	  This option eanbles the light sensor device driver for
+	  the ROHM BH1721FVC chip.
