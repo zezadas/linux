@@ -27,7 +27,6 @@
 #include <linux/interrupt.h>
 #include <linux/of.h>
 #include <linux/slab.h>
-#include <linux/gpio/consumer.h>
 #include <asm/unaligned.h>
 
 /* Firmware files */
@@ -256,11 +255,6 @@ struct mxt_data {
 
 	/* for config update handling */
 	struct completion crc_completion;
-
-	/* gpios for mxt1386 on Samsung p4wifi */
-	struct gpio_desc *touch_en;
-	struct gpio_desc *touch_rst;
-
 };
 
 static size_t mxt_obj_size(const struct mxt_object *obj)
@@ -2365,44 +2359,8 @@ static const struct attribute_group mxt_attr_group = {
 	.attrs = mxt_attrs,
 };
 
-static int mxt_gpio_direction(struct mxt_data *data, int direction)
-{
-	struct i2c_client *client = data->client;
-	int error;
-
-	error = gpiod_direction_output(data->touch_en, direction);
-	if (error) {
-		dev_err(&client->dev,
-			"failed to set gpio direction for touch-en. error=%d.\n", error);
-		return error;
-	}
-
-	error = gpiod_direction_output(data->touch_rst, direction);
-	if (error) {
-		dev_err(&client->dev,
-			"failed to set gpio direction for touch-rst. error=%d.\n", error);
-		return error;
-	}
-
-	return error;
-}
-
-static void mxt_suspend_hw(struct mxt_data *data)
-{
-	mxt_gpio_direction(data, 0);
-}
-
-static void mxt_resume_hw(struct mxt_data *data)
-{
-	mxt_gpio_direction(data, 1);
-	msleep(120);
-}
-
 static void mxt_start(struct mxt_data *data)
 {
-	if (IS_ENABLED(CONFIG_MACH_SAMSUNG_P4WIFI))
-		mxt_resume_hw(data);
-
 	switch (data->pdata->suspend_mode) {
 	case MXT_SUSPEND_T9_CTRL:
 		mxt_soft_reset(data);
@@ -2438,9 +2396,6 @@ static void mxt_stop(struct mxt_data *data)
 		mxt_set_t7_power_cfg(data, MXT_POWER_CFG_DEEPSLEEP);
 		break;
 	}
-
-	if (IS_ENABLED(CONFIG_MACH_SAMSUNG_P4WIFI))
-		mxt_suspend_hw(data);
 }
 
 static int mxt_input_open(struct input_dev *dev)
@@ -2656,51 +2611,6 @@ mxt_get_platform_data(struct i2c_client *client)
 	return ERR_PTR(-EINVAL);
 }
 
-#ifdef CONFIG_MACH_SAMSUNG_P4WIFI
-static int mxt_init_p4wifi(struct i2c_client *client, struct mxt_data *data)
-{
-	struct mxt_platform_data *pdata =
-		(struct mxt_platform_data*) data->pdata;
-	struct gpio_desc *touch_en;
-	struct gpio_desc *touch_rst;
-	int error;
-
-	touch_en = devm_gpiod_get(&client->dev, "touch-en", GPIOD_ASIS);
-	if (IS_ERR(touch_en)) {
-		dev_err(&client->dev, "Error getting touch-en gpio.\n");
-		return PTR_ERR(touch_en);
-	}
-
-	touch_rst = devm_gpiod_get(&client->dev, "touch-rst", GPIOD_ASIS);
-	if (IS_ERR(touch_rst)) {
-		dev_err(&client->dev, "Error getting touch-en gpio.\n");
-		return PTR_ERR(touch_rst);
-	}
-
-	error = gpiod_direction_output(touch_en, 1);
-	if (error) {
-		dev_err(&client->dev,
-			"failed to  configure touch-en gpio. error=%d.\n", error);
-		return error;
-	}
-
-	error = gpiod_direction_output(touch_rst, 1);
-	if (error) {
-		dev_err(&client->dev,
-			"failed to  configure touch-rst gpio. error=%d.\n", error);
-		return error;
-	}
-
-	data->touch_en = touch_en;
-	data->touch_rst = touch_rst;
-
-	pdata->irqflags = (pdata->irqflags & ~IRQF_TRIGGER_MASK);
-	pdata->irqflags |= IRQF_TRIGGER_LOW;
-
-	return error;
-}
-#endif /* CONFIG_MACH_SAMSUNG_P4WIFI */
-
 static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct mxt_data *data;
@@ -2723,15 +2633,6 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	data->client = client;
 	data->pdata = pdata;
 	data->irq = client->irq;
-
-	if (IS_ENABLED(CONFIG_MACH_SAMSUNG_P4WIFI)) {
-		error = mxt_init_p4wifi(client, data);
-		if (error) {
-			dev_err(&client->dev, "Failed to initialize for p4wifi\n");
-			goto err_free_mem;
-		}
-	}
-
 	i2c_set_clientdata(client, data);
 
 	init_completion(&data->bl_completion);
