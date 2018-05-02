@@ -301,6 +301,7 @@ struct mxt_data {
 	struct t7_config t7_cfg;
 	struct mxt_dbg dbg;
 	struct gpio_desc *reset_gpio;
+	struct gpio_desc *enable_gpio;
 
 	/* Cached parameters from object table */
 	u16 T5_address;
@@ -3144,6 +3145,14 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	init_completion(&data->bl_completion);
 	init_completion(&data->reset_completion);
 	init_completion(&data->crc_completion);
+
+	data->enable_gpio = devm_gpiod_get(&client->dev,
+							"enable", GPIOD_ASIS);
+	if (IS_ERR(data->enable_gpio)) {
+		error = PTR_ERR(data->enable_gpio);
+		dev_err(&client->dev, "Failed to get enable gpio: %d\n", error);
+		return error;
+	}
 
 	data->reset_gpio = devm_gpiod_get_optional(&client->dev,
 						   "reset", GPIOD_OUT_LOW);
