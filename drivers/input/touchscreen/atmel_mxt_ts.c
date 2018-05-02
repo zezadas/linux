@@ -256,6 +256,9 @@ struct mxt_data {
 
 	/* for config update handling */
 	struct completion crc_completion;
+
+	struct work_struct suspend_work;
+	int suspended;
 };
 
 static size_t mxt_obj_size(const struct mxt_object *obj)
@@ -2343,16 +2346,79 @@ static ssize_t mxt_update_fw_store(struct device *dev,
 	return count;
 }
 
+
+static void mxt_start(struct mxt_data *data);
+static void mxt_stop(struct mxt_data *data);
+
+static void mxt_suspend_work_handler(struct work_struct *work)
+{
+	struct mxt_data *data = container_of(work, struct mxt_data, suspend_work);
+	struct input_dev *input_dev = data->input_dev;
+
+	dev_dbg(&data->client->dev, "%s\n", __func__);
+
+	if (input_dev->users) {
+		mutex_lock(&input_dev->mutex);
+		if (data->suspended) {
+			mxt_stop(data);
+			gpiod_set_value(data->enable_gpio, 0);
+		} else {
+			gpiod_set_value(data->enable_gpio, 1);
+			mxt_start(data);
+		}
+		mutex_unlock(&input_dev->mutex);
+	}
+}
+
+static ssize_t mxt_suspend_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+    struct mxt_data *mxt = dev_get_drvdata(dev);
+    int len;
+
+    len = sprintf(buf, "%d\n", !!mxt->suspended);
+    if (len <= 0)
+        dev_err(dev, "%s: Invalid sprintf len: %d\n", __func__, len);
+
+    return len;
+}
+
+static ssize_t mxt_suspend_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+    struct mxt_data *data = dev_get_drvdata(dev);
+    long val;
+    int err;
+
+    err = kstrtol(buf, 10, &val);
+	if (err < 0) {
+		dev_err(dev, "%s error=%d", __func__, err);
+		return 0;
+	}
+    val = !!val;
+
+	if (data->suspended != val) {
+		dev_info(&data->client->dev, "%s(val=%ld)\n", __func__, val);
+		data->suspended = val;
+		queue_work(system_highpri_wq, &data->suspend_work);
+	}
+
+    return count;
+}
+
 static DEVICE_ATTR(fw_version, S_IRUGO, mxt_fw_version_show, NULL);
 static DEVICE_ATTR(hw_version, S_IRUGO, mxt_hw_version_show, NULL);
 static DEVICE_ATTR(object, S_IRUGO, mxt_object_show, NULL);
 static DEVICE_ATTR(update_fw, S_IWUSR, NULL, mxt_update_fw_store);
+static DEVICE_ATTR(suspended, S_IRUGO | S_IWUSR, mxt_suspend_show,
+                   mxt_suspend_store);
 
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_fw_version.attr,
 	&dev_attr_hw_version.attr,
 	&dev_attr_object.attr,
 	&dev_attr_update_fw.attr,
+	&dev_attr_suspended.attr,
 	NULL
 };
 
@@ -2689,6 +2755,9 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto err_free_object;
 	}
 
+	data->suspended = 0;
+	INIT_WORK(&data->suspend_work, mxt_suspend_work_handler);
+
 	return 0;
 
 err_free_object:
@@ -2723,6 +2792,13 @@ static int __maybe_unused mxt_suspend(struct device *dev)
 	if (!input_dev)
 		return 0;
 
+	dev_info(&client->dev, "%s\n", __func__);
+
+	if (data->suspended) {
+		dev_info(&client->dev, "%s: Already suspended via sysfs.\n", __func__);
+		return 0;
+	}
+
 	mutex_lock(&input_dev->mutex);
 
 	if (input_dev->users)
@@ -2741,6 +2817,13 @@ static int __maybe_unused mxt_resume(struct device *dev)
 
 	if (!input_dev)
 		return 0;
+
+	dev_info(&client->dev, "%s\n", __func__);
+
+	if (data->suspended) {
+		dev_info(&client->dev, "%s: Already suspended via sysfs.\n", __func__);
+		return 0;
+	}
 
 	mutex_lock(&input_dev->mutex);
 
