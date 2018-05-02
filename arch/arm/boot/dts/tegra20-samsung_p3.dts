@@ -676,8 +676,8 @@
 				interrupt-parent = <&gpio>;
 				interrupts = <TEGRA_GPIO(D, 4) IRQ_TYPE_LEVEL_LOW>;
 
-				touch-en-gpio = <&gpio TEGRA_GPIO(J, 2) IRQ_TYPE_LEVEL_HIGH>;
-				touch-rst-gpio = <&gpio TEGRA_GPIO(D, 3) IRQ_TYPE_LEVEL_HIGH>;
+				enable-gpio = <&gpio TEGRA_GPIO(J, 2) IRQ_TYPE_LEVEL_HIGH>;
+				reset-gpio = <&gpio TEGRA_GPIO(D, 3) IRQ_TYPE_LEVEL_HIGH>;
 			};
 		};
 
