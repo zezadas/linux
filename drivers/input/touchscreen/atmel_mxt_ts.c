@@ -2379,30 +2379,21 @@ static ssize_t mxt_update_fw_store(struct device *dev,
 }
 
 
-static void mxt_start(struct mxt_data *data);
-static void mxt_stop(struct mxt_data *data);
+static int __maybe_unused mxt_suspend(struct device *dev);
+static int __maybe_unused mxt_resume(struct device *dev);
 
 static void mxt_suspend_work_handler(struct work_struct *work)
 {
 	struct mxt_data *data = container_of(work, struct mxt_data, suspend_work);
-	struct input_dev *input_dev = data->input_dev;
 
 	dev_dbg(&data->client->dev, "%s\n", __func__);
 
 	if (data->suspended) {
-		if (input_dev->users) {
-			mutex_lock(&input_dev->mutex);
-			mxt_stop(data);
-			mutex_unlock(&input_dev->mutex);
-			disable_irq(data->client->irq);
-		}
+		mxt_suspend(&data->client->dev);
+		disable_irq(data->client->irq);
 	} else {
-		if (input_dev->users) {
-			enable_irq(data->client->irq);
-			mutex_lock(&input_dev->mutex);
-			mxt_start(data);
-			mutex_unlock(&input_dev->mutex);
-		}
+		enable_irq(data->client->irq);
+		mxt_resume(&data->client->dev);
 	}
 }
 
@@ -2913,13 +2904,6 @@ static int __maybe_unused mxt_suspend(struct device *dev)
 	if (!input_dev)
 		return 0;
 
-	dev_info(&client->dev, "%s\n", __func__);
-
-	if (data->suspended) {
-		dev_info(&client->dev, "%s: Already suspended via sysfs.\n", __func__);
-		return 0;
-	}
-
 	mutex_lock(&input_dev->mutex);
 
 	if (input_dev->users)
@@ -2938,13 +2922,6 @@ static int __maybe_unused mxt_resume(struct device *dev)
 
 	if (!input_dev)
 		return 0;
-
-	dev_info(&client->dev, "%s\n", __func__);
-
-	if (data->suspended) {
-		dev_info(&client->dev, "%s: Already suspended via sysfs.\n", __func__);
-		return 0;
-	}
 
 	mutex_lock(&input_dev->mutex);
 
