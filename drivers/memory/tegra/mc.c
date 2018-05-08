@@ -448,6 +448,42 @@ static const char *const error_names[8] = {
 	[6] = "SMMU translation error",
 };
 
+static int tegra_mc_error_block_unit_dma(struct tegra_mc *mc,
+					 unsigned int client)
+{
+	const struct tegra_mc_reset_ops *rst_ops;
+	const struct tegra_mc_reset *rst;
+	unsigned int id;
+	int err;
+
+	id = mc->soc->clients[client].reset_id;
+	if (id == TEGRA_MC_CLIENT_NO_RESET)
+		return -ENXIO;
+
+	rst_ops = mc->soc->reset_ops;
+	if (!rst_ops)
+		return -EINVAL;
+
+	if (!rst_ops->block_dma)
+		return -EINVAL;
+
+	rst = tegra_mc_reset_find(mc, id);
+	if (!rst)
+		return -ENODEV;
+
+	err = rst_ops->block_dma(mc, rst);
+	if (err) {
+		dev_err_ratelimited(mc->dev, "failed to block %s DMA: %d\n",
+				    rst->name, err);
+		return err;
+	}
+
+	dev_warn_ratelimited(mc->dev, "faulty DMA blocked for %s unit\n",
+			     rst->name);
+
+	return 0;
+}
+
 static irqreturn_t tegra_mc_irq(int irq, void *data)
 {
 	struct tegra_mc *mc = data;
@@ -534,6 +570,8 @@ static irqreturn_t tegra_mc_irq(int irq, void *data)
 		value = mc_readl(mc, MC_ERR_ADR);
 		addr |= value;
 
+		tegra_mc_error_block_unit_dma(mc, i);
+
 		dev_err_ratelimited(mc->dev, "%s: %s%s @%pa: %s (%s%s)\n",
 				    client, secure, direction, &addr, error,
 				    desc, perm);
@@ -603,6 +641,8 @@ static __maybe_unused irqreturn_t tegra20_mc_irq(int irq, void *data)
 		default:
 			continue;
 		}
+
+		tegra_mc_error_block_unit_dma(mc, id);
 
 		client = mc->soc->clients[id].name;
 		addr = mc_readl(mc, reg + sizeof(u32));
