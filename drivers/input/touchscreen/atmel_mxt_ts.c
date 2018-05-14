@@ -310,6 +310,7 @@ struct mxt_data {
 	struct t7_config t7_cfg;
 	struct mxt_dbg dbg;
 	struct gpio_desc *reset_gpio;
+	struct gpio_desc *enable_gpio;
 
 	/* Cached parameters from object table */
 	u16 T5_address;
@@ -2909,8 +2910,35 @@ static const struct attribute_group mxt_attr_group = {
 	.attrs = mxt_attrs,
 };
 
+static void mxt_suspend_hw(struct mxt_data *data)
+{
+	gpiod_set_value(data->enable_gpio, 0);
+}
+
+static void mxt_resume_hw(struct mxt_data *data)
+{
+	int err;
+
+	data->in_bootloader = true;
+	gpiod_set_value(data->enable_gpio, 1);
+	gpiod_set_value(data->reset_gpio, 0);
+
+	msleep(MXT_RESET_TIME);
+	reinit_completion(&data->bl_completion);
+	gpiod_set_value(data->reset_gpio, 1);
+	err = mxt_wait_for_completion(data, &data->bl_completion,
+					MXT_RESET_TIMEOUT);
+	if (err)
+		dev_err(&data->client->dev,
+			"failed to set reset_gpio value err=%d.\n", err);
+
+	data->in_bootloader = false;
+}
+
 static void mxt_start(struct mxt_data *data)
 {
+	mxt_resume_hw(data);
+
 	switch (data->suspend_mode) {
 	case MXT_SUSPEND_T9_CTRL:
 		mxt_soft_reset(data);
@@ -2945,6 +2973,8 @@ static void mxt_stop(struct mxt_data *data)
 		mxt_set_t7_power_cfg(data, MXT_POWER_CFG_DEEPSLEEP);
 		break;
 	}
+
+	mxt_suspend_hw(data);
 }
 
 static int mxt_input_open(struct input_dev *dev)
@@ -3067,6 +3097,14 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	error = mxt_parse_device_properties(data);
 	if (error)
 		return error;
+
+	data->enable_gpio = devm_gpiod_get_optional(&client->dev,
+							"enable", GPIOD_OUT_LOW);
+	if (IS_ERR(data->enable_gpio)) {
+		error = PTR_ERR(data->enable_gpio);
+		dev_err(&client->dev, "Failed to get enable gpio: %d\n", error);
+		return error;
+	}
 
 	data->reset_gpio = devm_gpiod_get_optional(&client->dev,
 						   "reset", GPIOD_OUT_LOW);
