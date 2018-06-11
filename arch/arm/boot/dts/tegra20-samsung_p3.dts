@@ -59,13 +59,6 @@
 		};
 	};
 
-	ram_console {
-		compatible = "android,ram-console";
-		status = "ok";
-		android,ram-buffer-start = <0x2E600000>;
-		android,ram-buffer-size = <0x00100000>;
-	};
-
 	/* Disable tegra20-rtc because it breaks tps6586x rtc */
 	rtc@7000e000 {
 		compatible = "nvidia,tegra20-rtc";
