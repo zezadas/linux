@@ -193,46 +193,6 @@ void __init p4_release_bootloader_fb(void)
 	tegra_release_bootloader_fb(bootloader_fb_start, bootloader_fb_size);
 }
 
-static struct resource ram_console_resources[] = {
-	{
-		.flags = IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ram_console_device = {
-	.name 		= "ram_console",
-	.id 		= -1,
-	.num_resources	= ARRAY_SIZE(ram_console_resources),
-	.resource	= ram_console_resources,
-};
-
-void __init tegra_ram_console_debug_init_mem(unsigned long start, unsigned long size)
-{
-	struct resource *res;
-
-	res = platform_get_resource(&ram_console_device, IORESOURCE_MEM, 0);
-	if (!res)
-		goto fail;
-	res->start = start;
-	res->end = res->start + size - 1;
-
-	return;
-
-fail:
-	ram_console_device.resource = NULL;
-	ram_console_device.num_resources = 0;
-	pr_err("Failed to reserve memory block for ram console\n");
-}
-
-void __init tegra_ram_console_debug_init(void)
-{
-	int err;
-
-	err = platform_device_register(&ram_console_device);
-	if (err) {
-		pr_err("%s: ram console registration failed (%d)!\n", __func__, err);
-	}
-}
 
 /******************************************************************************
 * Reboot
@@ -477,8 +437,6 @@ static void p4_check_hwrev(void)
 void __init p4wifi_machine_init(void)
 {
 	pr_info("%s()\n", __func__);
-	tegra_ram_console_debug_init_mem(0x2E600000, 0x00100000);
-	tegra_ram_console_debug_init();
 
 
 	p4_release_bootloader_fb();
