@@ -62,7 +62,7 @@
 	/* Disable tegra20-rtc because it breaks tps6586x rtc */
 	rtc@7000e000 {
 		compatible = "nvidia,tegra20-rtc";
-		status = "disabled";
+		status = "okay";
 	};
 
 	clocks {
