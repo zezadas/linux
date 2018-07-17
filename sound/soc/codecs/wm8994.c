@@ -4270,13 +4270,13 @@ static int wm8994_component_probe(struct snd_soc_component *component)
 	snd_soc_dapm_new_controls(dapm, wm8994_dapm_widgets,
 				  ARRAY_SIZE(wm8994_dapm_widgets));
 
-	ret = snd_soc_add_codec_controls(codec, wm8994_p4_snd_controls,
+	ret = snd_soc_add_component_controls(component, wm8994_p4_snd_controls,
 			     ARRAY_SIZE(wm8994_p4_snd_controls));
 	if (ret != 0)
-		dev_err(codec->dev,
+		dev_err(component->dev,
 			"Failed to add WM8994 p4 controls: %d\n", ret);
 	else
-		dev_err(codec->dev,
+		dev_err(component->dev,
 			"Added WM8994 p4 controls: %d\n", ret);
 
 

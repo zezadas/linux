@@ -33,8 +33,8 @@
 #include "wm8994_voodoo.h"
 #endif
 
-static enum audio_path out_path = OFF;
-static enum mic_path path = MIC_OFF;
+enum audio_path wm8994_path = OFF;
+enum mic_path wm8994_mic_path = MIC_OFF;
 
 
 #include "../../../arch/arm/mach-tegra/iomap.h"
@@ -168,11 +168,11 @@ select_mic_route universal_wm8994_mic_paths[] = {
 static int wm8994_get_mic_path(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
-	struct wm8994_priv *wm8994 = snd_soc_component_get_drvdata(component);
-
+	// struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	// struct wm8994_priv *wm8994 = snd_soc_component_get_drvdata(component);
 	// ucontrol->value.integer.value[0] = wm8994->rec_path;
-	ucontrol->value.integer.value[0] = path;
+
+	ucontrol->value.integer.value[0] = wm8994_mic_path;
 
 	return 0;
 }
@@ -181,7 +181,6 @@ static int wm8994_set_mic_path(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
-	struct snd_soc_codec *codec = component->codec;
 	// struct wm8994_priv *wm8994 = snd_soc_component_get_drvdata(component);
 
 	DEBUG_LOG("");
@@ -222,25 +221,25 @@ static int wm8994_set_mic_path(struct snd_kcontrol *kcontrol,
 	case 0:
 		tegra_set_dap_connection(0);
 		wm8994_set_mic_bias(true);
-		wm8994_record_main_mic(codec);
-		path = MAIN;
+		wm8994_record_main_mic(component);
+		wm8994_mic_path = MAIN;
 		break;
 	case 1:
 		tegra_set_dap_connection(0);
 		wm8994_set_mic_bias(true);
-		wm8994_record_headset_mic(codec);
-		path = EAR;
+		wm8994_record_headset_mic(component);
+		wm8994_mic_path = EAR;
 		break;
 	case 2:
 		tegra_set_dap_connection(1);
 		wm8994_set_mic_bias(true);
-		wm8994_record_bluetooth(codec);
-		path = BT_REC;
+		wm8994_record_bluetooth(component);
+		wm8994_mic_path = BT_REC;
 		break;
 	case 3:
 		wm8994_set_mic_bias(false);
-		wm8994_disable_rec_path(codec, path);
-		path = MIC_OFF;
+		wm8994_disable_rec_path(component);
+		wm8994_mic_path = MIC_OFF;
 		break;
 	}
 
@@ -251,10 +250,10 @@ static int wm8994_set_mic_path(struct snd_kcontrol *kcontrol,
 static int wm8994_get_path(struct snd_kcontrol *kcontrol,
 			   struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	// struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
 	// struct wm8994_priv *wm8994 = snd_soc_component_get_drvdata(component);
 
-	ucontrol->value.integer.value[0] = out_path;
+	ucontrol->value.integer.value[0] = wm8994_path;
 
 	return 0;
 }
@@ -263,7 +262,7 @@ static int wm8994_set_path(struct snd_kcontrol *kcontrol,
 			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
-	struct snd_soc_codec *codec = component->codec;
+	// struct snd_soc_codec *codec = component->codec;
 	// struct wm8994_priv *wm8994 = snd_soc_component_get_drvdata(component);
 	// struct soc_enum *mc = (struct soc_enum *)kcontrol->private_value;
 	int val;
@@ -340,8 +339,8 @@ static int wm8994_set_path(struct snd_kcontrol *kcontrol,
 
 	// wm8994->cur_path = path_num;
 	// wm8994->universal_playback_path[wm8994->cur_path] (codec);
-	out_path = path_num;
-	universal_wm8994_playback_paths[path_num](codec);
+	wm8994_path = path_num;
+	universal_wm8994_playback_paths[path_num](component);
 
 #if 0
 	/* if tuning flag is on then enter the test mode

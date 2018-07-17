@@ -169,9 +169,9 @@ enum state_dock {DOCK_OFF, DOCK_ON};
 enum voip_bt_nrec_states {VOIP_BT_NREC_OFF, VOIP_BT_NREC_ON};
 #endif
 
-typedef void (*select_route)(struct snd_soc_codec *);
-typedef void (*select_mic_route)(struct snd_soc_codec *);
-typedef int (*select_clock_control)(struct snd_soc_codec *, int);
+typedef void (*select_route)(struct snd_soc_component *);
+typedef void (*select_mic_route)(struct snd_soc_component *);
+typedef int (*select_clock_control)(struct snd_soc_component *, int);
 
 
 struct wm8994_setup_data {
@@ -186,7 +186,7 @@ enum wm8994_dc_servo_slots {
 };
 
 struct wm8994_priv {
-	struct snd_soc_codec *codec;
+	struct snd_soc_component *component;
 	struct delayed_work delayed_work;
 	int master;
 	int sysclk_source;
@@ -249,30 +249,34 @@ struct gain_info_t {
 /* Definitions of function prototype. */
 void wm8994_shutdown(struct snd_pcm_substream *substream,
 			    struct snd_soc_dai *codec_dai);
-unsigned int wm8994_read(struct snd_soc_codec *codec, unsigned int reg);
-int wm8994_write(struct snd_soc_codec *codec,
+unsigned int wm8994_read(struct snd_soc_component *component, unsigned int reg);
+int wm8994_write(struct snd_soc_component *component,
 		unsigned int reg, unsigned int value);
-void wm8994_register_dump(struct snd_soc_codec *codec);
-int wm8994_configure_clock(struct snd_soc_codec *codec, int en);
-void wm8994_disable_path(struct snd_soc_codec *codec, enum audio_path path);
-void wm8994_disable_rec_path(struct snd_soc_codec *codec, enum mic_path mic);
-void wm8994_record_main_mic(struct snd_soc_codec *codec);
-void wm8994_record_headset_mic(struct snd_soc_codec *codec);
-void wm8994_record_bluetooth(struct snd_soc_codec *codec);
-void wm8994_set_playback_receiver(struct snd_soc_codec *codec);
-void wm8994_set_playback_headset(struct snd_soc_codec *codec);
-void wm8994_set_playback_speaker(struct snd_soc_codec *codec);
-void wm8994_set_playback_bluetooth(struct snd_soc_codec *codec);
-void wm8994_set_playback_speaker_headset(struct snd_soc_codec *codec);
-void wm8994_set_playback_extra_dock_speaker(struct snd_soc_codec *codec);
-void wm8994_set_playback_speaker_lineout(struct snd_soc_codec *codec);
-void wm8994_set_voicecall_common_setting(struct snd_soc_codec *codec);
-void wm8994_set_voicecall_receiver(struct snd_soc_codec *codec);
-void wm8994_set_voicecall_headset(struct snd_soc_codec *codec);
-void wm8994_set_voicecall_headphone(struct snd_soc_codec *codec);
-void wm8994_set_voicecall_speaker(struct snd_soc_codec *codec);
-void wm8994_set_voicecall_bluetooth(struct snd_soc_codec *codec);
-int wm8994_set_codec_gain(struct snd_soc_codec *codec, u32 mode, u16 device);
+void wm8994_register_dump(struct snd_soc_component *component);
+int wm8994_configure_clock(struct snd_soc_component *component, int en);
+
+// void wm8994_disable_path(struct snd_soc_component *component, enum audio_path path);
+// void wm8994_disable_rec_path(struct snd_soc_component *component, enum mic_path mic);
+void wm8994_disable_path(struct snd_soc_component *component);
+void wm8994_disable_rec_path(struct snd_soc_component *component);
+
+void wm8994_record_main_mic(struct snd_soc_component *component);
+void wm8994_record_headset_mic(struct snd_soc_component *component);
+void wm8994_record_bluetooth(struct snd_soc_component *component);
+void wm8994_set_playback_receiver(struct snd_soc_component *component);
+void wm8994_set_playback_headset(struct snd_soc_component *component);
+void wm8994_set_playback_speaker(struct snd_soc_component *component);
+void wm8994_set_playback_bluetooth(struct snd_soc_component *component);
+void wm8994_set_playback_speaker_headset(struct snd_soc_component *component);
+void wm8994_set_playback_extra_dock_speaker(struct snd_soc_component *component);
+void wm8994_set_playback_speaker_lineout(struct snd_soc_component *component);
+void wm8994_set_voicecall_common_setting(struct snd_soc_component *component);
+void wm8994_set_voicecall_receiver(struct snd_soc_component *component);
+void wm8994_set_voicecall_headset(struct snd_soc_component *component);
+void wm8994_set_voicecall_headphone(struct snd_soc_component *component);
+void wm8994_set_voicecall_speaker(struct snd_soc_component *component);
+void wm8994_set_voicecall_bluetooth(struct snd_soc_component *component);
+int wm8994_set_codec_gain(struct snd_soc_component *component, u32 mode, u16 device);
 extern int gain_code_check(void);
 u16 wm8994_get_codec_gain(u32 mode, u16 device, u16 reg);
 void wm8994_reset_analog_vol_work(struct work_struct *work);
