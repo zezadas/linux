@@ -30,8 +30,6 @@
 #include <linux/module.h>
 #include <linux/reset.h>
 
-#include <soc/tegra/mc.h>
-
 #include <mach/clk.h>
 #include <linux/nvmap.h>
 
@@ -354,12 +352,10 @@ static void do_svc_module_reset(struct avp_svc_info *avp_svc,
 		writel(1 << 1, IO_TO_VIRT(TEGRA_CLK_RESET_BASE + 0x300));
 		udelay(10);
 		writel(1 << 1, IO_TO_VIRT(TEGRA_CLK_RESET_BASE + 0x304));
-
-		pr_err("avp_svc reset avp\n");
-
 	} else {
-		tegra_memory_client_hot_reset(TEGRA_MEMORY_CLIENT_VDE,
-						    aclk->rst, 10);
+		reset_control_assert(aclk->rst);
+		udelay(10);
+		reset_control_deassert(aclk->rst);
 	}
 	resp.err = 0;
 
