@@ -20,6 +20,7 @@
 #include "mc.h"
 
 #define MC_INTSTATUS 0x000
+
 #define MC_INTMASK 0x004
 
 #define MC_ERR_STATUS 0x08
@@ -44,14 +45,7 @@
 #define MC_EMEM_ADR_CFG 0x54
 #define MC_EMEM_ADR_CFG_EMEM_NUMDEV BIT(0)
 
-#define MC_GART_ERROR_REQ		0x30
-#define MC_DECERR_EMEM_OTHERS_STATUS	0x58
-#define MC_SECURITY_VIOLATION_STATUS	0x74
-
 static const struct of_device_id tegra_mc_of_match[] = {
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	{ .compatible = "nvidia,tegra20-mc", .data = &tegra20_mc_soc },
-#endif
 #ifdef CONFIG_ARCH_TEGRA_3x_SOC
 	{ .compatible = "nvidia,tegra30-mc", .data = &tegra30_mc_soc },
 #endif
@@ -76,9 +70,6 @@ static int tegra_mc_setup_latency_allowance(struct tegra_mc *mc)
 	unsigned long long tick;
 	unsigned int i;
 	u32 value;
-
-	if (mc->soc->tegra20)
-		return 0;
 
 	/* compute the number of MC clock cycles per tick */
 	tick = mc->tick * clk_get_rate(mc->clk);
@@ -230,7 +221,6 @@ static int tegra_mc_setup_timings(struct tegra_mc *mc)
 static const char *const status_names[32] = {
 	[ 1] = "External interrupt",
 	[ 6] = "EMEM address decode error",
-	[ 7] = "GART page fault",
 	[ 8] = "Security violation",
 	[ 9] = "EMEM arbitration error",
 	[10] = "Page fault",
@@ -260,124 +250,78 @@ static irqreturn_t tegra_mc_irq(int irq, void *data)
 
 	for_each_set_bit(bit, &status, 32) {
 		const char *error = status_names[bit] ?: "unknown";
-		const char *client = "unknown", *desc = "";
-		const char *direction = "read", *secure = "";
+		const char *client = "unknown", *desc;
+		const char *direction, *secure;
 		phys_addr_t addr = 0;
 		unsigned int i;
-		char perm[7] = { 0 };
+		char perm[7];
 		u8 id, type;
-		u32 value, reg;
+		u32 value;
 
-		if (mc->soc->tegra20) {
-			switch (bit) {
-			case 6:
-				reg = MC_DECERR_EMEM_OTHERS_STATUS;
-				value = mc_readl(mc, reg);
-
-				id = value & mc->soc->client_id_mask;
-				desc = error_names[2];
-
-				if (value & BIT(31))
-					direction = "write";
-				break;
-
-			case 7:
-				reg = MC_GART_ERROR_REQ;
-				value = mc_readl(mc, reg);
-
-				id = (value >> 1) & mc->soc->client_id_mask;
-				desc = error_names[2];
-
-				if (value & BIT(0))
-					direction = "write";
-				break;
-
-			case 8:
-				reg = MC_SECURITY_VIOLATION_STATUS;
-				value = mc_readl(mc, reg);
-
-				id = value & mc->soc->client_id_mask;
-				type = (value & BIT(30)) ? 4 : 3;
-				desc = error_names[type];
-				secure = "secure ";
-
-				if (value & BIT(31))
-					direction = "write";
-				break;
-
-			default:
-				reg = 0;
-				direction = "";
-				id = mc->soc->num_clients;
-				break;
-			}
-
-			if (id < mc->soc->num_clients)
-				client = mc->soc->clients[id].name;
-
-			if (reg)
-				addr = mc_readl(mc, reg + sizeof(u32));
-		} else {
-			value = mc_readl(mc, MC_ERR_STATUS);
+		value = mc_readl(mc, MC_ERR_STATUS);
 
 #ifdef CONFIG_PHYS_ADDR_T_64BIT
-			if (mc->soc->num_address_bits > 32) {
-				addr = ((value >> MC_ERR_STATUS_ADR_HI_SHIFT) &
-					MC_ERR_STATUS_ADR_HI_MASK);
-				addr <<= 32;
-			}
-#endif
-			if (value & MC_ERR_STATUS_RW)
-				direction = "write";
-
-			if (value & MC_ERR_STATUS_SECURITY)
-				secure = "secure ";
-
-			id = value & mc->soc->client_id_mask;
-
-			for (i = 0; i < mc->soc->num_clients; i++) {
-				if (mc->soc->clients[i].id == id) {
-					client = mc->soc->clients[i].name;
-					break;
-				}
-			}
-
-			type = (value & MC_ERR_STATUS_TYPE_MASK) >>
-			       MC_ERR_STATUS_TYPE_SHIFT;
-			desc = error_names[type];
-
-			switch (value & MC_ERR_STATUS_TYPE_MASK) {
-			case MC_ERR_STATUS_TYPE_INVALID_SMMU_PAGE:
-				perm[0] = ' ';
-				perm[1] = '[';
-
-				if (value & MC_ERR_STATUS_READABLE)
-					perm[2] = 'R';
-				else
-					perm[2] = '-';
-
-				if (value & MC_ERR_STATUS_WRITABLE)
-					perm[3] = 'W';
-				else
-					perm[3] = '-';
-
-				if (value & MC_ERR_STATUS_NONSECURE)
-					perm[4] = '-';
-				else
-					perm[4] = 'S';
-
-				perm[5] = ']';
-				perm[6] = '\0';
-				break;
-
-			default:
-				perm[0] = '\0';
-				break;
-			}
-
-			value = mc_readl(mc, MC_ERR_ADR);
-			addr |= value;
+		if (mc->soc->num_address_bits > 32) {
+			addr = ((value >> MC_ERR_STATUS_ADR_HI_SHIFT) &
+				MC_ERR_STATUS_ADR_HI_MASK);
+			addr <<= 32;
 		}
+#endif
+
+		if (value & MC_ERR_STATUS_RW)
+			direction = "write";
+		else
+			direction = "read";
+
+		if (value & MC_ERR_STATUS_SECURITY)
+			secure = "secure ";
+		else
+			secure = "";
+
+		id = value & mc->soc->client_id_mask;
+
+		for (i = 0; i < mc->soc->num_clients; i++) {
+			if (mc->soc->clients[i].id == id) {
+				client = mc->soc->clients[i].name;
+				break;
+			}
+		}
+
+		type = (value & MC_ERR_STATUS_TYPE_MASK) >>
+		       MC_ERR_STATUS_TYPE_SHIFT;
+		desc = error_names[type];
+
+		switch (value & MC_ERR_STATUS_TYPE_MASK) {
+		case MC_ERR_STATUS_TYPE_INVALID_SMMU_PAGE:
+			perm[0] = ' ';
+			perm[1] = '[';
+
+			if (value & MC_ERR_STATUS_READABLE)
+				perm[2] = 'R';
+			else
+				perm[2] = '-';
+
+			if (value & MC_ERR_STATUS_WRITABLE)
+				perm[3] = 'W';
+			else
+				perm[3] = '-';
+
+			if (value & MC_ERR_STATUS_NONSECURE)
+				perm[4] = '-';
+			else
+				perm[4] = 'S';
+
+			perm[5] = ']';
+			perm[6] = '\0';
+			break;
+
+		default:
+			perm[0] = '\0';
+			break;
+		}
+
+		value = mc_readl(mc, MC_ERR_ADR);
+		addr |= value;
 
 		dev_err_ratelimited(mc->dev, "%s: %s%s @%pa: %s (%s%s)\n",
 				    client, secure, direction, &addr, error,
@@ -417,18 +361,11 @@ static int tegra_mc_probe(struct platform_device *pdev)
 	if (IS_ERR(mc->regs))
 		return PTR_ERR(mc->regs);
 
-	if (mc->soc->tegra20) {
-		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-		mc->regs2 = devm_ioremap_resource(&pdev->dev, res);
-		if (IS_ERR(mc->regs2))
-			return PTR_ERR(mc->regs2);
-	} else {
-		mc->clk = devm_clk_get(&pdev->dev, "mc");
-		if (IS_ERR(mc->clk)) {
-			dev_err(&pdev->dev, "failed to get MC clock: %ld\n",
-				PTR_ERR(mc->clk));
-			return PTR_ERR(mc->clk);
-		}
+	mc->clk = devm_clk_get(&pdev->dev, "mc");
+	if (IS_ERR(mc->clk)) {
+		dev_err(&pdev->dev, "failed to get MC clock: %ld\n",
+			PTR_ERR(mc->clk));
+		return PTR_ERR(mc->clk);
 	}
 
 	err = tegra_mc_setup_latency_allowance(mc);
