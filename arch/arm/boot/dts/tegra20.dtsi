@@ -843,6 +843,270 @@
 		status = "disabled";
 	};
 
+	cpu0_opp_table: opp_table0 {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp@216000000_750 {
+			clock-latency-ns = <2000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0xFF 0xFFFF>;
+			opp-hz = /bits/ 64 <216000000>;
+		};
+
+		opp@314000000_750 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0x03 0x0001>;
+			opp-hz = /bits/ 64 <314000000>;
+		};
+
+		opp@380000000_750 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0x01 0x0002>;
+			opp-hz = /bits/ 64 <380000000>;
+		};
+
+		opp@389000000_750 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0x02 0x0002>;
+			opp-hz = /bits/ 64 <389000000>;
+		};
+
+		opp@456000000_825 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <825000 825000 1125000>;
+			opp-supported-hw = <0x03 0x0001>;
+			opp-hz = /bits/ 64 <456000000>;
+		};
+
+		opp@494000000_750 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0x04 0x0001>;
+			opp-hz = /bits/ 64 <494000000>;
+		};
+
+		opp@503000000_800 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <800000 800000 1125000>;
+			opp-supported-hw = <0x03 0x0002>;
+			opp-hz = /bits/ 64 <503000000>;
+		};
+
+		opp@598000000_750 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0x04 0x0002>;
+			opp-hz = /bits/ 64 <598000000>;
+		};
+
+		opp@608000000_900 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <900000 900000 1125000>;
+			opp-supported-hw = <0x01 0x0001>;
+			opp-hz = /bits/ 64 <608000000>;
+		};
+
+		opp@618000000_900 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <900000 900000 1125000>;
+			opp-supported-hw = <0x02 0x0001>;
+			opp-hz = /bits/ 64 <618000000>;
+		};
+
+		opp@655000000_850 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <850000 850000 1125000>;
+			opp-supported-hw = <0x03 0x0002>;
+			opp-hz = /bits/ 64 <655000000>;
+		};
+
+		opp@675000000_825 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <825000 825000 1125000>;
+			opp-supported-hw = <0x04 0x0001>;
+			opp-hz = /bits/ 64 <675000000>;
+		};
+
+		opp@730000000_750 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <750000 750000 1125000>;
+			opp-supported-hw = <0x08 0x0003>;
+			opp-hz = /bits/ 64 <730000000>;
+		};
+
+		opp@750000000_800 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <800000 800000 1125000>;
+			opp-supported-hw = <0x04 0x0002>;
+			opp-hz = /bits/ 64 <750000000>;
+		};
+
+		opp@760000000_775 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <775000 775000 1125000>;
+			opp-supported-hw = <0x08 0x0003>;
+			opp-hz = /bits/ 64 <760000000>;
+		};
+
+		opp@760000000_875 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <875000 875000 1125000>;
+			opp-supported-hw = <0x02 0x0002>;
+			opp-hz = /bits/ 64 <760000000>;
+		};
+
+		opp@760000000_975 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <975000 975000 1125000>;
+			opp-supported-hw = <0x01 0x0001>;
+			opp-hz = /bits/ 64 <760000000>;
+		};
+
+		opp@770000000_975 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <975000 975000 1125000>;
+			opp-supported-hw = <0x02 0x0001>;
+			opp-hz = /bits/ 64 <770000000>;
+		};
+
+		opp@798000000_900 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <900000 900000 1125000>;
+			opp-supported-hw = <0x03 0x0002>;
+			opp-hz = /bits/ 64 <798000000>;
+		};
+
+		opp@817000000_875 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <875000 875000 1125000>;
+			opp-supported-hw = <0x04 0x0001>;
+			opp-hz = /bits/ 64 <817000000>;
+		};
+
+		opp@817000000_1000 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1000000 1000000 1125000>;
+			opp-supported-hw = <0x01 0x0001>;
+			opp-hz = /bits/ 64 <817000000>;
+		};
+
+		opp@827000000_1000 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1000000 1000000 1125000>;
+			opp-supported-hw = <0x02 0x0001>;
+			opp-hz = /bits/ 64 <827000000>;
+		};
+
+		opp@845000000_800 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <800000 800000 1125000>;
+			opp-supported-hw = <0x08 0x0003>;
+			opp-hz = /bits/ 64 <845000000>;
+		};
+
+		opp@893000000_850 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <850000 850000 1125000>;
+			opp-supported-hw = <0x04 0x0002>;
+			opp-hz = /bits/ 64 <893000000>;
+		};
+
+		opp@902000000_950 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <950000 950000 1125000>;
+			opp-supported-hw = <0x01 0x0002>;
+			opp-hz = /bits/ 64 <902000000>;
+		};
+
+		opp@912000000_1050 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1050000 1050000 1125000>;
+			opp-supported-hw = <0x01 0x0001>;
+			opp-hz = /bits/ 64 <912000000>;
+		};
+
+		opp@922000000_925 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <925000 925000 1125000>;
+			opp-supported-hw = <0x04 0x0001>;
+			opp-hz = /bits/ 64 <922000000>;
+		};
+
+		opp@922000000_1050 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1050000 1050000 1125000>;
+			opp-supported-hw = <0x02 0x0001>;
+			opp-hz = /bits/ 64 <922000000>;
+		};
+
+		opp@940000000_850 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <850000 850000 1125000>;
+			opp-supported-hw = <0x08 0x0003>;
+			opp-hz = /bits/ 64 <940000000>;
+		};
+
+		opp@950000000_950 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <950000 950000 1125000>;
+			opp-supported-hw = <0x02 0x0002>;
+			opp-hz = /bits/ 64 <950000000>;
+		};
+
+		opp@960000000_1000 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1000000 1000000 1125000>;
+			opp-supported-hw = <0x01 0x0002>;
+			opp-hz = /bits/ 64 <960000000>;
+		};
+
+		opp@1000000000_875 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <875000 875000 1125000>;
+			opp-supported-hw = <0x08 0x0003>;
+			opp-hz = /bits/ 64 <1000000000>;
+		};
+
+		opp@1000000000_900 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <900000 900000 1125000>;
+			opp-supported-hw = <0x04 0x0002>;
+			opp-hz = /bits/ 64 <1000000000>;
+		};
+
+		opp@1000000000_975 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <975000 975000 1125000>;
+			opp-supported-hw = <0x04 0x0001>;
+			opp-hz = /bits/ 64 <1000000000>;
+		};
+
+		opp@1000000000_1000 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1000000 1000000 1125000>;
+			opp-supported-hw = <0x02 0x0002>;
+			opp-hz = /bits/ 64 <1000000000>;
+		};
+
+		opp@1000000000_1025 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1025000 1025000 1125000>;
+			opp-supported-hw = <0x01 0x0002>;
+			opp-hz = /bits/ 64 <1000000000>;
+		};
+
+		opp@1000000000_1100 {
+			clock-latency-ns = <125000>;
+			opp-microvolt = <1100000 1100000 1125000>;
+			opp-supported-hw = <0x03 0x0001>;
+			opp-hz = /bits/ 64 <1000000000>;
+		};
+	};
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -851,12 +1115,24 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a9";
 			reg = <0>;
+			clocks = <&tegra_car TEGRA20_CLK_PLL_X>,
+				 <&tegra_car TEGRA20_CLK_PLL_P>,
+				 <&tegra_car TEGRA20_CLK_CCLK>;
+			clock-names = "pll_x", "intermediate", "cclk";
+			operating-points-v2 = <&cpu0_opp_table>;
+			#cooling-cells = <2>;
 		};
 
 		cpu@1 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a9";
 			reg = <1>;
+			clocks = <&tegra_car TEGRA20_CLK_PLL_X>,
+				 <&tegra_car TEGRA20_CLK_PLL_P>,
+				 <&tegra_car TEGRA20_CLK_CCLK>;
+			clock-names = "pll_x", "intermediate", "cclk";
+			operating-points-v2 = <&cpu0_opp_table>;
+			#cooling-cells = <2>;
 		};
 	};
 
