@@ -272,7 +272,9 @@ config ARM_TANGO_CPUFREQ
 
 config ARM_TEGRA20_CPUFREQ
 	tristate "Tegra20 CPUFreq support"
+	depends on !CPU_THERMAL || THERMAL
 	depends on ARCH_TEGRA
+	select PM_OPP
 	default y
 	help
 	  This adds the CPUFreq driver support for Tegra20 SOCs.
