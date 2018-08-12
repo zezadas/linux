@@ -3027,7 +3027,7 @@ static __init void tegra210_periph_clk_init(void __iomem *clk_base,
 	clks[TEGRA210_CLK_CML1] = clk;
 
 	clk = tegra_clk_register_super_clk("aclk", aclk_parents,
-				ARRAY_SIZE(aclk_parents), 0, clk_base + 0x6e0,
+				ARRAY_SIZE(aclk_parents), 0, 0, clk_base + 0x6e0,
 				0, NULL);
 	clks[TEGRA210_CLK_ACLK] = clk;
 

@@ -65,6 +65,8 @@ static u8 clk_super_get_parent(struct clk_hw *hw)
 	    (source == mux->pllx_index))
 		source = mux->div2_index;
 
+	mux->pllx_parent = (source == mux->pllx_index);
+
 	return source;
 }
 
@@ -114,6 +116,8 @@ static int clk_super_set_parent(struct clk_hw *hw, u8 index)
 	writel_relaxed(val, mux->reg);
 	udelay(2);
 
+	mux->pllx_parent = (index == mux->pllx_index);
+
 out:
 	if (mux->lock)
 		spin_unlock_irqrestore(mux->lock, flags);
@@ -132,6 +136,9 @@ static long clk_super_round_rate(struct clk_hw *hw, unsigned long rate,
 	struct tegra_clk_super_mux *super = to_clk_super_mux(hw);
 	struct clk_hw *div_hw = &super->frac_div.hw;
 
+	if ((super->flags & TEGRA_CCLKG_DIVIDER) && super->pllx_parent)
+		return *parent_rate;
+
 	__clk_hw_set_clk(div_hw, hw);
 
 	return super->div_ops->round_rate(div_hw, rate, parent_rate);
@@ -143,6 +150,9 @@ static unsigned long clk_super_recalc_rate(struct clk_hw *hw,
 	struct tegra_clk_super_mux *super = to_clk_super_mux(hw);
 	struct clk_hw *div_hw = &super->frac_div.hw;
 
+	if ((super->flags & TEGRA_CCLKG_DIVIDER) && super->pllx_parent)
+		return parent_rate;
+
 	__clk_hw_set_clk(div_hw, hw);
 
 	return super->div_ops->recalc_rate(div_hw, parent_rate);
@@ -153,6 +163,9 @@ static int clk_super_set_rate(struct clk_hw *hw, unsigned long rate,
 {
 	struct tegra_clk_super_mux *super = to_clk_super_mux(hw);
 	struct clk_hw *div_hw = &super->frac_div.hw;
+
+	if ((super->flags & TEGRA_CCLKG_DIVIDER) && super->pllx_parent)
+		return 0;
 
 	__clk_hw_set_clk(div_hw, hw);
 
@@ -204,7 +217,7 @@ struct clk *tegra_clk_register_super_mux(const char *name,
 }
 
 struct clk *tegra_clk_register_super_clk(const char *name,
-		const char * const *parent_names, u8 num_parents,
+		const char * const *parent_names, u8 num_parents, u8 pllx_index,
 		unsigned long flags, void __iomem *reg, u8 clk_super_flags,
 		spinlock_t *lock)
 {
@@ -232,6 +245,7 @@ struct clk *tegra_clk_register_super_clk(const char *name,
 	super->frac_div.frac_width = 1;
 	super->frac_div.lock = lock;
 	super->div_ops = &tegra_clk_frac_div_ops;
+	super->pllx_index = pllx_index;
 
 	/* Data in .init is copied by clk_register(), so stack variable OK */
 	super->hw.init = &init;
