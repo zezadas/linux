@@ -902,8 +902,8 @@ static void __init tegra30_pll_init(void)
 }
 
 static const char *cclk_g_parents[] = { "clk_m", "pll_c", "clk_32k", "pll_m",
-					"pll_p_cclkg", "pll_p_out4_cclkg",
-					"pll_p_out3_cclkg", "unused", "pll_x" };
+					"pll_p", "pll_p_out4", "pll_p_out3",
+					"unused", "pll_x" };
 static const char *cclk_lp_parents[] = { "clk_m", "pll_c", "clk_32k", "pll_m",
 					 "pll_p_cclklp", "pll_p_out4_cclklp",
 					 "pll_p_out3_cclklp", "unused", "pll_x",
@@ -916,39 +916,11 @@ static void __init tegra30_super_clk_init(void)
 {
 	struct clk *clk;
 
-	/*
-	 * Clock input to cclk_g divided from pll_p using
-	 * U71 divider of cclk_g.
-	 */
-	clk = tegra_clk_register_divider("pll_p_cclkg", "pll_p",
-				clk_base + SUPER_CCLKG_DIVIDER, 0,
-				TEGRA_DIVIDER_INT, 16, 8, 1, NULL);
-	clk_register_clkdev(clk, "pll_p_cclkg", NULL);
-
-	/*
-	 * Clock input to cclk_g divided from pll_p_out3 using
-	 * U71 divider of cclk_g.
-	 */
-	clk = tegra_clk_register_divider("pll_p_out3_cclkg", "pll_p_out3",
-				clk_base + SUPER_CCLKG_DIVIDER, 0,
-				TEGRA_DIVIDER_INT, 16, 8, 1, NULL);
-	clk_register_clkdev(clk, "pll_p_out3_cclkg", NULL);
-
-	/*
-	 * Clock input to cclk_g divided from pll_p_out4 using
-	 * U71 divider of cclk_g.
-	 */
-	clk = tegra_clk_register_divider("pll_p_out4_cclkg", "pll_p_out4",
-				clk_base + SUPER_CCLKG_DIVIDER, 0,
-				TEGRA_DIVIDER_INT, 16, 8, 1, NULL);
-	clk_register_clkdev(clk, "pll_p_out4_cclkg", NULL);
-
 	/* CCLKG */
-	clk = tegra_clk_register_super_mux("cclk_g", cclk_g_parents,
-				  ARRAY_SIZE(cclk_g_parents),
-				  CLK_SET_RATE_PARENT,
+	clk = tegra_clk_register_super_clk("cclk_g", cclk_g_parents,
+				  ARRAY_SIZE(cclk_g_parents), 8, 0,
 				  clk_base + CCLKG_BURST_POLICY,
-				  0, 4, 0, 0, NULL);
+				  TEGRA_CCLKG_DIVIDER, NULL);
 	clks[TEGRA30_CLK_CCLK_G] = clk;
 
 	/*

@@ -680,6 +680,9 @@ struct clk *tegra_clk_register_periph_data(void __iomem *clk_base,
  * Flags:
  * TEGRA_DIVIDER_2 - LP cluster has additional divider. This flag indicates
  *     that this is LP cluster clock.
+ *
+ * TEGRA_CCLKG_DIVIDER - G cluster clock may bypass clocks divider. This flag
+ *     indicates that this is G cluster clock.
  */
 struct tegra_clk_super_mux {
 	struct clk_hw	hw;
@@ -691,11 +694,13 @@ struct tegra_clk_super_mux {
 	u8		div2_index;
 	u8		pllx_index;
 	spinlock_t	*lock;
+	bool		pllx_parent;
 };
 
 #define to_clk_super_mux(_hw) container_of(_hw, struct tegra_clk_super_mux, hw)
 
-#define TEGRA_DIVIDER_2 BIT(0)
+#define TEGRA_DIVIDER_2		BIT(0)
+#define TEGRA_CCLKG_DIVIDER	BIT(1)
 
 extern const struct clk_ops tegra_clk_super_ops;
 struct clk *tegra_clk_register_super_mux(const char *name,
@@ -703,7 +708,7 @@ struct clk *tegra_clk_register_super_mux(const char *name,
 		unsigned long flags, void __iomem *reg, u8 clk_super_flags,
 		u8 width, u8 pllx_index, u8 div2_index, spinlock_t *lock);
 struct clk *tegra_clk_register_super_clk(const char *name,
-		const char * const *parent_names, u8 num_parents,
+		const char * const *parent_names, u8 num_parents, u8 pllx_index,
 		unsigned long flags, void __iomem *reg, u8 clk_super_flags,
 		spinlock_t *lock);
 
