@@ -424,6 +424,9 @@ static int clk_pll_enable(struct clk_hw *hw)
 	unsigned long flags = 0;
 	int ret;
 
+	if (clk_pll_is_enabled(hw))
+		return 0;
+
 	if (pll->lock)
 		spin_lock_irqsave(pll->lock, flags);
 
@@ -1347,6 +1350,9 @@ static int clk_pllc_enable(struct clk_hw *hw)
 	u32 val;
 	int ret;
 	unsigned long flags = 0;
+
+	if (clk_pll_is_enabled(hw))
+		return 0;
 
 	if (pll->lock)
 		spin_lock_irqsave(pll->lock, flags);
