@@ -33,6 +33,7 @@
 #include <soc/tegra/pmc.h>
 
 #include <asm/cacheflush.h>
+#include <asm/firmware.h>
 #include <asm/idmap.h>
 #include <asm/proc-fns.h>
 #include <asm/smp_plat.h>
@@ -150,6 +151,10 @@ bool tegra_set_cpu_in_lp2(void)
 		tegra20_cpu_set_resettable_soon();
 
 	spin_unlock(&tegra_lp2_lock);
+
+	if (last_cpu)
+		call_firmware_op(prepare_idle, TF_PM_MODE_LP2);
+
 	return last_cpu;
 }
 
@@ -316,6 +321,8 @@ static void tegra_suspend_enter_lp1(void)
 		tegra_lp1_iram.start_addr, iram_save_size);
 
 	*((u32 *)tegra_cpu_lp1_mask) = 1;
+
+	call_firmware_op(prepare_idle, TF_PM_MODE_LP1);
 }
 
 static void tegra_suspend_exit_lp1(void)
