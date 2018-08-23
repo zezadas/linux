@@ -33,6 +33,7 @@
 #include <soc/tegra/pmc.h>
 
 #include <asm/cacheflush.h>
+#include <asm/firmware.h>
 #include <asm/idmap.h>
 #include <asm/proc-fns.h>
 #include <asm/smp_plat.h>
@@ -207,6 +208,8 @@ void tegra_idle_lp2_last(void)
 	if (trusted_foundations_registered())
 		outer_disable();
 
+	call_firmware_op(prepare_idle, TF_PM_MODE_LP2);
+
 	cpu_suspend(PHYS_OFFSET - PAGE_OFFSET, &tegra_sleep_cpu);
 
 	/*
@@ -367,6 +370,17 @@ static int tegra_suspend_enter(suspend_state_t state)
 	 */
 	if (trusted_foundations_registered())
 		outer_disable();
+
+	switch (mode) {
+	case TEGRA_SUSPEND_LP1:
+		call_firmware_op(prepare_idle, TF_PM_MODE_LP1);
+		break;
+	case TEGRA_SUSPEND_LP2:
+		call_firmware_op(prepare_idle, TF_PM_MODE_LP2);
+		break;
+	default:
+		break;
+	}
 
 	cpu_suspend(PHYS_OFFSET - PAGE_OFFSET, tegra_sleep_func);
 
