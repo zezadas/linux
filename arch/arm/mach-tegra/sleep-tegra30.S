@@ -299,6 +299,7 @@ ENDPROC(tegra30_sleep_cpu_secondary_finish)
  * Switches the CPU to enter sleep.
  */
 ENTRY(tegra30_tear_down_cpu)
+	bl	tegra_switch_cpu_to_pllp
 	mov32	r6, TEGRA_FLOW_CTRL_BASE
 
 	b	tegra30_enter_sleep
