@@ -15,6 +15,7 @@
  */
 
 #include <linux/io.h>
+#include <linux/iopoll.h>
 #include <linux/clk-provider.h>
 #include <linux/clkdev.h>
 #include <linux/of.h>
@@ -1001,6 +1002,47 @@ static void tegra20_cpu_clock_suspend(void)
 				readl(clk_base + SUPER_CCLK_DIVIDER);
 }
 
+static void tegra20_cpu_clock_restore_pllx(void)
+{
+	u32 misc = readl_relaxed(clk_base + PLLX_MISC);
+	u32 base = readl_relaxed(clk_base + PLLX_BASE);
+	u32 misc_restore = tegra20_cpu_clk_sctx.pllx_misc;
+	u32 base_restore = tegra20_cpu_clk_sctx.pllx_base;
+	int err;
+
+	/* nothing to do if PLL configuration is unchanged */
+	if (misc == misc_restore && base == base_restore)
+		return;
+
+	/* otherwise restore configuration */
+	if (base_restore & BIT(30)) {
+		/* PLL shall be locked if we are going to (re)enable it */
+		misc_restore |= BIT(18);
+	}
+
+	/* disable PLL if it is enabled to re-apply configuration safely */
+	if (base & BIT(30)) {
+		writel_relaxed(base & ~BIT(30), clk_base + PLLX_BASE);
+		udelay(1);
+	}
+
+	/* restore the configuration */
+	writel_relaxed(misc_restore, clk_base + PLLX_MISC);
+	writel_relaxed(base_restore, clk_base + PLLX_BASE);
+
+	/* PLL is disabled now, nothing left to do */
+	if (!(base_restore & BIT(30)))
+		return;
+
+	/* otherwise start polling the PLL lock-status */
+	err = readl_relaxed_poll_timeout_atomic(clk_base + PLLX_BASE, base,
+						base & BIT(27), 1, 2000);
+	/* should not happen */
+	WARN_ONCE(err, "PLLX failed to lock: %d\n", err);
+	/* post-enable delay */
+	udelay(50);
+}
+
 static void tegra20_cpu_clock_resume(void)
 {
 	unsigned int reg, policy;
@@ -1018,14 +1060,7 @@ static void tegra20_cpu_clock_resume(void)
 
 	if (reg != CCLK_BURST_POLICY_PLLX) {
 		/* restore PLLX settings if CPU is on different PLL */
-		writel(tegra20_cpu_clk_sctx.pllx_misc,
-					clk_base + PLLX_MISC);
-		writel(tegra20_cpu_clk_sctx.pllx_base,
-					clk_base + PLLX_BASE);
-
-		/* wait for PLL stabilization if PLLX was enabled */
-		if (tegra20_cpu_clk_sctx.pllx_base & (1 << 30))
-			udelay(300);
+		tegra20_cpu_clock_restore_pllx();
 	}
 
 	/*
