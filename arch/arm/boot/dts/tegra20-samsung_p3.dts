@@ -284,7 +284,6 @@
 			 <&tegra_car TEGRA20_CLK_VDE>;
 		reset-names = "cop", "vcp", "bsea", "vde";
 	};
-
 	pinmux@70000014 {
 		pinctrl-names = "default";
 		pinctrl-0 = <&state_default>;
@@ -330,6 +329,10 @@
 			dap4 {
 				nvidia,pins = "dap4";
 				nvidia,function = "dap4";
+			};
+			ddc {
+				nvidia,pins ="spif", "uac";
+				nvidia,function = "rsvd4";
 			};
 			spif {
 				nvidia,pins = "spif", "uac";
@@ -456,11 +459,43 @@
 			};
 
 			conf_atc {
-				nvidia,pins = "atc", "atd", "ate", "cdev1", "dap1",
+				nvidia,pins = "atc", "ate", "cdev1", "dap1",
 				"dap2", "dap4", "dte", "gmc", "gpu7", "gpv", "i2cp",
 				"pta", "rm", "slxc", "slxd", "slxk", "spdi", "spdo",
-				"uaa", "uab", "uac", "uda";
+				"uab", "uac";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+			};
+
+			/*
+			 * pin atd is linked to gpios:
+			 *   TEGRA_GPIO_PO2 i2c@13 scl
+			 *   TEGRA_GPIO_PO3 i2c@13 sda
+			 */
+			conf_atd {
+				nvidia,pins = "atd";
+				nvidia,pull = <TEGRA_PIN_PULL_UP>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+			};
+
+			/*
+			 * pin uaa is linked to gpios:
+			 *   TEGRA_GPIO_PO1 usb-sel2
+			 *   TEGRA_GPIO_PO2 i2c@12 sda
+			 *   TEGRA_GPIO_PO4 i2c@12 scl
+			 *
+			 *   We want to boot with usb-sel2 high
+			 *   so that USB is in AP mode.
+			 */
+			conf_uaa {
+				nvidia,pins = "uaa";
+				nvidia,pull = <TEGRA_PIN_PULL_UP>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+			};
+
+			conf_uda {
+				nvidia,pins = "uda";
+				nvidia,pull = <TEGRA_PIN_PULL_UP>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 			};
 
@@ -505,11 +540,21 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 			};
 
+			/*
+			 * lpw0 is linked to TEGRA_GPIO_PB2 usb-sel1
+			 *   Pull mode is not supported on this pin.
+			 *   Leave it untouched.
+			 */
+			conf_lpw0 {
+				nvidia,pins = "lpw0";
+				nvidia,tristate = <TEGRA_PIN_ENABLE>;
+			};
+
 			/* Pull up/down configs from v3.1.10 kernel that don't work on upstream kernel. */
 			conf_lcsn {
 				nvidia,pins =
 					/* pull up */
-					"lcsn", "ldc", "lpw0", "lpw1",
+					"lcsn", "ldc", "lpw1",
 					"lpw2", "lsc1", "lsck", "lsda", "lsdi",
 
 					/* pull down */
@@ -524,6 +569,7 @@
 
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 			};
+
 			conf_lvp0 {
 				nvidia,pins = "lvp0";
 				nvidia,tristate = <TEGRA_PIN_ENABLE>;
@@ -562,6 +608,7 @@
 				nvidia,function = "i2c2";
 			};
 		};
+
 		state_i2cmux_idle: pinmux_i2cmux_idle {
 			ddc {
 				nvidia,pins = "ddc";
@@ -580,6 +627,7 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 			};
 		};
+
 		state_isa1200_off: state_isa1200_off {
 			cdev2 {
 				nvidia,pins = "cdev2";
@@ -703,7 +751,6 @@
 		@23 {
 			compatible = "samsung_p3,bh1721fvc";
 			reg = <0x23>;
-
 			gpios = <&gpio TEGRA_GPIO(A, 0) IRQ_TYPE_LEVEL_HIGH>;
 		};
 	};
@@ -837,28 +884,7 @@
 			interrupts = <TEGRA_GPIO(K, 4) IRQ_TYPE_LEVEL_HIGH>;
 		};
 	};
-	i2c@13 {
-		compatible = "i2c-gpio";
-		gpios = <
-			&gpio TEGRA_GPIO(H, 3)
-				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* sda */
-			&gpio TEGRA_GPIO(H, 2)
-				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
-		i2c-gpio,delay-us = <3>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-	};
-	i2c@14 {
-		compatible = "i2c-gpio";
-		gpios = <
-			&gpio TEGRA_GPIO(K, 3)
-				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* sda */
-			&gpio TEGRA_GPIO(J, 0)
-				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
-		i2c-gpio,delay-us = <3>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-	};
+
 	i2c@15 {
 		compatible = "i2c-gpio";
 		gpios = <
