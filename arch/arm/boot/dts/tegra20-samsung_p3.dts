@@ -749,6 +749,7 @@
 			&gpio TEGRA_GPIO(Y, 0)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <1>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -766,6 +767,7 @@
 			&gpio TEGRA_GPIO(O, 7)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <1>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -791,6 +793,7 @@
 			&gpio TEGRA_GPIO(I, 0)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <1>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -815,6 +818,7 @@
 			&gpio TEGRA_GPIO(Y, 1)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <1>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -860,6 +864,7 @@
 			&gpio TEGRA_GPIO(I, 7)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <3>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -878,6 +883,7 @@
 			&gpio TEGRA_GPIO(O, 2)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <1>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -897,6 +903,7 @@
 			&gpio TEGRA_GPIO(K, 2)
 				(GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN) /* scl */ >;
 		i2c-gpio,delay-us = <1>;
+		i2c-gpio,timeout-ms = <0>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
