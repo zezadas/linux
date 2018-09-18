@@ -1504,13 +1504,23 @@ static const struct i2c_device_id kxcjk1013_id[] = {
 	{"SMO8500",   KXCJ91008},
 	{}
 };
-
 MODULE_DEVICE_TABLE(i2c, kxcjk1013_id);
+
+static const struct of_device_id kxcjk1013_of_match[] = {
+	{ .compatible = "kionix,kxcjk1013", },
+	{ .compatible = "kionix,kxcj91008", },
+	{ .compatible = "kionix,kxtj21009", },
+	{ .compatible = "kionix,kxtf9", },
+	{ .compatible = "kionix,SMO8500", },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, kxcjk1013_of_match);
 
 static struct i2c_driver kxcjk1013_driver = {
 	.driver = {
 		.name	= KXCJK1013_DRV_NAME,
 		.acpi_match_table = ACPI_PTR(kx_acpi_match),
+		.of_match_table = of_match_ptr(kxcjk1013_of_match),
 		.pm	= &kxcjk1013_pm_ops,
 	},
 	.probe		= kxcjk1013_probe,
