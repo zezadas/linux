@@ -1,7 +1,7 @@
 /*
  * Customer HW 4 dependant file
  *
- * Copyright (C) 1999-2017, Broadcom Corporation
+ * Copyright (C) 1999-2018, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -48,6 +48,7 @@ extern int argos_irq_affinity_setup_label(unsigned int irq, const char *label,
 	struct cpumask *default_cpu_mask);
 #endif /* ARGOS_CPU_SCHEDULER && !DHD_LB_IRQSET */
 
+#if !defined(DHD_USE_CLMINFO_PARSER)
 const struct cntry_locales_custom translate_custom_table[] = {
 #if defined(BCM4330_CHIP) || defined(BCM4334_CHIP) || defined(BCM43241_CHIP)
 	/* 4330/4334/43241 */
@@ -173,13 +174,23 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"PS", "XZ", 11},	/* Universal if Country code is PALESTINIAN TERRITORY, OCCUPIED */
 	{"TL", "XZ", 11},	/* Universal if Country code is TIMOR-LESTE (EAST TIMOR) */
 	{"MH", "XZ", 11},	/* Universal if Country code is MARSHALL ISLANDS */
+#if defined(BCM4359_CHIP)
+	{"SX", "XZ", 11},	/* Universal if Country code is Sint Maarten */
+	{"CC", "XZ", 11},	/* Universal if Country code is COCOS (KEELING) ISLANDS */
+	{"HM", "XZ", 11},	/* Universal if Country code is HEARD ISLAND AND MCDONALD ISLANDS */
+	{"PN", "XZ", 11},	/* Universal if Country code is PITCAIRN */
+	{"AQ", "XZ", 11},	/* Universal if Country code is ANTARCTICA */
+	{"AX", "XZ", 11},	/* Universal if Country code is ALAND ISLANDS */
+	{"BV", "XZ", 11},	/* Universal if Country code is BOUVET ISLAND */
+	{"GS", "XZ", 11},	/* Universal if Country code is
+				 * SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS
+				 */
+	{"SH", "XZ", 11},	/* Universal if Country code is SAINT HELENA */
+	{"SJ", "XZ", 11},	/* Universal if Country code is SVALBARD AND JAN MAYEN */
+	{"SS", "XZ", 11},	/* Universal if Country code is SOUTH SUDAN */
+#endif /* BCM4359_CHIP */
 	{"GL", "GP", 2},
 	{"AL", "AL", 2},
-#ifdef DHD_SUPPORT_GB_999
-	{"DZ", "GB", 999},
-#else
-	{"DZ", "GB", 6},
-#endif /* DHD_SUPPORT_GB_999 */
 	{"AS", "AS", 12},
 	{"AI", "AI", 1},
 	{"AF", "AD", 0},
@@ -227,7 +238,6 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"IE", "IE", 5},
 	{"IL", "IL", 14},
 	{"IT", "IT", 4},
-	{"JP", "JP", 45},
 	{"JO", "JO", 3},
 	{"KE", "SA", 0},
 	{"KW", "KW", 5},
@@ -241,7 +251,13 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"MO", "SG", 0},
 	{"MK", "MK", 2},
 	{"MW", "MW", 1},
-	{"MY", "MY", 3},
+#if defined(BCM4359_CHIP)
+	{"DZ", "DZ", 2},
+#elif defined(DHD_SUPPORT_GB_999)
+	{"DZ", "GB", 999},
+#else
+	{"DZ", "GB", 6},
+#endif /* BCM4359_CHIP */
 	{"MV", "MV", 3},
 	{"MT", "MT", 4},
 	{"MQ", "MQ", 2},
@@ -276,7 +292,6 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"LK", "LK", 1},
 	{"SE", "SE", 4},
 	{"CH", "CH", 4},
-	{"TW", "TW", 1},
 	{"TH", "TH", 5},
 	{"TT", "TT", 3},
 	{"TR", "TR", 7},
@@ -299,13 +314,26 @@ const struct cntry_locales_custom translate_custom_table[] = {
 #else
 	{"KR", "KR", 48},
 #endif
+#if defined(BCM4359_CHIP)
+	{"TW", "TW", 65},
+	{"JP", "JP", 968},
+	{"RU", "RU", 986},
+	{"UA", "UA", 16},
+	{"ZA", "ZA", 19},
+	{"AM", "AM", 1},
+	{"MY", "MY", 19},
+#else
+	{"TW", "TW", 1},
+	{"JP", "JP", 45},
 	{"RU", "RU", 13},
 	{"UA", "UA", 8},
+	{"ZA", "ZA", 6},
+	{"MY", "MY", 3},
+#endif /* BCM4359_CHIP */
 	{"GT", "GT", 1},
 	{"MN", "MN", 1},
 	{"NI", "NI", 2},
 	{"UZ", "MA", 2},
-	{"ZA", "ZA", 6},
 	{"EG", "EG", 13},
 	{"TN", "TN", 1},
 	{"AO", "AD", 0},
@@ -316,11 +344,20 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"UM", "PR", 38},
 	/* Support FCC 15.407 (Part 15E) Changes, effective June 2 2014 */
 	/* US/988, Q2/993 country codes with higher power on UNII-1 5G band */
+#if defined(DHD_SUPPORT_US_949)
+	{"US", "US", 949},
+#elif defined(DHD_SUPPORT_US_945)
+	{"US", "US", 945},
+#else
 	{"US", "US", 988},
+#endif /* DHD_SUPPORT_US_949 */
 	{"CU", "US", 988},
 	{"CA", "Q2", 993},
 #endif /* default ccode/regrev */
 };
+#else
+struct cntry_locales_custom translate_custom_table[NUM_OF_COUNTRYS];
+#endif /* !DHD_USE_CLMINFO_PARSER */
 
 /* Customized Locale convertor
 *  input : ISO 3166-1 country abbreviation
@@ -357,89 +394,6 @@ void get_customized_country_code(void *adapter, char *country_iso_code, wl_count
 #define LOGTRACEINFO	PLATFORM_PATH".logtrace.info"
 #define ADPSINFO	PLATFORM_PATH".adps.info"
 #define SOFTAPINFO	PLATFORM_PATH".softap.info"
-
-#ifdef READ_MACADDR
-#define MACINFO_EFS "/efs/wifi/.mac.info"
-extern int _dhd_set_mac_address(struct dhd_info *dhd, int ifidx, struct ether_addr *addr);
-
-int dhd_read_macaddr(struct dhd_info *dhd, struct ether_addr *mac)
-{
-	struct file *fp      = NULL;
-	char macbuffer[18]   = {0};
-	mm_segment_t oldfs   = {0};
-	char randommac[3]    = {0};
-	char buf[18]         = {0};
-	char *filepath_efs       = MACINFO_EFS;
-	int ret = 0;
-
-		fp = filp_open(filepath_efs, O_RDONLY, 0);
-		if (IS_ERR(fp)) {
-start_readmac:
-			/* File Doesn't Exist. Create and write mac addr. */
-			fp = filp_open(filepath_efs, O_RDWR | O_CREAT, 0666);
-			if (IS_ERR(fp)) {
-			DHD_ERROR(("[WIFI] %s: File open error\n", filepath_efs));
-				return -1;
-			}
-			oldfs = get_fs();
-			set_fs(get_ds());
-
-			/* Generating the Random Bytes for 3 last octects of the MAC address */
-			get_random_bytes(randommac, 3);
-
-			sprintf(macbuffer, "%02X:%02X:%02X:%02X:%02X:%02X\n",
-				0x00, 0x12, 0x34, randommac[0], randommac[1], randommac[2]);
-			DHD_ERROR(("[WIFI]The Random Generated MAC ID: %s\n", macbuffer));
-
-			if (fp->f_mode & FMODE_WRITE) {
-			ret = fp->f_op->write(fp, (const char *)macbuffer,
-				sizeof(macbuffer), &fp->f_pos);
-				if (ret < 0)
-				DHD_ERROR(("[WIFI]MAC address [%s] Failed to write into File: %s\n",
-					macbuffer, filepath_efs));
-				else
-				DHD_ERROR(("[WIFI]MAC address [%s] written into File: %s\n",
-					macbuffer, filepath_efs));
-			}
-			set_fs(oldfs);
-		/* Reading the MAC Address from .mac.info file
-		   ( the existed file or just created file)
-		 */
-		ret = kernel_read(fp, 0, buf, 18);
-	} else {
-		/* Reading the MAC Address from
-		   .mac.info file( the existed file or just created file)
-		 */
-		ret = kernel_read(fp, 0, buf, 18);
-/* to prevent abnormal string display when mac address is displayed on the screen. */
-		buf[17] = '\0';
-		if (strncmp(buf, "00:00:00:00:00:00", 17) < 1) {
-			DHD_ERROR(("goto start_readmac \r\n"));
-			filp_close(fp, NULL);
-			goto start_readmac;
-		}
-	}
-
-	if (ret)
-		sscanf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
-			(unsigned int *)&(mac->octet[0]), (unsigned int *)&(mac->octet[1]),
-			(unsigned int *)&(mac->octet[2]), (unsigned int *)&(mac->octet[3]),
-			(unsigned int *)&(mac->octet[4]), (unsigned int *)&(mac->octet[5]));
-	else
-		DHD_ERROR(("dhd_bus_start: Reading from the '%s' returns 0 bytes\n", filepath_efs));
-
-	if (fp)
-		filp_close(fp, NULL);
-
-	/* Writing Newly generated MAC ID to the Dongle */
-	if (_dhd_set_mac_address(dhd, 0, mac) == 0)
-		DHD_INFO(("dhd_bus_start: MACID is overwritten\n"));
-	else
-		DHD_ERROR(("dhd_bus_start: _dhd_set_mac_address() failed\n"));
-
-	return 0;
-}
-#endif /* READ_MACADDR */
 
 #ifdef DHD_PM_CONTROL_FROM_FILE
 extern bool g_pm_control;
@@ -557,11 +511,13 @@ int dhd_sel_ant_from_file(dhd_pub_t *dhd)
 	uint32 ant_val = 0;
 	uint32 btc_mode = 0;
 #ifndef CUSTOM_SET_ANTNPM
-	uint32 rsdb_mode = 0;
+	wl_config_t rsdb_mode;
 #endif /* !CUSTOM_SET_ANTNPM */
 	char *filepath = ANTINFO;
 	uint chip_id = dhd_bus_chip_id(dhd);
-
+#ifndef CUSTOM_SET_ANTNPM
+	 memset(&rsdb_mode, 0, sizeof(rsdb_mode));
+#endif /* CUSTOM_SET_ANTNPM */
 	/* Check if this chip can support MIMO */
 	if (chip_id != BCM4324_CHIP_ID &&
 		chip_id != BCM4350_CHIP_ID &&
@@ -621,7 +577,7 @@ int dhd_sel_ant_from_file(dhd_pub_t *dhd)
 #ifndef CUSTOM_SET_ANTNPM
 	/* rsdb mode off */
 	DHD_ERROR(("[WIFI_SEC] %s: %s the RSDB mode!\n",
-		__FUNCTION__, rsdb_mode ? "Enable" : "Disable"));
+		__FUNCTION__, rsdb_mode.config ? "Enable" : "Disable"));
 	ret = dhd_iovar(dhd, 0, "rsdb_mode", (char *)&rsdb_mode, sizeof(rsdb_mode), NULL, 0, TRUE);
 	if (ret) {
 		DHD_ERROR(("[WIFI_SEC] %s: Fail to execute dhd_wl_ioctl_cmd(): "
@@ -662,8 +618,11 @@ int dhd_rsdb_mode_from_file(dhd_pub_t *dhd)
 {
 	struct file *fp = NULL;
 	int ret = -1;
-	uint32 rsdb_mode = 0;
+	wl_config_t  rsdb_mode;
+	uint32 rsdb_configuration = 0;
 	char *filepath = RSDBINFO;
+
+	memset(&rsdb_mode, 0, sizeof(rsdb_mode));
 
 	/* Read RSDB on/off request from the file */
 	fp = filp_open(filepath, O_RDONLY, 0);
@@ -671,27 +630,28 @@ int dhd_rsdb_mode_from_file(dhd_pub_t *dhd)
 		DHD_ERROR(("[WIFI_SEC] %s: File [%s] doesn't exist\n", __FUNCTION__, filepath));
 		return ret;
 	} else {
-		ret = kernel_read(fp, 0, (char *)&rsdb_mode, 4);
+		ret = kernel_read(fp, 0, (char *)&rsdb_configuration, 4);
 		if (ret < 0) {
 			DHD_ERROR(("[WIFI_SEC] %s: File read error, ret=%d\n", __FUNCTION__, ret));
 			filp_close(fp, NULL);
 			return ret;
 		}
 
-		rsdb_mode = bcm_atoi((char *)&rsdb_mode);
+		rsdb_mode.config = bcm_atoi((char *)&rsdb_configuration);
+		DHD_ERROR(("[WIFI_SEC] %s: RSDB mode from file = %d\n",
+			__FUNCTION__, rsdb_mode.config));
 
-		DHD_ERROR(("[WIFI_SEC] %s: RSDB mode from file = %d\n", __FUNCTION__, rsdb_mode));
 		filp_close(fp, NULL);
 
 		/* Check value from the file */
-		if (rsdb_mode > 2) {
+		if (rsdb_mode.config > 2) {
 			DHD_ERROR(("[WIFI_SEC] %s: Invalid value %d read from the file %s\n",
-				__FUNCTION__, rsdb_mode, filepath));
+				__FUNCTION__, rsdb_mode.config, filepath));
 			return -1;
 		}
 	}
 
-	if (rsdb_mode == 0) {
+	if (rsdb_mode.config == 0) {
 		ret = dhd_iovar(dhd, 0, "rsdb_mode", (char *)&rsdb_mode, sizeof(rsdb_mode), NULL, 0,
 				TRUE);
 		if (ret < 0) {
@@ -793,7 +753,7 @@ int sec_get_param_wfa_cert(dhd_pub_t *dhd, int mode, uint* read_val)
 	}
 	fp = filp_open(filepath, O_RDONLY, 0);
 	if (IS_ERR(fp) || (fp == NULL)) {
-		DHD_ERROR(("[WIFI_SEC] %s: File open failed, file path=%s\n",
+		DHD_ERROR(("[WIFI_SEC] %s: File [%s] doesn't exist\n",
 			__FUNCTION__, filepath));
 		return BCME_ERROR;
 	} else {
@@ -1159,9 +1119,13 @@ const char *softap_info_items[] = {
 const char *softap_info_values[] = {
 	"yes", "yes", "10", "yes", "yes", "yes", NULL
 };
-#elif defined(BCM43455_CHIP) || defined(BCM43456_CHIP)
+#elif defined(BCM43454_CHIP) || defined(BCM43455_CHIP) || defined(BCM43456_CHIP)
 const char *softap_info_values[] = {
+#ifdef WL_RESTRICTED_APSTA_SCC
+	"yes", "yes", "10", "no", "yes", "yes", NULL
+#else
 	"no", "yes", "10", "no", "yes", "yes", NULL
+#endif /* WL_RESTRICTED_APSTA_SCC */
 };
 #elif defined(BCM43430_CHIP)
 const char *softap_info_values[] = {
