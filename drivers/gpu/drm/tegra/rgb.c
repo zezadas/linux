@@ -179,24 +179,7 @@ tegra_rgb_encoder_atomic_check(struct drm_encoder *encoder,
 	unsigned int div;
 	int err;
 
-	/*
-	 * We may not want to change the frequency of the parent clock, since
-	 * it may be a parent for other peripherals. This is due to the fact
-	 * that on Tegra20 there's only a single clock dedicated to display
-	 * (pll_d_out0), whereas later generations have a second one that can
-	 * be used to independently drive a second output (pll_d2_out0).
-	 *
-	 * As a way to support multiple outputs on Tegra20 as well, pll_p is
-	 * typically used as the parent clock for the display controllers.
-	 * But this comes at a cost: pll_p is the parent of several other
-	 * peripherals, so its frequency shouldn't change out of the blue.
-	 *
-	 * The best we can do at this point is to use the shift clock divider
-	 * and hope that the desired frequency can be matched (or at least
-	 * matched sufficiently close that the panel will still work).
-	 */
 	div = ((clk_get_rate(rgb->clk) * 2) / pclk) - 2;
-	pclk = 0;
 
 	err = tegra_dc_state_setup_clock(dc, crtc_state, rgb->clk_parent,
 					 pclk, div);

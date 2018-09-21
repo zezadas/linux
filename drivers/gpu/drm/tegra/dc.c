@@ -1656,21 +1656,11 @@ static void tegra_dc_commit_state(struct tegra_dc *dc,
 	if (err < 0)
 		dev_err(dc->dev, "failed to set parent clock: %d\n", err);
 
-	/*
-	 * Outputs may not want to change the parent clock rate. This is only
-	 * relevant to Tegra20 where only a single display PLL is available.
-	 * Since that PLL would typically be used for HDMI, an internal LVDS
-	 * panel would need to be driven by some other clock such as PLL_P
-	 * which is shared with other peripherals. Changing the clock rate
-	 * should therefore be avoided.
-	 */
-	if (state->pclk > 0) {
-		err = clk_set_rate(state->clk, state->pclk);
-		if (err < 0)
-			dev_err(dc->dev,
-				"failed to set clock rate to %lu Hz\n",
-				state->pclk);
-	}
+	err = clk_set_rate(state->clk, state->pclk);
+	if (err < 0)
+		dev_err(dc->dev,
+			"failed to set clock rate to %lu Hz\n",
+			state->pclk);
 
 	DRM_DEBUG_KMS("rate: %lu, div: %u\n", clk_get_rate(dc->clk),
 		      state->div);
