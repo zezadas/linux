@@ -133,11 +133,13 @@ static int bh1750_read_raw(struct iio_dev *indio_dev,
 			   int *val, int *val2, long mask)
 {
 	int ret, tmp;
+	long long int scaled_val;
 	struct bh1750_data *data = iio_priv(indio_dev);
 	const struct bh1750_chip_info *chip_info = data->chip_info;
 
 	switch (mask) {
 	case IIO_CHAN_INFO_RAW:
+	case IIO_CHAN_INFO_PROCESSED:
 		switch (chan->type) {
 		case IIO_LIGHT:
 			mutex_lock(&data->lock);
@@ -145,6 +147,11 @@ static int bh1750_read_raw(struct iio_dev *indio_dev,
 			mutex_unlock(&data->lock);
 			if (ret < 0)
 				return ret;
+
+			if (mask == IIO_CHAN_INFO_PROCESSED) {
+				tmp = chip_info->mtreg_to_scale / data->mtreg;
+				scaled_val = (long long int)(*val * tmp) / 1000000;
+			}
 
 			return IIO_VAL_INT;
 		default:
@@ -223,6 +230,7 @@ static const struct iio_chan_spec bh1750_channels[] = {
 	{
 		.type = IIO_LIGHT,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
+				      BIT(IIO_CHAN_INFO_PROCESSED) |
 				      BIT(IIO_CHAN_INFO_SCALE) |
 				      BIT(IIO_CHAN_INFO_INT_TIME)
 	}
