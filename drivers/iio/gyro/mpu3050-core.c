@@ -478,7 +478,7 @@ static irqreturn_t mpu3050_trigger_handler(int irq, void *p)
 	if (iio_trigger_using_own(indio_dev))
 		timestamp = mpu3050->hw_timestamp;
 	else
-		timestamp = iio_get_time_ns(indio_dev);
+		timestamp = iio_get_time_ns();
 
 	mutex_lock(&mpu3050->lock);
 
@@ -907,7 +907,7 @@ static irqreturn_t mpu3050_irq_handler(int irq, void *p)
 		return IRQ_NONE;
 
 	/* Get the time stamp as close in time as possible */
-	mpu3050->hw_timestamp = iio_get_time_ns(indio_dev);
+	mpu3050->hw_timestamp = iio_get_time_ns();
 
 	return IRQ_WAKE_THREAD;
 }
