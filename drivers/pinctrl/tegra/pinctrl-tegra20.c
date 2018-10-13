@@ -2246,7 +2246,12 @@ static struct platform_driver tegra20_pinctrl_driver = {
 	},
 	.probe = tegra20_pinctrl_probe,
 };
-module_platform_driver(tegra20_pinctrl_driver);
+
+static int __init tegra20_pinctrl_init(void)
+{
+	return platform_driver_register(&tegra20_pinctrl_driver);
+}
+arch_initcall(tegra20_pinctrl_init);
 
 MODULE_AUTHOR("Stephen Warren <swarren@nvidia.com>");
 MODULE_DESCRIPTION("NVIDIA Tegra20 pinctrl driver");
