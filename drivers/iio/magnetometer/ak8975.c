@@ -750,7 +750,11 @@ ak8975_get_mount_matrix(const struct iio_dev *indio_dev,
 }
 
 static const struct iio_chan_spec_ext_info ak8975_ext_info[] = {
+#if defined(CONFIG_ANDROID)
+	IIO_MOUNT_MATRIX(IIO_SHARED_BY_ALL, ak8975_get_mount_matrix),
+#else
 	IIO_MOUNT_MATRIX(IIO_SHARED_BY_DIR, ak8975_get_mount_matrix),
+#endif
 	{ },
 };
 

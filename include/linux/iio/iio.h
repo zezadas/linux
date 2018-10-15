@@ -170,6 +170,15 @@ typedef const struct iio_mount_matrix *
  * @_shared:	Whether the attribute is shared between all channels
  * @_get:	Pointer to an iio_get_mount_matrix_t accessor
  */
+#if defined(CONFIG_ANDROID)
+#define IIO_MOUNT_MATRIX(_shared, _get) \
+{ \
+	.name = "mounting_matrix", \
+	.shared = (_shared), \
+	.read = iio_show_mount_matrix, \
+	.private = (uintptr_t)(_get), \
+}
+#else
 #define IIO_MOUNT_MATRIX(_shared, _get) \
 { \
 	.name = "mount_matrix", \
@@ -177,6 +186,7 @@ typedef const struct iio_mount_matrix *
 	.read = iio_show_mount_matrix, \
 	.private = (uintptr_t)(_get), \
 }
+#endif
 
 /**
  * struct iio_event_spec - specification for a channel event
