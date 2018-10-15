@@ -12,6 +12,7 @@
 		rtc0 = "/i2c@7000d000/tps6586x@74";
 		serial0 = &uarta;
 		serial2 = &uartc;
+		i2c0 = "/i2c@7000c000/mpu3050@68/i2c-gate/ak8975@0c";
 	};
 
 	chosen {
@@ -589,40 +590,55 @@
 		};
 	};
 
+	gpio: gpio@6000d000 {
+		compatible = "nvidia,tegra20-gpio";
+
+		/*
+		 * TODO:
+		 * Must touch this gpio for sound to work.
+		 * It doesn't matter what state the gpio is. Only that
+		 * it's initialized.
+		 * GPIO A0 is linked to pinctrl dte but that pinctrl
+		 * doesn't seem to affect this GPIO. So the only way to
+		 * initialize this GPIO is to hog it here.
+		 */
+		wm8994-enable {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(A, 0) GPIO_ACTIVE_HIGH>;
+			output-high;
+		};
+	};
+
 	i2c@7000c000 {
 		status = "okay";
-		clock-frequency = <400000>;
+		clock-frequency = <386000>;
+
+		assigned-clocks = <&tegra_car TEGRA20_CLK_I2C1>;
+		assigned-clock-rates = <386000>;
+		assigned-clock-parents =<&tegra_car TEGRA20_CLK_PLL_P>;
 
 		mpu3050@68 {
-			compatible = "invensense,mpu3050_v333";
+			compatible = "invensense,mpu3050";
 			reg = <0x68>;
 			interrupt-parent = <&gpio>;
 			interrupts = <TEGRA_GPIO(V, 6) IRQ_TYPE_LEVEL_HIGH>;
 
-			int-config = <0x10>;
-			level-shifter = <1>;
-			orientation = /bits/ 8 <0	0xff	0
-						0xff	0	0
-						0	0	0xff>;
+			mount-matrix = "0", "-1", "0",
+					"-1", "0", "0",
+					"0", "0", "-1";
 
-			accelerometer {
-				adap-num = <0>;
-				bus-secondary;
-				address = <0xF>;
+			i2c-gate {
+				#address-cells = <1>;
+				#size-cells = <0>;
 
-				orientation = /bits/ 8 <0xff	0	0
-							0	1	0
-							0	0	0xff>;
-			};
+				kxtf9: kxtf9@f {
+					compatible = "kionix,kxtf9";
+					reg = <0x0F>;
 
-			compass {
-				adap-num = <12>;
-				bus-primary;
-				address = <0xC>;
-
-				orientation = /bits/ 8 <0	1	0
-							1	0	0
-							0	0	0xff>;
+					mount-matrix = "-1", "0", "0",
+							"0", "1", "0",
+							"0", "0", "-1";
+				};
 			};
 		};
 	};
@@ -701,11 +717,9 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		@23 {
-			compatible = "samsung_p3,bh1721fvc";
+		bh1721: bh1721@23 {
+			compatible = "rohm,bh1721";
 			reg = <0x23>;
-
-			gpios = <&gpio TEGRA_GPIO(A, 0) IRQ_TYPE_LEVEL_HIGH>;
 		};
 	};
 	i2c@6 {
@@ -836,11 +850,14 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		@0C {
-			compatible = "samsung_p3,ak8975c";
-			reg = <0x0C>;
-			interrupt-parent = <&gpio>;
-			interrupts = <TEGRA_GPIO(K, 4) IRQ_TYPE_LEVEL_HIGH>;
+		ak8975@0C {
+				compatible = "asahi-kasei,ak8975";
+				reg = <0x0c>;
+				gpios = <&gpio TEGRA_GPIO(K, 4) GPIO_ACTIVE_HIGH>;
+				/* vdd-supply = <&ldo_3v3_gnss>; */
+				mount-matrix = "0", "1", "0",
+					"1", "0", "0",
+					"0", "0", "-1";
 		};
 	};
 	i2c@13 {
