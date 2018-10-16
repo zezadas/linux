@@ -526,7 +526,8 @@ static int wm8994_set_loopback_path(struct snd_kcontrol *kcontrol,
 		wm8994->cur_path = OFF;
 		wm8994->rec_path = MIC_OFF;
 		wm8994->ringtone_active = RING_OFF;
-		wm8994_write(codec, WM8994_SOFTWARE_RESET, 0x0000);
+		wm8994_write(codec, WM8994_SOFTWARE_RESET,
+			wm8994_read(codec, WM8994_SOFTWARE_RESET));
 		break;
 	case spk:
 		DEBUG_LOG("routing to %s\n", loopback_path[path_num]);
@@ -1728,7 +1729,8 @@ void wm8994_shutdown(struct snd_pcm_substream *substream,
 		wm8994->cur_path = OFF;
 		wm8994->rec_path = MIC_OFF;
 		wm8994->ringtone_active = RING_OFF;
-		wm8994_write(codec, WM8994_SOFTWARE_RESET, 0x0000);
+		wm8994_write(codec, WM8994_SOFTWARE_RESET,
+			wm8994_read(codec, WM8994_SOFTWARE_RESET));
 		/*
 		*Due to reducing sleep currunt
 		*CS/ADDR pull control register should be changed to pull up
@@ -3491,7 +3493,8 @@ static int wm8994_init(struct wm8994_priv *wm8994,
 		return -ENOMEM;
 	}
 
-	wm8994_write(codec, WM8994_SOFTWARE_RESET, 0x0000);
+	wm8994_write(codec, WM8994_SOFTWARE_RESET,
+		wm8994_read(codec, WM8994_SOFTWARE_RESET));
 
 	ret = wm8994_read(codec, WM8994_SOFTWARE_RESET);
 
@@ -3731,7 +3734,8 @@ static int wm8994_suspend(struct snd_soc_codec *codec, pm_message_t state)
 	if (wm8994->codec_state == DEACTIVE &&
 		wm8994->stream_state == PCM_STREAM_DEACTIVE) {
 		wm8994->power_state = CODEC_OFF;
-		wm8994_write(codec, WM8994_SOFTWARE_RESET, 0x0000);
+		wm8994_write(codec, WM8994_SOFTWARE_RESET,
+			wm8994_read(codec, WM8994_SOFTWARE_RESET));
 		wm8994_ldo_control(wm8994->pdata, 0);
 	}
 
