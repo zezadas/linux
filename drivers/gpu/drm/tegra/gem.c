@@ -20,97 +20,6 @@
 #include "drm.h"
 #include "gem.h"
 
-static void tegra_bo_put(struct host1x_bo *bo)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	drm_gem_object_put_unlocked(&obj->gem);
-}
-
-static dma_addr_t tegra_bo_pin(struct host1x_bo *bo, struct sg_table **sgt)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	*sgt = obj->sgt;
-
-	return obj->paddr;
-}
-
-static void tegra_bo_unpin(struct host1x_bo *bo, struct sg_table *sgt)
-{
-}
-
-static void *tegra_bo_mmap(struct host1x_bo *bo)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	if (obj->vaddr)
-		return obj->vaddr;
-	else if (obj->gem.import_attach)
-		return dma_buf_vmap(obj->gem.import_attach->dmabuf);
-	else
-		return vmap(obj->pages, obj->num_pages, VM_MAP,
-			    pgprot_writecombine(PAGE_KERNEL));
-}
-
-static void tegra_bo_munmap(struct host1x_bo *bo, void *addr)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	if (obj->vaddr)
-		return;
-	else if (obj->gem.import_attach)
-		dma_buf_vunmap(obj->gem.import_attach->dmabuf, addr);
-	else
-		vunmap(addr);
-}
-
-static void *tegra_bo_kmap(struct host1x_bo *bo, unsigned int page)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	if (obj->vaddr)
-		return obj->vaddr + page * PAGE_SIZE;
-	else if (obj->gem.import_attach)
-		return dma_buf_kmap(obj->gem.import_attach->dmabuf, page);
-	else
-		return vmap(obj->pages + page, 1, VM_MAP,
-			    pgprot_writecombine(PAGE_KERNEL));
-}
-
-static void tegra_bo_kunmap(struct host1x_bo *bo, unsigned int page,
-			    void *addr)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	if (obj->vaddr)
-		return;
-	else if (obj->gem.import_attach)
-		dma_buf_kunmap(obj->gem.import_attach->dmabuf, page, addr);
-	else
-		vunmap(addr);
-}
-
-static struct host1x_bo *tegra_bo_get(struct host1x_bo *bo)
-{
-	struct tegra_bo *obj = host1x_to_tegra_bo(bo);
-
-	drm_gem_object_get(&obj->gem);
-
-	return bo;
-}
-
-static const struct host1x_bo_ops tegra_bo_ops = {
-	.get = tegra_bo_get,
-	.put = tegra_bo_put,
-	.pin = tegra_bo_pin,
-	.unpin = tegra_bo_unpin,
-	.mmap = tegra_bo_mmap,
-	.munmap = tegra_bo_munmap,
-	.kmap = tegra_bo_kmap,
-	.kunmap = tegra_bo_kunmap,
-};
-
 static int tegra_bo_iommu_map(struct tegra_drm *tegra, struct tegra_bo *bo)
 {
 	int prot = IOMMU_READ | IOMMU_WRITE;
@@ -180,7 +89,6 @@ static struct tegra_bo *tegra_bo_alloc_object(struct drm_device *drm,
 	if (!bo)
 		return ERR_PTR(-ENOMEM);
 
-	host1x_bo_init(&bo->base, &tegra_bo_ops);
 	size = round_up(size, PAGE_SIZE);
 
 	err = drm_gem_object_init(drm, &bo->gem, size);
