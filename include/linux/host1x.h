@@ -48,8 +48,6 @@ struct host1x_client_ops {
  * @parent: pointer to struct device representing the host1x controller
  * @dev: pointer to struct device backing this host1x client
  * @ops: host1x client operations
- * @class: host1x class represented by this client
- * @channel: host1x channel associated with this client
  * @syncpts: array of syncpoints requested for this client
  * @num_syncpts: number of syncpoints requested for this client
  */
@@ -57,85 +55,10 @@ struct host1x_client {
 	struct list_head list;
 	struct device *parent;
 	struct device *dev;
-
 	const struct host1x_client_ops *ops;
-
-	enum host1x_class class;
-	struct host1x_channel *channel;
-
 	struct host1x_syncpt **syncpts;
 	unsigned int num_syncpts;
 };
-
-/*
- * host1x buffer objects
- */
-
-struct host1x_bo;
-struct sg_table;
-
-struct host1x_bo_ops {
-	struct host1x_bo *(*get)(struct host1x_bo *bo);
-	void (*put)(struct host1x_bo *bo);
-	dma_addr_t (*pin)(struct host1x_bo *bo, struct sg_table **sgt);
-	void (*unpin)(struct host1x_bo *bo, struct sg_table *sgt);
-	void *(*mmap)(struct host1x_bo *bo);
-	void (*munmap)(struct host1x_bo *bo, void *addr);
-	void *(*kmap)(struct host1x_bo *bo, unsigned int pagenum);
-	void (*kunmap)(struct host1x_bo *bo, unsigned int pagenum, void *addr);
-};
-
-struct host1x_bo {
-	const struct host1x_bo_ops *ops;
-};
-
-static inline void host1x_bo_init(struct host1x_bo *bo,
-				  const struct host1x_bo_ops *ops)
-{
-	bo->ops = ops;
-}
-
-static inline struct host1x_bo *host1x_bo_get(struct host1x_bo *bo)
-{
-	return bo->ops->get(bo);
-}
-
-static inline void host1x_bo_put(struct host1x_bo *bo)
-{
-	bo->ops->put(bo);
-}
-
-static inline dma_addr_t host1x_bo_pin(struct host1x_bo *bo,
-				       struct sg_table **sgt)
-{
-	return bo->ops->pin(bo, sgt);
-}
-
-static inline void host1x_bo_unpin(struct host1x_bo *bo, struct sg_table *sgt)
-{
-	bo->ops->unpin(bo, sgt);
-}
-
-static inline void *host1x_bo_mmap(struct host1x_bo *bo)
-{
-	return bo->ops->mmap(bo);
-}
-
-static inline void host1x_bo_munmap(struct host1x_bo *bo, void *addr)
-{
-	bo->ops->munmap(bo, addr);
-}
-
-static inline void *host1x_bo_kmap(struct host1x_bo *bo, unsigned int pagenum)
-{
-	return bo->ops->kmap(bo, pagenum);
-}
-
-static inline void host1x_bo_kunmap(struct host1x_bo *bo,
-				    unsigned int pagenum, void *addr)
-{
-	bo->ops->kunmap(bo, pagenum, addr);
-}
 
 /*
  * host1x syncpoints
@@ -163,100 +86,6 @@ void host1x_syncpt_free(struct host1x_syncpt *sp);
 
 struct host1x_syncpt_base *host1x_syncpt_get_base(struct host1x_syncpt *sp);
 u32 host1x_syncpt_base_id(struct host1x_syncpt_base *base);
-
-/*
- * host1x channel
- */
-
-struct host1x_channel;
-struct host1x_job;
-
-struct host1x_channel *host1x_channel_request(struct device *dev);
-struct host1x_channel *host1x_channel_get(struct host1x_channel *channel);
-void host1x_channel_put(struct host1x_channel *channel);
-int host1x_job_submit(struct host1x_job *job);
-
-/*
- * host1x job
- */
-
-struct host1x_reloc {
-	struct {
-		struct host1x_bo *bo;
-		unsigned long offset;
-	} cmdbuf;
-	struct {
-		struct host1x_bo *bo;
-		unsigned long offset;
-	} target;
-	unsigned long shift;
-};
-
-struct host1x_job {
-	/* When refcount goes to zero, job can be freed */
-	struct kref ref;
-
-	/* List entry */
-	struct list_head list;
-
-	/* Channel where job is submitted to */
-	struct host1x_channel *channel;
-
-	/* client where the job originated */
-	struct host1x_client *client;
-
-	/* Gathers and their memory */
-	struct host1x_job_gather *gathers;
-	unsigned int num_gathers;
-
-	/* Array of handles to be pinned & unpinned */
-	struct host1x_reloc *relocs;
-	unsigned int num_relocs;
-	struct host1x_job_unpin_data *unpins;
-	unsigned int num_unpins;
-
-	dma_addr_t *addr_phys;
-	dma_addr_t *gather_addr_phys;
-	dma_addr_t *reloc_addr_phys;
-
-	/* Sync point id, number of increments and end related to the submit */
-	u32 syncpt_id;
-	u32 syncpt_incrs;
-	u32 syncpt_end;
-
-	/* Maximum time to wait for this job */
-	unsigned int timeout;
-
-	/* Index and number of slots used in the push buffer */
-	unsigned int first_get;
-	unsigned int num_slots;
-
-	/* Copy of gathers */
-	size_t gather_copy_size;
-	dma_addr_t gather_copy;
-	u8 *gather_copy_mapped;
-
-	/* Check if register is marked as an address reg */
-	int (*is_addr_reg)(struct device *dev, u32 class, u32 reg);
-
-	/* Check if class belongs to the unit */
-	int (*is_valid_class)(u32 class);
-
-	/* Request a SETCLASS to this class */
-	u32 class;
-
-	/* Add a channel wait for previous ops to complete */
-	bool serialize;
-};
-
-struct host1x_job *host1x_job_alloc(struct host1x_channel *ch,
-				    u32 num_cmdbufs, u32 num_relocs);
-void host1x_job_add_gather(struct host1x_job *job, struct host1x_bo *bo,
-			   unsigned int words, unsigned int offset);
-struct host1x_job *host1x_job_get(struct host1x_job *job);
-void host1x_job_put(struct host1x_job *job);
-int host1x_job_pin(struct host1x_job *job, struct device *dev);
-void host1x_job_unpin(struct host1x_job *job);
 
 /*
  * subdevice probe infrastructure
