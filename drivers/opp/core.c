@@ -1523,6 +1523,7 @@ static void _free_set_opp_data(struct opp_table *opp_table)
  * @dev: Device for which regulator name is being set.
  * @names: Array of pointers to the names of the regulator.
  * @count: Number of regulators.
+ * @allow_stub_regulators: Some or all regulators can be missed.
  *
  * In order to support OPP switching, OPP layer needs to know the name of the
  * device's regulators, as the core would be required to switch voltages as
@@ -1532,7 +1533,8 @@ static void _free_set_opp_data(struct opp_table *opp_table)
  */
 struct opp_table *dev_pm_opp_set_regulators(struct device *dev,
 					    const char * const names[],
-					    unsigned int count)
+					    unsigned int count,
+					    bool allow_stub_regulators)
 {
 	struct opp_table *opp_table;
 	struct regulator *reg;
@@ -1561,7 +1563,10 @@ struct opp_table *dev_pm_opp_set_regulators(struct device *dev,
 	}
 
 	for (i = 0; i < count; i++) {
-		reg = regulator_get_optional(dev, names[i]);
+		if (allow_stub_regulators)
+			reg = regulator_get(dev, names[i]);
+		else
+			reg = regulator_get_optional(dev, names[i]);
 		if (IS_ERR(reg)) {
 			ret = PTR_ERR(reg);
 			if (ret != -EPROBE_DEFER)
