@@ -277,7 +277,8 @@ static int ti_cpufreq_probe(struct platform_device *pdev)
 	if (opp_data->soc_data->multi_regulator) {
 		ti_opp_table = dev_pm_opp_set_regulators(opp_data->cpu_dev,
 							 reg_names,
-							 ARRAY_SIZE(reg_names));
+							 ARRAY_SIZE(reg_names),
+							 false);
 		if (IS_ERR(ti_opp_table)) {
 			dev_pm_opp_put_supported_hw(opp_data->opp_table);
 			ret =  PTR_ERR(ti_opp_table);
