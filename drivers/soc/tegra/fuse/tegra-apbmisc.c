@@ -51,6 +51,7 @@ u8 tegra_get_chip_id(void)
 {
 	return (tegra_read_chipid() >> 8) & 0xff;
 }
+EXPORT_SYMBOL_GPL(tegra_get_chip_id);
 
 u32 tegra_read_straps(void)
 {
