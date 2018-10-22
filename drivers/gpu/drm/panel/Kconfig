@@ -211,4 +211,12 @@ config DRM_PANEL_TRULY_NT35597_WQXGA
 	help
 	  Say Y here if you want to enable support for Truly NT35597 WQXGA Dual DSI
 	  Video Mode panel
+
+config DRM_PANEL_SAMSUNG_CMC6230R
+	tristate "Samsung CMC6230R panel"
+	depends on OF
+	help
+	  Say Y here if you want to enable support for the CMC6230R panel driver
+	  in the Samsung Galaxy Tab 10.1
+
 endmenu
