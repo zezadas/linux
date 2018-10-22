@@ -2323,6 +2323,30 @@ static const struct panel_desc winstar_wf35ltiacd = {
 	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
 };
 
+static const struct drm_display_mode lsi_ltn101al03_mode = {
+	.clock = 68750,
+	.hdisplay = 1280,
+	.hsync_start = 1280 + 16,
+	.hsync_end = 1280 + 16 + 48,
+	.htotal = 1280 + 16 + 48 +64,
+	.vdisplay = 800,
+	.vsync_start = 800 + 2,
+	.vsync_end = 800 + 2 + 3,
+	.vtotal = 800 + 2 + 3 + 11,
+	.vrefresh = 60,
+};
+
+static const struct panel_desc lsi_ltn101al03 = {
+	.modes = &lsi_ltn101al03_mode,
+	.num_modes = 1,
+	.bpc = 8,
+	.size = {
+		.width = 217,
+		.height = 135,
+	},
+};
+
+
 static const struct of_device_id platform_of_match[] = {
 	{
 		.compatible = "ampire,am-480272h3tmqw-t01h",
@@ -2573,6 +2597,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "winstar,wf35ltiacd",
 		.data = &winstar_wf35ltiacd,
+	}, {
+		.compatible = "lsi,ltn101al03",
+		.data = &lsi_ltn101al03,
 	}, {
 		/* sentinel */
 	}
