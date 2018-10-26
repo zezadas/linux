@@ -1,4 +1,4 @@
-enu "Device Drivers"
+menu "Device Drivers"
 
 source "drivers/amba/Kconfig"
 
