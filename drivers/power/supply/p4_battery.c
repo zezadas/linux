@@ -274,8 +274,10 @@ static void p3_program_alarm(struct battery_data *battery, int seconds)
 
 static void p3_get_cable_status(struct battery_data *battery)
 {
+	bool is_samsung_charger = check_samsung_charger(&battery->pdata->charger);
+
 	if (check_ta_conn(battery)) {
-		if (check_samsung_charger(&battery->pdata->charger))
+		if (is_samsung_charger)
 			battery->current_cable_status = CHARGER_AC;
 		else
 			battery->current_cable_status = CHARGER_USB;
