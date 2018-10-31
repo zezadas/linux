@@ -808,12 +808,73 @@ skip_dma_stop:
 	return 0;
 }
 
+static unsigned int tegra_dma_update_residual(struct tegra_dma_channel *tdc,
+					      struct tegra_dma_sg_req *sg_req,
+					      struct tegra_dma_desc *dma_desc,
+					      unsigned int residual)
+{
+	unsigned long status;
+	unsigned int result;
+	int done;
+
+	/* if we're not the current request, then don't alter the residual */
+	if (sg_req != list_first_entry(&tdc->pending_sg_req,
+				       struct tegra_dma_sg_req, node))
+		return residual;
+
+	status = tdc_read(tdc, TEGRA_APBDMA_CHAN_STATUS);
+
+	/* if we've got an interrupt pending on the channel, don't
+	 * try and deal with the residue as the hardware has likely
+	 * moved on to the next buffer. return all data moved.
+	 */
+	if (status & TEGRA_APBDMA_STATUS_ISE_EOC) {
+		result = residual - sg_req->req_len;
+		goto out;
+	}
+
+	if (tdc->tdma->chip_data->support_separate_wcount_reg)
+		status = tdc_read(tdc, TEGRA_APBDMA_CHAN_WORD_TRANSFER);
+
+	/*
+	 * If the request is at the full point, then there is a
+	 * chance that we have read the status register in the
+	 * middle of the hardware reloading the next buffer.
+	 *
+	 * The sequence seems to be at the end of the buffer, to
+	 * load the new word count before raising the EOC flag (or
+	 * changing the ping-pong flag which could have also been
+	 * used to determine a new buffer). This  means there is a
+	 * small window where we cannot determine zero-done for the
+	 * current buffer, or moved to next buffer.
+	 */
+	done = get_current_xferred_count(tdc, sg_req, status);
+
+	udelay(TEGRA_APBDMA_BURST_COMPLETE_TIME);
+
+	status = tdc_read(tdc, TEGRA_APBDMA_CHAN_STATUS);
+
+	if (status & TEGRA_APBDMA_STATUS_ISE_EOC)
+		result = residual - sg_req->req_len;
+	else
+		result = residual - done;
+out:
+#ifdef DEBUG
+	ahbptr = tdc_read(tdc, TEGRA_APBDMA_CHAN_AHBPTR);
+
+	dev_dbg(tdc2dev(tdc), "residual: req %08lx, ahb@%08lx, wcount %08lx, done %d\n",
+		sg_req->ch_regs.ahb_ptr, ahbptr, wcount, done);
+#endif
+
+	return result;
+}
+
 static enum dma_status tegra_dma_tx_status(struct dma_chan *dc,
 	dma_cookie_t cookie, struct dma_tx_state *txstate)
 {
 	struct tegra_dma_channel *tdc = to_tegra_dma_chan(dc);
 	struct tegra_dma_desc *dma_desc;
-	struct tegra_dma_sg_req *sg_req;
+	struct tegra_dma_sg_req *sg_req = NULL;
 	enum dma_status ret;
 	unsigned long flags;
 	unsigned int residual;
@@ -849,6 +910,7 @@ found:
 		residual = dma_desc->bytes_requested -
 			   (dma_desc->bytes_transferred %
 			    dma_desc->bytes_requested);
+		residual = tegra_dma_update_residual(tdc, sg_req, dma_desc, residual);
 		dma_set_residue(txstate, residual);
 	}
 
@@ -1444,12 +1506,7 @@ static int tegra_dma_probe(struct platform_device *pdev)
 		BIT(DMA_SLAVE_BUSWIDTH_4_BYTES) |
 		BIT(DMA_SLAVE_BUSWIDTH_8_BYTES);
 	tdma->dma_dev.directions = BIT(DMA_DEV_TO_MEM) | BIT(DMA_MEM_TO_DEV);
-	/*
-	 * XXX The hardware appears to support
-	 * DMA_RESIDUE_GRANULARITY_BURST-level reporting, but it's
-	 * only used by this driver during tegra_dma_terminate_all()
-	 */
-	tdma->dma_dev.residue_granularity = DMA_RESIDUE_GRANULARITY_SEGMENT;
+	tdma->dma_dev.residue_granularity = DMA_RESIDUE_GRANULARITY_BURST;
 	tdma->dma_dev.device_config = tegra_dma_slave_config;
 	tdma->dma_dev.device_terminate_all = tegra_dma_terminate_all;
 	tdma->dma_dev.device_tx_status = tegra_dma_tx_status;
