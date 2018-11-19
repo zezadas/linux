@@ -934,6 +934,13 @@
 		};
 	};
 
+	bcm4751-power {
+		compatible = "broadcom,bcm4751-power";
+		power-gpio = <&gpio TEGRA_GPIO(Z, 2) GPIO_ACTIVE_HIGH>;
+		reset-gpio = <&gpio TEGRA_GPIO(N, 5) GPIO_ACTIVE_HIGH>;
+		gps-lna-supply = <&wlreg>;
+	};
+
 	charger: max8903-charger {
 		compatible = "maxim,max8903";
 		cen-gpios = <&gpio TEGRA_GPIO(X, 4) GPIO_ACTIVE_HIGH>;
