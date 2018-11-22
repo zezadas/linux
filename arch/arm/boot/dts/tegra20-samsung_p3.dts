@@ -1121,6 +1121,8 @@
 
 			clocks = <&tegra_car TEGRA20_CLK_UARTC>;
 			clock-names = "uartc";
+
+			max-speed = <2000000>;
 		};
 	};
 
