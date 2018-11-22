@@ -62,32 +62,9 @@
 				 <&tegra_car TEGRA20_CLK_PLL_D_OUT0>;
 			clock-names = "dc", "parent";
 
-			/* Re-parent SCLK to P_OUT4 and set PLL_C to 586MHz */
-			assigned-clocks = <&tegra_car TEGRA20_CLK_GR2D>,
-							<&tegra_car TEGRA20_CLK_GR3D>,
-							<&tegra_car TEGRA20_CLK_HOST1X>,
-							<&tegra_car TEGRA20_CLK_VDE>,
-							<&tegra_car TEGRA20_CLK_SCLK>,
-							<&tegra_car TEGRA20_CLK_HCLK>,
-							<&tegra_car TEGRA20_CLK_PCLK>,
-							/*<&tegra_car TEGRA20_CLK_PLL_C>,*/
-							<&tegra_car TEGRA20_CLK_PLL_D_OUT0>;
-
-			assigned-clock-rates = <300000000>, /* GR2D */
-								<300000000>, /* GR3D */
-								<150000000>, /* HOST1X */
-								<300000000>, /* VDE */
-								<216000000>, /* SCLK */
-								<216000000>, /* HCLK */
-								<54000000>,  /* PCLK */
-								/*<586000000>,*/ /* PLL_C */
-								<68750000>;
-
-			assigned-clock-parents =<&tegra_car TEGRA20_CLK_PLL_M>,
-									<&tegra_car TEGRA20_CLK_PLL_M>,
-									<&tegra_car TEGRA20_CLK_PLL_M>,
-									<&tegra_car TEGRA20_CLK_PLL_M>,
-									<&tegra_car TEGRA20_CLK_PLL_P_OUT4>;
+			assigned-clocks = <&tegra_car TEGRA20_CLK_DISP1>;
+			assigned-clock-rates = <68750000>;
+			assigned-clock-parents = <&tegra_car TEGRA20_CLK_PLL_D_OUT0>;
 
 			rgb {
 				status = "okay";
