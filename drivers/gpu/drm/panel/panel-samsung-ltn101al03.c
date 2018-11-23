@@ -37,6 +37,12 @@
 #include <video/of_display_timing.h>
 #include <video/videomode.h>
 
+typedef enum {
+    CMC623_TYPE_LSI,
+    CMC623_TYPE_FUJITSU,
+    CMC623_TYPE_MAX,
+} cmc623_type;
+
 struct ltn101al03_data {
 	const struct drm_display_mode *mode;
 
@@ -44,20 +50,19 @@ struct ltn101al03_data {
 	struct backlight_device *backlight;
 };
 
-// static int cmc623_panel_type = CMC623_TYPE_LSI;
+static int cmc623_panel_type = CMC623_TYPE_LSI;
 
-// #ifdef MODULE
-// module_param(cmc623_panel_type, int, 0644);
-// #else
-// static int __init cmc623_arg(char *p)
-// {
-// 	pr_info("%s: panel type=cmc623f\n", __func__);
-// 	cmc623_panel_type = CMC623_TYPE_FUJITSU;
-// 	return 0;
-// }
-// early_param("CMC623F", cmc623_arg);
-// #endif
-
+#ifdef MODULE
+module_param(cmc623_panel_type, int, 0644);
+#else
+static int __init cmc623_arg(char *p)
+{
+	pr_info("%s: panel type=cmc623f\n", __func__);
+	cmc623_panel_type = CMC623_TYPE_FUJITSU;
+	return 0;
+}
+early_param("CMC623F", cmc623_arg);
+#endif
 
 static inline struct ltn101al03_data *panel_to_ltn101al03(struct drm_panel *panel)
 {
@@ -153,16 +158,15 @@ static int ltn101al03_probe(struct platform_device *pdev)
 	if (!data)
 		return -ENOMEM;
 
-	// if (cmc623_panel_type == CMC623_TYPE_FUJITSU) {
-	// 	data->mode = &cmc623f_mode;
-	// } else if (cmc623_panel_type == CMC623_TYPE_LSI) {
-	// 	data->mode = &cmc623_mode;
-	// } else {
-	// 	rate = 0;
-	// 	WARN(1, "Unknown panel type.");
-	// }
+	if (cmc623_panel_type == CMC623_TYPE_FUJITSU) {
+		data->mode = &ltn101al03f_mode;
+	} else if (cmc623_panel_type == CMC623_TYPE_LSI) {
+		data->mode = &ltn101al03_mode;
+	} else {
+		WARN(1, "Unknown panel type.");
+	}
 
-	data->mode = &ltn101al03_mode;
+	// data->mode = &ltn101al03_mode;
 
 	np = of_parse_phandle(pdev->dev.of_node, "backlight", 0);
 	if (np) {
