@@ -125,6 +125,33 @@ void machine_power_off(void)
 		pm_power_off();
 }
 
+#include <asm/io.h>
+#include <../mach-tegra/iomap.h>
+// #define IO_APB_PHYS	0x70000000
+// #define IO_APB_VIRT	0xFE300000
+// #define IO_APB_SIZE	SZ_1M
+// #define IO_TO_VIRT_BETWEEN(p, st, sz)	((p) >= (st) && (p) < ((st) + (sz)))
+// #define IO_TO_VIRT_XLATE(p, pst, vst)	(((p) - (pst) + (vst)))
+// #define IO_TO_VIRT(n) ( \
+// 	IO_TO_VIRT_BETWEEN((n), IO_APB_PHYS, IO_APB_SIZE) ?		\
+// 		IO_TO_VIRT_XLATE((n), IO_APB_PHYS, IO_APB_VIRT) :	\
+// 	0)
+
+static void sysrq_reboot_to_bootloader(void)
+{
+	#define	BOOTLOADER_MODE		BIT(30)
+	#define	PMC_SCRATCH0		0x50
+	// #define IO_ADDRESS(n) ((void __iomem *) IO_TO_VIRT(n))
+	// #define TEGRA_PMC_BASE			0x7000E400
+	void __iomem *reset = IO_ADDRESS(TEGRA_PMC_BASE + 0x00);
+	u32 reg;
+	reg = readl_relaxed(reset + PMC_SCRATCH0);
+	reg |= BOOTLOADER_MODE;
+	writel_relaxed(reg, reset + PMC_SCRATCH0);
+	reg |= 0x10;
+	writel_relaxed(reg, reset);
+}
+
 /*
  * Restart requires that the secondary CPUs stop performing any activity
  * while the primary CPU resets the system. Systems with a single CPU can
@@ -145,6 +172,8 @@ void machine_restart(char *cmd)
 		arm_pm_restart(reboot_mode, cmd);
 	else
 		do_kernel_restart(cmd);
+
+	sysrq_reboot_to_bootloader();
 
 	/* Give a grace period for failure to restart of 1s */
 	mdelay(1000);
