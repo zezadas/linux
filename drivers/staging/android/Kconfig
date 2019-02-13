@@ -25,7 +25,6 @@ config ANDROID_VSOC
 
 config ANDROID_RAM_CONSOLE
 	bool "Android RAM buffer console"
-	depends on HAVE_MEMBLOCK
 	default n
 
 config ANDROID_RAM_CONSOLE_ENABLE_VERBOSE
