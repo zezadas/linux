@@ -445,6 +445,10 @@ static void tps65910_power_off(void)
 			DEVCTRL_PWR_OFF_MASK) < 0)
 		return;
 
+	if (tps65910_reg_set_bits(tps65910, TPS65910_DEVCTRL,
+			DEVCTRL_DEV_OFF_MASK) < 0)
+		return;
+
 	tps65910_reg_clear_bits(tps65910, TPS65910_DEVCTRL,
 			DEVCTRL_DEV_ON_MASK);
 }
