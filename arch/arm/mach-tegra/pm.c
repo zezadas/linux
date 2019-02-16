@@ -152,8 +152,6 @@ bool tegra_set_cpu_in_lp2(void)
 
 	spin_unlock(&tegra_lp2_lock);
 
-	if (last_cpu)
-		call_firmware_op(prepare_idle, TF_PM_MODE_LP2);
 
 	return last_cpu;
 }
@@ -200,6 +198,8 @@ void tegra_idle_lp2_last(void)
 
 	cpu_cluster_pm_enter();
 	suspend_cpu_complex();
+
+	call_firmware_op(prepare_idle, TF_PM_MODE_LP2);
 
 	/*
 	 * L2 cache disabling using kernel API only allowed when all
