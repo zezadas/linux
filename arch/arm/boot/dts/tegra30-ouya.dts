@@ -757,8 +757,14 @@
 	};
 
 	gpio-keys {
+		compatible = "gpio-keys";
+
 		power {
+			label = "Power Button";
 			gpios = <&gpio TEGRA_GPIO(V, 0) GPIO_ACTIVE_LOW>;
+			linux,code = <116>; /* KEY_POWER */
+			debounce-interval = <10>;
+			wakeup-source;
 		};
 	};
 
