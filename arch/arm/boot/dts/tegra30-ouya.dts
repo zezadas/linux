@@ -425,6 +425,10 @@
 		};
 	};
 
+	hda@70030000 {
+		status = "okay";
+	};
+
 	sdhci@78000400 {
 		status = "okay";
 		power-gpios = <&gpio TEGRA_GPIO(D, 4) GPIO_ACTIVE_HIGH>;
