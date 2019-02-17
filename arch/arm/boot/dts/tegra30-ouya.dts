@@ -207,14 +207,7 @@
 
 			shutdown-gpios = <&gpio TEGRA_GPIO(U, 0) GPIO_ACTIVE_HIGH>;
 
-			clocks = <&tegra_car TEGRA30_CLK_UARTC>;
-			clock-names = "uartc";
-
-			assigned-clocks = <&tegra_car TEGRA30_CLK_UARTC>;
-			assigned-clock-rates = <154838>;
-			assigned-clock-parents =<&tegra_car TEGRA30_CLK_CLK_M>;
-
-			max-speed = <154838>;
+			max-speed = <2000000>;
 		};
 	};
 
