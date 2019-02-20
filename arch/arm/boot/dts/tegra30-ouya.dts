@@ -120,6 +120,10 @@
 		};
 	};
 
+	dc@54240000 {
+		status = "disabled";
+	};
+
 	gpio: gpio@6000d000 {
 		/* regulator initialization handles these */
 		/*
@@ -427,7 +431,7 @@
 	};
 
 	sdhci@78000400 {
-		status = "okay";
+		status = "disabled";
 		power-gpios = <&gpio TEGRA_GPIO(D, 4) GPIO_ACTIVE_HIGH>;
 		bus-width = <4>;
 		max-frequency = <52000000>;
