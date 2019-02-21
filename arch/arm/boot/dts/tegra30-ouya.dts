@@ -194,6 +194,23 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 			};
+
+			/* wifi reset */
+			sdmmc3_dat6_pd3 {
+				nvidia,pins = "sdmmc3_dat6_pd3";
+				nvidia,function = "sdmmc3";
+				nvidia,pull = <TEGRA_PIN_PULL_UP>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+			};
+			/* wifi power */
+			sdmmc3_dat7_pd4 {
+				nvidia,pins = "sdmmc3_dat7_pd4";
+				nvidia,function = "sdmmc3";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+			};
 		};
 	};
 
@@ -433,7 +450,10 @@
 		power-gpios = <&gpio TEGRA_GPIO(D, 4) GPIO_ACTIVE_HIGH>;
 		bus-width = <4>;
 		max-frequency = <52000000>;
+		cap-sd-highspeed;
 		cap-sdio-irq;
+		post-power-on-delay-ms = <200>;
+		keep-power-in-suspend;
 		non-removable;
 
 		mmc-pwrseq = <&sdhci3_pwrseq>;
@@ -774,6 +794,6 @@
 	sdhci3_pwrseq: sdhci3_pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&gpio TEGRA_GPIO(D, 3) GPIO_ACTIVE_LOW>;
-		post-power-on-delay-ms = <200>;
+		/* post-power-on-delay-ms = <200>; */
 	};
 };
