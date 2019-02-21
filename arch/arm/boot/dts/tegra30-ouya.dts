@@ -472,6 +472,7 @@
 		max-frequency = <52000000>;
 
 		keep-power-in-suspend;
+		cap-mmc-highspeed;
 		/* mmc-ddr-1_8v; */
 		mmc-hs200-1_8v;
 		non-removable;
