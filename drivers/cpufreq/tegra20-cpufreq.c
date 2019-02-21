@@ -567,18 +567,22 @@ static int tegra_cpu_enable_regulators(struct tegra_cpufreq *cpufreq)
 		}
 	}
 
-	err = regulator_enable(cpufreq->reg_core);
-	if (err) {
-		dev_err(cpufreq->dev,
-			"Failed to enable CORE regulator: %d\n", err);
-		goto err_reg_rtc_disable;
+	if (!regulator_is_enabled(cpufreq->reg_core)) {
+		err = regulator_enable(cpufreq->reg_core);
+		if (err) {
+			dev_err(cpufreq->dev,
+				"Failed to enable CORE regulator: %d\n", err);
+			goto err_reg_rtc_disable;
+		}
 	}
 
-	err = regulator_enable(cpufreq->reg_cpu);
-	if (err) {
-		dev_err(cpufreq->dev,
-			"Failed to enable CPU regulator: %d\n", err);
-		goto err_reg_core_disable;
+	if (!regulator_is_enabled(cpufreq->reg_core)) {
+		err = regulator_enable(cpufreq->reg_cpu);
+		if (err) {
+			dev_err(cpufreq->dev,
+				"Failed to enable CPU regulator: %d\n", err);
+			goto err_reg_core_disable;
+		}
 	}
 
 	return 0;
