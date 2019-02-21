@@ -202,13 +202,15 @@
 		compatible = "nvidia,tegra30-hsuart";
 		
 		bluetooth {
-			compatible = "brcm,bcm43438-bt";
+			compatible = "brcm,bcm4330-bt";
+			status = "okay";
 
 			device-wakeup-gpios = <&gpio TEGRA_GPIO(U, 1) GPIO_ACTIVE_HIGH>;
 			host-wakeup-gpios = <&gpio TEGRA_GPIO(U, 6) GPIO_ACTIVE_HIGH>;
-
 			shutdown-gpios = <&gpio TEGRA_GPIO(U, 0) GPIO_ACTIVE_HIGH>;
 
+			clocks = <&tegra_car TEGRA30_CLK_UARTC>;
+			clock-names = "txco";
 			max-speed = <2000000>;
 		};
 	};
