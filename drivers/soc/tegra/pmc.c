@@ -860,7 +860,7 @@ static int tegra_pmc_restart_notify(struct notifier_block *this,
 
 static struct notifier_block tegra_pmc_restart_handler = {
 	.notifier_call = tegra_pmc_restart_notify,
-	.priority = 128,
+	.priority = 255,
 };
 
 static int powergate_show(struct seq_file *s, void *data)
