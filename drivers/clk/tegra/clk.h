@@ -823,6 +823,9 @@ void tegra_super_clk_gen5_init(void __iomem *clk_base,
 #ifdef CONFIG_TEGRA_CLK_EMC
 struct clk *tegra_clk_register_emc(void __iomem *base, struct device_node *np,
 				   spinlock_t *lock);
+
+struct clk *tegra30_clk_register_emc(void __iomem *base, struct device_node *np,
+				     spinlock_t *lock);
 #else
 static inline struct clk *tegra_clk_register_emc(void __iomem *base,
 						 struct device_node *np,

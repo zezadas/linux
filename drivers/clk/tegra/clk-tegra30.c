@@ -819,7 +819,6 @@ static struct tegra_clk tegra30_clks[tegra_clk_max] __initdata = {
 	[tegra_clk_pll_a] = { .dt_id = TEGRA30_CLK_PLL_A, .present = true },
 	[tegra_clk_pll_a_out0] = { .dt_id = TEGRA30_CLK_PLL_A_OUT0, .present = true },
 	[tegra_clk_cec] = { .dt_id = TEGRA30_CLK_CEC, .present = true },
-	[tegra_clk_emc] = { .dt_id = TEGRA30_CLK_EMC, .present = true },
 };
 
 static const char *pll_e_parents[] = { "pll_ref", "pll_p" };
@@ -978,7 +977,6 @@ static void __init tegra30_super_clk_init(void)
 static const char *mux_pllacp_clkm[] = { "pll_a_out0", "unused", "pll_p",
 					 "clk_m" };
 static const char *mux_pllpcm_clkm[] = { "pll_p", "pll_c", "pll_m", "clk_m" };
-static const char *mux_pllmcp_clkm[] = { "pll_m", "pll_c", "pll_p", "clk_m" };
 static const char *spdif_out_parents[] = { "pll_a_out0", "spdif_2x", "pll_p",
 					   "clk_m" };
 static const char *mux_pllmcpa[] = { "pll_m", "pll_c", "pll_p", "pll_a_out0" };
@@ -1005,7 +1003,19 @@ static struct tegra_periph_init_data tegra_periph_nodiv_clk_list[] = {
 	TEGRA_INIT_DATA_NODIV("dsib", mux_plld_out0_plld2_out0, CLK_SOURCE_DSIB, 25, 1, 82, 0, TEGRA30_CLK_DSIB),
 };
 
-static void __init tegra30_periph_clk_init(void)
+static void __init tegra30_emc_clk_init(struct device_node *np)
+{
+	struct clk *clk;
+
+	clk = tegra30_clk_register_emc(clk_base, np, &emc_lock);
+	clks[TEGRA30_CLK_EMC] = clk;
+
+	clk = tegra_clk_register_mc("mc", "emc", clk_base + CLK_SOURCE_EMC,
+				    &emc_lock);
+	clks[TEGRA30_CLK_MC] = clk;
+}
+
+static void __init tegra30_periph_clk_init(struct device_node *np)
 {
 	struct tegra_periph_init_data *data;
 	struct clk *clk;
@@ -1025,17 +1035,6 @@ static void __init tegra30_periph_clk_init(void)
 	clk = tegra_clk_register_periph_gate("afi", "clk_m", 0, clk_base, 0, 72,
 				    periph_clk_enb_refcnt);
 	clks[TEGRA30_CLK_AFI] = clk;
-
-	/* emc */
-	clk = clk_register_mux(NULL, "emc_mux", mux_pllmcp_clkm,
-			       ARRAY_SIZE(mux_pllmcp_clkm),
-			       CLK_SET_RATE_NO_REPARENT,
-			       clk_base + CLK_SOURCE_EMC,
-			       30, 2, 0, &emc_lock);
-
-	clk = tegra_clk_register_mc("mc", "emc_mux", clk_base + CLK_SOURCE_EMC,
-				    &emc_lock);
-	clks[TEGRA30_CLK_MC] = clk;
 
 	/* cml0 */
 	clk = clk_register_gate(NULL, "cml0", "pll_e", 0, clk_base + PLLE_AUX,
@@ -1320,7 +1319,7 @@ static void __init tegra30_clock_init(struct device_node *np)
 	tegra_fixed_clk_init(tegra30_clks);
 	tegra30_pll_init();
 	tegra30_super_clk_init();
-	tegra30_periph_clk_init();
+	tegra30_periph_clk_init(np);
 	tegra_audio_clk_init(clk_base, pmc_base, tegra30_clks,
 			     tegra30_audio_plls,
 			     ARRAY_SIZE(tegra30_audio_plls), 24000000);
@@ -1329,7 +1328,11 @@ static void __init tegra30_clock_init(struct device_node *np)
 	tegra_init_dup_clks(tegra_clk_duplicates, clks, TEGRA30_CLK_CLK_MAX);
 
 	tegra_add_of_provider(np, of_clk_src_onecell_get);
+
 	tegra_register_devclks(devclks, ARRAY_SIZE(devclks));
+
+	/* tegra30 emc requires of_provider */
+	tegra30_emc_clk_init(np);
 
 	tegra_clk_apply_init_table = tegra30_clock_apply_init_table;
 
