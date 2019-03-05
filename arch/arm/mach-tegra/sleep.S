@@ -161,3 +161,10 @@ ENTRY(tegra_switch_cpu_to_pllp)
 	ret	lr
 ENDPROC(tegra_switch_cpu_to_pllp)
 #endif
+
+ENTRY(tegra20_panic_reboot)
+	mov32   r0, TEGRA_PMC_BASE - IO_APB_PHYS + IO_APB_VIRT
+	mov     r2, #0x10
+	str     r2, [r0]
+ENDPROC(tegra20_panic_reboot)
+
