@@ -12,6 +12,7 @@
 #include <linux/pm_qos.h>
 #include <linux/sort.h>
 #include <linux/types.h>
+#include <linux/cpufreq.h>
 
 #include <asm/cacheflush.h>
 
@@ -462,6 +463,7 @@ struct tegra_emc {
 	struct device *dev;
 	struct completion clk_handshake_complete;
 	struct notifier_block clk_nb;
+	struct notifier_block cclk_g_nb;
 	struct clk *clk;
 	struct tegra_mc *mc;
 	void __iomem *regs;
@@ -1001,6 +1003,54 @@ static int tegra_emc_clk_change_notify(struct notifier_block *nb,
 	return notifier_from_errno(err);
 }
 
+static unsigned long tegra_emc_to_cpu_ratio(struct tegra_emc *emc,
+					    unsigned long cpu_rate)
+{
+	static unsigned long emc_max_rate;
+
+	emc_max_rate = clk_round_rate(emc->clk, ULONG_MAX);
+
+	/* Vote on memory bus frequency based on cpu frequency */
+	if (cpu_rate >= 925000)
+		return emc_max_rate;	/* cpu >= 925 MHz, emc max */
+	else if (cpu_rate >= 450000)
+		return emc_max_rate/2;	/* cpu >= 450 MHz, emc max/2 */
+	else if (cpu_rate >= 250000)
+		return 100000000;	/* cpu >= 250 MHz, emc 100 MHz */
+	else
+		return 0;		/* emc min */
+}
+
+static int tegra_cclk_g_change_notify(struct notifier_block *nb,
+				      unsigned long msg, void *data)
+{
+	struct tegra_emc *emc = container_of(nb, struct tegra_emc, cclk_g_nb);
+	struct cpufreq_freqs *freq = data;
+	unsigned long emc_rate;
+	int err = 0;
+
+	emc_rate = tegra_emc_to_cpu_ratio(emc, freq->new);
+
+	switch (msg) {
+	case CPUFREQ_PRECHANGE:
+		if (freq->old < freq->new) {
+			err = clk_set_rate(emc->clk, emc_rate);
+		}
+		break;
+
+	case CPUFREQ_POSTCHANGE:
+		if (freq->old  > freq->new) {
+			err = clk_set_rate(emc->clk, emc_rate);
+		}
+		break;
+
+	default:
+		return NOTIFY_DONE;
+	}
+
+	return notifier_from_errno(err);
+}
+
 static void emc_read_current_timing(struct tegra_emc *emc,
 				    struct emc_timing *timing)
 {
@@ -1267,6 +1317,7 @@ static int tegra_emc_probe(struct platform_device *pdev)
 
 	init_completion(&emc->clk_handshake_complete);
 	emc->clk_nb.notifier_call = tegra_emc_clk_change_notify;
+	emc->cclk_g_nb.notifier_call = tegra_cclk_g_change_notify;
 	emc->dev = &pdev->dev;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1291,6 +1342,14 @@ static int tegra_emc_probe(struct platform_device *pdev)
 	err = clk_notifier_register(emc->clk, &emc->clk_nb);
 	if (err) {
 		dev_err(&pdev->dev, "failed to register clk notifier: %d\n",
+			err);
+		return err;
+	}
+
+	err = cpufreq_register_notifier(&emc->cclk_g_nb,
+					CPUFREQ_TRANSITION_NOTIFIER);
+	if (err) {
+		dev_err(&pdev->dev, "failed to register cpufreq notifier: %d\n",
 			err);
 		return err;
 	}
