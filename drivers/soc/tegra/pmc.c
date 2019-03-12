@@ -2120,6 +2120,20 @@ static void tegra20_pmc_setup_irq_polarity(struct tegra_pmc *pmc,
 	tegra_pmc_writel(pmc, value, PMC_CNTRL);
 }
 
+#define TEGRA_IO_PAD(_id, _dpd, _voltage, _name)	\
+	((struct tegra_io_pad_soc) {			\
+		.id	= (_id),			\
+		.dpd	= (_dpd),			\
+		.voltage = (_voltage),			\
+		.name	= (_name),			\
+	})
+
+#define TEGRA_IO_PIN_DESC(_id, _dpd, _voltage, _name)	\
+	((struct pinctrl_pin_desc) {			\
+		.number = (_id),			\
+		.name	= (_name)			\
+	})
+
 static const struct tegra_pmc_soc tegra20_pmc_soc = {
 	.num_powergates = ARRAY_SIZE(tegra20_powergates),
 	.powergates = tegra20_powergates,
@@ -2273,20 +2287,6 @@ static const u8 tegra124_cpu_powergates[] = {
 	TEGRA_POWERGATE_CPU2,
 	TEGRA_POWERGATE_CPU3,
 };
-
-#define TEGRA_IO_PAD(_id, _dpd, _voltage, _name)	\
-	((struct tegra_io_pad_soc) {			\
-		.id	= (_id),			\
-		.dpd	= (_dpd),			\
-		.voltage = (_voltage),			\
-		.name	= (_name),			\
-	})
-
-#define TEGRA_IO_PIN_DESC(_id, _dpd, _voltage, _name)	\
-	((struct pinctrl_pin_desc) {			\
-		.number = (_id),			\
-		.name	= (_name)			\
-	})
 
 #define TEGRA124_IO_PAD_TABLE(_pad)					\
 	/* .id                          .dpd    .voltage  .name	*/	\
