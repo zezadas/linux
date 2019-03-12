@@ -135,7 +135,6 @@ struct drm_framebuffer *tegra_fb_create(struct drm_device *drm,
 	struct tegra_bo *planes[4];
 	struct drm_gem_object *gem;
 	struct drm_framebuffer *fb;
-	struct tegra_bo *bo;
 	int err;
 
 	hsub = drm_format_horz_chroma_subsampling(cmd->pixel_format);
@@ -152,14 +151,6 @@ struct drm_framebuffer *tegra_fb_create(struct drm_device *drm,
 			goto unreference;
 		}
 
-		bo = to_tegra_bo(gem);
-
-		if (bo->flags & TEGRA_BO_HOST1X_GATHER) {
-			err = -EINVAL;
-			drm_gem_object_put_unlocked(gem);
-			goto unreference;
-		}
-
 		bpp = drm_format_plane_cpp(cmd->pixel_format, i);
 
 		size = (height - 1) * cmd->pitches[i] +
@@ -167,11 +158,10 @@ struct drm_framebuffer *tegra_fb_create(struct drm_device *drm,
 
 		if (gem->size < size) {
 			err = -EINVAL;
-			drm_gem_object_put_unlocked(gem);
 			goto unreference;
 		}
 
-		planes[i] = bo;
+		planes[i] = to_tegra_bo(gem);
 	}
 
 	fb = tegra_fb_alloc(drm, cmd, planes, i);
@@ -241,7 +231,7 @@ static int tegra_fbdev_probe(struct drm_fb_helper *helper,
 
 	size = cmd.pitches[0] * cmd.height;
 
-	bo = tegra_bo_create(drm, size, 0, true);
+	bo = tegra_bo_create(drm, size, 0);
 	if (IS_ERR(bo))
 		return PTR_ERR(bo);
 
