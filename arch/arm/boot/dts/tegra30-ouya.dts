@@ -913,20 +913,11 @@
 		bus-width = <8>;
 
 		keep-power-in-suspend;
+		mmc-ddr-1_8v;
 		non-removable;
 
 		vmmc-supply = <&reg_3v3_emmc>;
 		vqmmc-supply = <&vio_reg>;
-
-		/*
-		 * ddr 1.8v mode is broken
-		 */
-		/*
-		max-frequency = <13000000>;
-		mmc-ddr-1_8v;
-		vmmc-supply = <&reg_3v3_emmc>;
-		vqmmc-supply = <&vio_reg>;
-		*/
 	};
 
 	usb@7d000000 {
