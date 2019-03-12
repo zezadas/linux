@@ -2181,6 +2181,41 @@ static const u8 tegra30_cpu_powergates[] = {
 	TEGRA_POWERGATE_CPU3,
 };
 
+#define TEGRA30_IO_PAD_TABLE(_pad)					      \
+	/* .id                          .dpd    .voltage  .name	*/	      \
+	_pad(TEGRA_IO_PAD_CSIA,	        0,	UINT_MAX, "csia"),	      \
+	_pad(TEGRA_IO_PAD_CSIB,	        1,	UINT_MAX, "csib"),	      \
+	_pad(TEGRA_IO_PAD_DSI,	        2,	UINT_MAX, "dsi"),	      \
+	_pad(TEGRA_IO_PAD_MIPI_BIAS,	3,	UINT_MAX, "mipi-bias"),	      \
+	_pad(TEGRA_IO_PAD_PEX_BIAS,	4,	UINT_MAX, "pex-bias"),	      \
+	_pad(TEGRA_IO_PAD_PEX_CLK1,	5,	UINT_MAX, "pex-clk1"),	      \
+	_pad(TEGRA_IO_PAD_PEX_CLK2,	6,	UINT_MAX, "pex-clk2"),	      \
+	_pad(TEGRA_IO_PAD_PEX_CLK3,	7,	UINT_MAX, "pex-clk3"),	      \
+	_pad(TEGRA_IO_PAD_USB0,	        9,	UINT_MAX, "usb0"),	      \
+	_pad(TEGRA_IO_PAD_USB1,	        10,	UINT_MAX, "usb1"),	      \
+	_pad(TEGRA_IO_PAD_USB2,	        11,	UINT_MAX, "usb2"),	      \
+	_pad(TEGRA_IO_PAD_USB_BIAS,	12,	UINT_MAX, "usb-bias"),	      \
+	_pad(TEGRA_IO_PAD_NAND,	        13,	UINT_MAX, "nand"),	      \
+	_pad(TEGRA_IO_PAD_UART,	        14,	UINT_MAX, "uart"),	      \
+	_pad(TEGRA_IO_PAD_BB,	        15,	UINT_MAX, "bb"),	      \
+	_pad(TEGRA_IO_PAD_AUDIO,	17,	UINT_MAX, "audio"),	      \
+	_pad(TEGRA_IO_PAD_HSIC,	        19,	UINT_MAX, "hsic"),	      \
+	_pad(TEGRA_IO_PAD_COMP,	        22,	UINT_MAX, "comp"),	      \
+	_pad(TEGRA_IO_PAD_HDMI,	        28,	UINT_MAX, "hdmi"),	      \
+	_pad(TEGRA_IO_PAD_PEX_CNTRL,	32,	UINT_MAX, "pex-cntrl"),	      \
+	_pad(TEGRA_IO_PAD_SDMMC1,	33,	UINT_MAX, "sdmmc1"),	      \
+	_pad(TEGRA_IO_PAD_SDMMC3,	34,	UINT_MAX, "sdmmc3"),	      \
+	_pad(TEGRA_IO_PAD_SDMMC4,	35,	UINT_MAX, "sdmmc4"),	      \
+	_pad(TEGRA_IO_PAD_CAM,	        36,	UINT_MAX, "cam")
+
+static const struct tegra_io_pad_soc tegra30_io_pads[] = {
+	TEGRA30_IO_PAD_TABLE(TEGRA_IO_PAD)
+};
+
+static const struct pinctrl_pin_desc tegra30_pin_descs[] = {
+	TEGRA30_IO_PAD_TABLE(TEGRA_IO_PIN_DESC)
+};
+
 static const struct tegra_pmc_soc tegra30_pmc_soc = {
 	.num_powergates = ARRAY_SIZE(tegra30_powergates),
 	.powergates = tegra30_powergates,
@@ -2191,10 +2226,10 @@ static const struct tegra_pmc_soc tegra30_pmc_soc = {
 	.needs_mbist_war = false,
 	.has_impl_33v_pwr = false,
 	.maybe_tz_only = false,
-	.num_io_pads = 0,
-	.io_pads = NULL,
-	.num_pin_descs = 0,
-	.pin_descs = NULL,
+	.num_io_pads = ARRAY_SIZE(tegra30_io_pads),
+	.io_pads = tegra30_io_pads,
+	.num_pin_descs = ARRAY_SIZE(tegra30_pin_descs),
+	.pin_descs = tegra30_pin_descs,
 	.regs = &tegra20_pmc_regs,
 	.init = tegra20_pmc_init,
 	.setup_irq_polarity = tegra20_pmc_setup_irq_polarity,
