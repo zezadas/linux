@@ -16,8 +16,6 @@
  * GNU General Public License for more details.
  */
 
-#define DEBUG 1
-
 #include <linux/clk-provider.h>
 #include <linux/clk.h>
 #include <linux/clkdev.h>
