@@ -170,8 +170,12 @@ struct tegra_io_pad_soc {
 struct tegra_pmc_regs {
 	unsigned int scratch0;
 	unsigned int dpd_req;
+	unsigned int dpd_req_code_shift;
+	unsigned int dpd_req_code_mask;
 	unsigned int dpd_status;
 	unsigned int dpd2_req;
+	unsigned int dpd2_req_code_shift;
+	unsigned int dpd2_req_code_mask;
 	unsigned int dpd2_status;
 	unsigned int rst_status;
 	unsigned int rst_source_shift;
@@ -2069,8 +2073,12 @@ static const char * const tegra20_powergates[] = {
 static const struct tegra_pmc_regs tegra20_pmc_regs = {
 	.scratch0 = 0x50,
 	.dpd_req = 0x1b8,
+	.dpd_req_code_shift = 0,
+	.dpd_req_code_mask = 0x0,
 	.dpd_status = 0x1bc,
 	.dpd2_req = 0x1c0,
+	.dpd2_req_code_shift = 0,
+	.dpd2_req_code_mask = 0x0,
 	.dpd2_status = 0x1c4,
 	.rst_status = 0x1b4,
 	.rst_source_shift = 0x0,
@@ -2157,6 +2165,23 @@ static const struct tegra_pmc_soc tegra20_pmc_soc = {
 	.num_reset_levels = 0,
 };
 
+static const struct tegra_pmc_regs tegra30_pmc_regs = {
+	.scratch0 = 0x50,
+	.dpd_req = 0x1b8,
+	.dpd_req_code_shift = 30,
+	.dpd_req_code_mask = 0x3,
+	.dpd_status = 0x1bc,
+	.dpd2_req = 0x1c0,
+	.dpd2_req_code_shift = 5,
+	.dpd2_req_code_mask = 0x3,
+	.dpd2_status = 0x1c4,
+	.rst_status = 0x1b4,
+	.rst_source_shift = 0x0,
+	.rst_source_mask = 0x7,
+	.rst_level_shift = 0x0,
+	.rst_level_mask = 0x0,
+};
+
 static const char * const tegra30_powergates[] = {
 	[TEGRA_POWERGATE_CPU] = "cpu0",
 	[TEGRA_POWERGATE_3D] = "3d0",
@@ -2230,13 +2255,30 @@ static const struct tegra_pmc_soc tegra30_pmc_soc = {
 	.io_pads = tegra30_io_pads,
 	.num_pin_descs = ARRAY_SIZE(tegra30_pin_descs),
 	.pin_descs = tegra30_pin_descs,
-	.regs = &tegra20_pmc_regs,
+	.regs = &tegra30_pmc_regs,
 	.init = tegra20_pmc_init,
 	.setup_irq_polarity = tegra20_pmc_setup_irq_polarity,
 	.reset_sources = tegra30_reset_sources,
 	.num_reset_sources = 5,
 	.reset_levels = NULL,
 	.num_reset_levels = 0,
+};
+
+static const struct tegra_pmc_regs tegra114_pmc_regs = {
+	.scratch0 = 0x50,
+	.dpd_req = 0x1b8,
+	.dpd_req_code_shift = 30,
+	.dpd_req_code_mask = 0x3,
+	.dpd_status = 0x1bc,
+	.dpd2_req = 0x1c0,
+	.dpd2_req_code_shift = 30,
+	.dpd2_req_code_mask = 0x3,
+	.dpd2_status = 0x1c4,
+	.rst_status = 0x1b4,
+	.rst_source_shift = 0x0,
+	.rst_source_mask = 0x7,
+	.rst_level_shift = 0x0,
+	.rst_level_mask = 0x0,
 };
 
 static const char * const tegra114_powergates[] = {
@@ -2281,7 +2323,7 @@ static const struct tegra_pmc_soc tegra114_pmc_soc = {
 	.io_pads = NULL,
 	.num_pin_descs = 0,
 	.pin_descs = NULL,
-	.regs = &tegra20_pmc_regs,
+	.regs = &tegra114_pmc_regs,
 	.init = tegra20_pmc_init,
 	.setup_irq_polarity = tegra20_pmc_setup_irq_polarity,
 	.reset_sources = tegra30_reset_sources,
@@ -2378,7 +2420,7 @@ static const struct tegra_pmc_soc tegra124_pmc_soc = {
 	.io_pads = tegra124_io_pads,
 	.num_pin_descs = ARRAY_SIZE(tegra124_pin_descs),
 	.pin_descs = tegra124_pin_descs,
-	.regs = &tegra20_pmc_regs,
+	.regs = &tegra114_pmc_regs,
 	.init = tegra20_pmc_init,
 	.setup_irq_polarity = tegra20_pmc_setup_irq_polarity,
 	.reset_sources = tegra30_reset_sources,
@@ -2484,7 +2526,7 @@ static const struct tegra_pmc_soc tegra210_pmc_soc = {
 	.io_pads = tegra210_io_pads,
 	.num_pin_descs = ARRAY_SIZE(tegra210_pin_descs),
 	.pin_descs = tegra210_pin_descs,
-	.regs = &tegra20_pmc_regs,
+	.regs = &tegra114_pmc_regs,
 	.init = tegra20_pmc_init,
 	.setup_irq_polarity = tegra20_pmc_setup_irq_polarity,
 	.reset_sources = tegra30_reset_sources,
@@ -2545,8 +2587,12 @@ static const struct pinctrl_pin_desc tegra186_pin_descs[] = {
 static const struct tegra_pmc_regs tegra186_pmc_regs = {
 	.scratch0 = 0x2000,
 	.dpd_req = 0x74,
+	.dpd_req_code_shift = 30,
+	.dpd_req_code_mask = 0x3,
 	.dpd_status = 0x78,
 	.dpd2_req = 0x7c,
+	.dpd2_req_code_shift = 30,
+	.dpd2_req_code_mask = 0x3,
 	.dpd2_status = 0x80,
 	.rst_status = 0x70,
 	.rst_source_shift = 0x2,
