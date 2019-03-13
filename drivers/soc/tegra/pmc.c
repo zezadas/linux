@@ -108,15 +108,14 @@
 #define  PMC_RST_STATUS_AOTAG		5
 
 #define IO_DPD_REQ			0x1b8
-#define  IO_DPD_REQ_CODE_IDLE		(0U << 30)
-#define  IO_DPD_REQ_CODE_OFF		(1U << 30)
-#define  IO_DPD_REQ_CODE_ON		(2U << 30)
-#define  IO_DPD_REQ_CODE_MASK		(3U << 30)
-
 #define IO_DPD_STATUS			0x1bc
 #define IO_DPD2_REQ			0x1c0
 #define IO_DPD2_STATUS			0x1c4
 #define SEL_DPD_TIM			0x1c8
+
+#define IO_DPD_REQ_CODE_IDLE		(0U)
+#define IO_DPD_REQ_CODE_OFF		(1U)
+#define IO_DPD_REQ_CODE_ON		(2U)
 
 #define PMC_SCRATCH54			0x258
 #define  PMC_SCRATCH54_DATA_SHIFT	8
@@ -1079,6 +1078,39 @@ tegra_io_pad_find(struct tegra_pmc *pmc, enum tegra_io_pad id)
 	return NULL;
 }
 
+static int tegra_io_pad_get_dpd_req_code(struct tegra_pmc *pmc,
+					 enum tegra_io_pad id, u32 *req_code,
+					 bool enable)
+{
+	const struct tegra_io_pad_soc *pad;
+	u32 code, mask, shift;
+
+	pad = tegra_io_pad_find(pmc, id);
+	if (!pad) {
+		dev_err(pmc->dev, "invalid I/O pad ID %u\n", id);
+		return -ENOENT;
+	}
+
+	if (pad->dpd == UINT_MAX)
+		return -ENOTSUPP;
+
+	if (pad->dpd < 32) {
+		mask = pmc->soc->regs->dpd_req_code_mask;
+		shift = pmc->soc->regs->dpd_req_code_shift;
+	} else {
+		mask = pmc->soc->regs->dpd2_req_code_mask;
+		shift = pmc->soc->regs->dpd2_req_code_shift;
+	}
+
+	if (mask == 0)
+		return -ENOTSUPP;
+
+	code = enable ? IO_DPD_REQ_CODE_OFF : IO_DPD_REQ_CODE_ON;
+	*req_code = (code & mask) << shift;
+
+	return 0;
+}
+
 static int tegra_io_pad_get_dpd_register_bit(struct tegra_pmc *pmc,
 					     enum tegra_io_pad id,
 					     unsigned long *request,
@@ -1171,7 +1203,7 @@ static void tegra_io_pad_unprepare(struct tegra_pmc *pmc)
 int tegra_io_pad_power_enable(enum tegra_io_pad id)
 {
 	unsigned long request, status;
-	u32 mask;
+	u32 mask, req_code;
 	int err;
 
 	mutex_lock(&pmc->powergates_lock);
@@ -1182,7 +1214,13 @@ int tegra_io_pad_power_enable(enum tegra_io_pad id)
 		goto unlock;
 	}
 
-	tegra_pmc_writel(pmc, IO_DPD_REQ_CODE_OFF | mask, request);
+	err = tegra_io_pad_get_dpd_req_code(pmc, id, &req_code, true);
+	if (err < 0) {
+		dev_err(pmc->dev, "failed to get DPD request code: %d\n", err);
+		goto unlock;
+	}
+
+	tegra_pmc_writel(pmc, req_code | mask, request);
 
 	err = tegra_io_pad_poll(pmc, status, mask, 0, 250);
 	if (err < 0) {
@@ -1207,7 +1245,7 @@ EXPORT_SYMBOL(tegra_io_pad_power_enable);
 int tegra_io_pad_power_disable(enum tegra_io_pad id)
 {
 	unsigned long request, status;
-	u32 mask;
+	u32 mask, req_code;
 	int err;
 
 	mutex_lock(&pmc->powergates_lock);
@@ -1218,7 +1256,13 @@ int tegra_io_pad_power_disable(enum tegra_io_pad id)
 		goto unlock;
 	}
 
-	tegra_pmc_writel(pmc, IO_DPD_REQ_CODE_ON | mask, request);
+	err = tegra_io_pad_get_dpd_req_code(pmc, id, &req_code, false);
+	if (err < 0) {
+		dev_err(pmc->dev, "failed to get DPD request code: %d\n", err);
+		goto unlock;
+	}
+
+	tegra_pmc_writel(pmc, req_code | mask, request);
 
 	err = tegra_io_pad_poll(pmc, status, mask, mask, 250);
 	if (err < 0) {
