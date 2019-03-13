@@ -476,6 +476,7 @@ struct tegra_emc {
 	u32 dram_type;
 	u32 dram_dev_num;
 	u32 emc_cfg_saved;
+	bool cfg_power_restore;
 };
 
 static irqreturn_t tegra_emc_isr(int irq, void *data)
@@ -730,6 +731,26 @@ static struct emc_timing *tegra_emc_find_timing(struct tegra_emc *emc,
 	return timing;
 }
 
+/*
+ * After deep sleep EMC power features are not restored.
+ * Do it at run-time after the 1st clock change.
+ */
+static inline void emc_cfg_power_restore(struct tegra_emc *emc,
+					 struct emc_timing *next_timing)
+{
+	u32 reg = readl(emc->regs + EMC_CFG);
+	u32 pwr_mask = EMC_CFG_PWR_MASK;
+
+	if (next_timing->rev >= 0x32)
+		pwr_mask &= ~EMC_CFG_DYN_SREF_ENABLE;
+
+	if ((reg ^ emc->emc_cfg_saved) & pwr_mask) {
+		reg = (reg & (~pwr_mask)) | (emc->emc_cfg_saved & pwr_mask);
+		writel(reg, emc->regs + EMC_CFG);
+		emc_timing_update(emc);
+	}
+}
+
 int emc_prepare_timing_change(struct tegra_emc *emc,
 			      unsigned long rate)
 {
@@ -966,6 +987,11 @@ int emc_complete_timing_change(struct tegra_emc *emc, unsigned long rate,
 
 	/* 18.a restore early ACK */
 	mc_writel(emc->mc, mc_override, MC_EMEM_ARB_OVERRIDE);
+
+	if (emc->cfg_power_restore) {
+		emc_cfg_power_restore(emc, next_timing);
+		emc->cfg_power_restore = false;
+	}
 
 	emc->last_timing = *next_timing;
 
@@ -1438,6 +1464,16 @@ unreg_clk_notifier:
 	return err;
 }
 
+static int __maybe_unused tegra_emc_resume(struct device *dev)
+{
+	struct tegra_emc *emc = dev_get_drvdata(dev);
+
+	emc->cfg_power_restore = true;
+
+	return 0;
+}
+static SIMPLE_DEV_PM_OPS(tegra_emc_pm_ops, NULL, tegra_emc_resume);
+
 static const struct of_device_id tegra_emc_of_match[] = {
 	{ .compatible = "nvidia,tegra30-emc", },
 	{},
@@ -1448,6 +1484,7 @@ static struct platform_driver tegra_emc_driver = {
 	.driver = {
 		.name = "tegra30-emc",
 		.of_match_table = tegra_emc_of_match,
+		.pm	= &tegra_emc_pm_ops,
 		.suppress_bind_attrs = true,
 	},
 };
