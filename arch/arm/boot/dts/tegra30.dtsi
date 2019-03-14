@@ -709,6 +709,38 @@
 		reg = <0x7000e400 0x400>;
 		clocks = <&tegra_car TEGRA30_CLK_PCLK>, <&clk32k_in>;
 		clock-names = "pclk", "clk32k_in";
+
+
+		sdmmc1_off: sdmmc1-off {
+			pins = "sdmmc1";
+			low-power-enable;
+		};
+
+		sdmmc1_on: sdmmc1-on {
+			pins = "sdmmc1";
+			low-power-disable;
+		};
+
+		sdmmc3_off: sdmmc3-off {
+			pins = "sdmmc3";
+			low-power-enable;
+		};
+
+		sdmmc3_on: sdmmc3-on {
+			pins = "sdmmc3";
+			low-power-disable;
+		};
+
+		sdmmc4_off: sdmmc4-off {
+			pins = "sdmmc4";
+			low-power-enable;
+		};
+
+		sdmmc4_on: sdmmc4-on {
+			pins = "sdmmc4";
+			low-power-disable;
+		};
+
 	};
 
 	mc: memory-controller@7000f000 {
@@ -848,6 +880,9 @@
 		clocks = <&tegra_car TEGRA30_CLK_SDMMC1>;
 		resets = <&tegra_car 14>;
 		reset-names = "sdhci";
+		pinctrl-names = "sdmmc-3v3", "sdmmc-1v8";
+		pinctrl-0 = <&sdmmc1_on>;
+		pinctrl-1 = <&sdmmc1_on>;
 		status = "disabled";
 	};
 
@@ -868,6 +903,9 @@
 		clocks = <&tegra_car TEGRA30_CLK_SDMMC3>;
 		resets = <&tegra_car 69>;
 		reset-names = "sdhci";
+		pinctrl-names = "sdmmc-3v3", "sdmmc-1v8";
+		pinctrl-0 = <&sdmmc3_on>;
+		pinctrl-1 = <&sdmmc3_on>;
 		status = "disabled";
 	};
 
@@ -878,6 +916,9 @@
 		clocks = <&tegra_car TEGRA30_CLK_SDMMC4>;
 		resets = <&tegra_car 15>;
 		reset-names = "sdhci";
+		pinctrl-names = "sdmmc-3v3", "sdmmc-1v8";
+		pinctrl-0 = <&sdmmc4_on>;
+		pinctrl-1 = <&sdmmc4_on>;
 		status = "disabled";
 	};
 
