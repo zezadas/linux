@@ -157,10 +157,6 @@
 			status = "disabled";
 		};
 
-		dc@54240000 {
-			status = "disabled";
-		};
-
 		hdmi@54280000 {
 			status = "okay";
 			nvidia,hpd-gpio = <&gpio TEGRA_GPIO(N, 7)
