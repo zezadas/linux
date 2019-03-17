@@ -34,48 +34,17 @@
 			cpu-supply = <&vddctrl_reg>;
 			core-supply = <&core_vdd_reg>;
 		};
+		cpu1: cpu@1 {
+		};
+		cpu2: cpu@2 {
+		};
+		cpu3: cpu@3 {
+		};
 	};
 
 	cpu0_opp_table: opp_table0 {
 		opp@1160000000_975 {
 			opp-suspend;
-		};
-
-		/*
-		 * Disable higher frequencies until thermal throttling is
-		 * implemented. Above 1.160 ghz the temperature gradually
-		 * increases at full CPU load. The cooling fan is not able to
-		 * dissipate heat faster than it is generated.
-		 */
-		opp@1160000000_975 {
-			status = "okay";
-		};
-		opp@1240000000_1000 {
-			status = "disabled";
-		};
-		opp@1280000000_1025 {
-			status = "disabled";
-		};
-		opp@1360000000_1050 {
-			status = "disabled";
-		};
-		opp@1390000000_1075 {
-			status = "disabled";
-		};
-		opp@1470000000_1100 {
-			status = "disabled";
-		};
-		opp@1500000000_1125 {
-			status = "disabled";
-		};
-		opp@1520000000_1150 {
-			status = "disabled";
-		};
-		opp@1590000000_1200 {
-			status = "disabled";
-		};
-		opp@1700000000_1212 {
-			status = "disabled";
 		};
 	};
 
@@ -88,14 +57,14 @@
 	};
 
 	thermal-zones {
-		cpu_thermal: cpu-thermal {
+		fan_thermal: fan-thermal {
 			polling-delay = <1000>;
 			polling-delay-passive = <250>;
 
 			thermal-sensors = <&nct1008 1>;
 
 			trips {
-				cpu_alert0: cpu-alert0 {
+				cpu_alert_fan: cpu-alert-fan {
 					temperature = <60000>;
 					hysteresis = <15000>;
 					type = "active";
@@ -108,13 +77,40 @@
 			};
 
 			cooling-maps {
-				map0 {
-					trip = <&cpu_alert0>;
+				fan-map0 {
+					trip = <&cpu_alert_fan>;
 					cooling-device = <&fan 1
 							  THERMAL_NO_LIMIT>;
 				};
 			};
 		};
+
+		cpufreq_thermal: cpufreq-thermal {
+			polling-delay = <1000>;
+			polling-delay-passive = <250>;
+
+			thermal-sensors = <&nct1008 0>;
+
+			trips {
+				cpufreq_alert: cpufreq-alert {
+					temperature = <55000>;
+					hysteresis = <10000>;
+					type = "active";
+				};
+			};
+
+			cooling-maps {
+				/* Throttle CPU down to 1.16 Ghz */
+				cpufreq-map0 {
+					trip = <&cpufreq_alert>;
+					cooling-device = <&cpu0 0 9>,
+							 <&cpu1 0 9>,
+							 <&cpu2 0 9>,
+							 <&cpu3 0 9>;
+				};
+			};
+		};
+
 	};
 
 	memory@80000000 {
