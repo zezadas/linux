@@ -10,6 +10,7 @@
 #define __SOC_TEGRA_MC_H__
 
 #include <linux/err.h>
+#include <linux/notifier.h>
 #include <linux/reset-controller.h>
 #include <linux/types.h>
 
@@ -185,6 +186,8 @@ struct tegra_mc {
 	struct reset_controller_dev reset;
 
 	spinlock_t lock;
+
+	struct notifier_block qos_nb;
 };
 
 void tegra_mc_write_emem_configuration(struct tegra_mc *mc, unsigned long rate);
