@@ -55,6 +55,7 @@ extern const struct tegra_mc_soc tegra20_mc_soc;
 
 #ifdef CONFIG_ARCH_TEGRA_3x_SOC
 extern const struct tegra_mc_soc tegra30_mc_soc;
+extern int tegra_latency_allowance_init(struct tegra_mc *mc);
 #endif
 
 #ifdef CONFIG_ARCH_TEGRA_114_SOC
