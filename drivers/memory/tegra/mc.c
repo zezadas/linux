@@ -757,6 +757,8 @@ static int tegra_mc_probe(struct platform_device *pdev)
 		}
 	}
 
+	tegra_latency_allowance_init(mc);
+
 	return 0;
 }
 
