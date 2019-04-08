@@ -51,9 +51,6 @@
 #define MC_EMEM_ADR_CFG 0x54
 #define MC_EMEM_ADR_CFG_EMEM_NUMDEV BIT(0)
 
-#define MC_TIMING_CONTROL		0xfc
-#define MC_TIMING_UPDATE		BIT(0)
-
 static const struct of_device_id tegra_mc_of_match[] = {
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	{ .compatible = "nvidia,tegra20-mc-gart", .data = &tegra20_mc_soc },
