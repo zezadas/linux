@@ -12,6 +12,7 @@
 #include <linux/iommu.h>
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/pm_qos.h>
 #include <linux/reset.h>
 
 #include <soc/tegra/pmc.h>
@@ -2175,7 +2176,14 @@ static void tegra_crtc_atomic_flush(struct drm_crtc *crtc,
 {
 	struct tegra_dc_state *state = to_dc_state(crtc->state);
 	struct tegra_dc *dc = to_tegra_dc(crtc);
+	u32 bpp = 8;
+	unsigned long bandwidth;
 	u32 value;
+
+	bandwidth = crtc->mode.hdisplay * crtc->mode.vdisplay * bpp;
+	bandwidth *= drm_mode_vrefresh(&crtc->mode);
+	bandwidth /= 1024;
+	pm_qos_update_request(&dc->pm_qos_req, bandwidth);
 
 	if (dc->soc->has_legacy_blending) {
 		tegra_dc_writel(dc, state->ckey.min, DC_DISP_COLOR_KEY0_LOWER);
@@ -2854,6 +2862,9 @@ static int tegra_dc_probe(struct platform_device *pdev)
 		return err;
 	}
 
+	// pm_qos_add_request(&dc->pm_qos_req, PM_QOS_MEMORY_BANDWIDTH,
+	// 		   PM_QOS_DEFAULT_VALUE);
+
 	platform_set_drvdata(pdev, dc);
 	pm_runtime_enable(&pdev->dev);
 
@@ -2875,6 +2886,8 @@ static int tegra_dc_remove(struct platform_device *pdev)
 {
 	struct tegra_dc *dc = platform_get_drvdata(pdev);
 	int err;
+
+	// pm_qos_remove_request(&dc->pm_qos_req);
 
 	err = host1x_client_unregister(&dc->client);
 	if (err < 0) {
