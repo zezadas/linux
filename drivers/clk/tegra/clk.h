@@ -849,4 +849,10 @@ int div_frac_get(unsigned long rate, unsigned parent_rate, u8 width,
 		udelay(delay);		\
 	} while (0)
 
+bool tegra20_clk_emc_driver_available(void);
+struct clk *tegra20_clk_register_emc(void __iomem *ioaddr);
+
+bool tegra30_clk_emc_driver_available(void);
+struct clk *tegra30_clk_register_emc(void __iomem *ioaddr);
+
 #endif /* TEGRA_CLK_H */

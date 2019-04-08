@@ -130,4 +130,10 @@ extern void tegra210_put_utmipll_in_iddq(void);
 extern void tegra210_put_utmipll_out_iddq(void);
 extern int tegra210_clk_handle_mbist_war(unsigned int id);
 
+struct clk;
+
+void tegra20_clk_set_emc_round_callback(void *round_cb, void *arg_cb);
+void tegra30_clk_set_emc_round_callback(void *round_cb, void *arg_cb);
+int tegra30_clk_prepare_emc_mc_same_freq(struct clk *emc_clk, bool same);
+
 #endif /* __LINUX_CLK_TEGRA_H_ */
