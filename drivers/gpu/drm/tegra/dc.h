@@ -11,6 +11,7 @@
 #define TEGRA_DC_H 1
 
 #include <linux/host1x.h>
+#include <linux/pm_qos.h>
 
 #include <drm/drm_crtc.h>
 
@@ -103,6 +104,8 @@ struct tegra_dc {
 	const struct tegra_dc_soc_info *soc;
 
 	struct iommu_group *group;
+
+	struct pm_qos_request qos_request;
 };
 
 static inline struct tegra_dc *
