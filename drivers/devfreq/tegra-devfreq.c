@@ -717,7 +717,6 @@ static int tegra_devfreq_probe(struct platform_device *pdev)
 static int tegra_devfreq_remove(struct platform_device *pdev)
 {
 	struct tegra_devfreq *tegra = platform_get_drvdata(pdev);
-	int irq = platform_get_irq(pdev, 0);
 	u32 val;
 	unsigned int i;
 
@@ -728,8 +727,6 @@ static int tegra_devfreq_remove(struct platform_device *pdev)
 	}
 
 	actmon_write_barrier(tegra);
-
-	devm_free_irq(&pdev->dev, irq, tegra);
 
 	clk_notifier_unregister(tegra->emc_clock, &tegra->rate_change_nb);
 
