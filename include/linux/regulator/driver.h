@@ -20,6 +20,7 @@
 #include <linux/device.h>
 #include <linux/notifier.h>
 #include <linux/regulator/consumer.h>
+#include <linux/suspend.h>
 #include <linux/ww_mutex.h>
 
 struct gpio_desc;
@@ -552,4 +553,13 @@ void regulator_unlock(struct regulator_dev *rdev);
  */
 int regulator_desc_list_voltage_linear_range(const struct regulator_desc *desc,
 					     unsigned int selector);
+
+const char *rdev_get_name(struct regulator_dev *rdev);
+int regulator_check_consumers(struct regulator_dev *rdev,
+			      int *min_uV, int *max_uV,
+			      suspend_state_t state);
+int regulator_get_voltage_rdev(struct regulator_dev *rdev);
+int regulator_set_voltage_rdev(struct regulator_dev *rdev,
+			       int min_uV, int max_uV,
+			       suspend_state_t state);
 #endif
