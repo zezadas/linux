@@ -15,6 +15,7 @@
 #ifndef __LINUX_REGULATOR_MACHINE_H_
 #define __LINUX_REGULATOR_MACHINE_H_
 
+#include <linux/regulator/driver.h>
 #include <linux/regulator/consumer.h>
 #include <linux/suspend.h>
 
@@ -157,7 +158,7 @@ struct regulation_constraints {
 	int system_load;
 
 	/* used for coupled regulators */
-	int max_spread;
+	int max_spread[MAX_COUPLED];
 
 	/* used for changing voltage in steps */
 	int max_uV_step;

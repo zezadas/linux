@@ -3445,7 +3445,7 @@ static int regulator_get_optimal_voltage(struct regulator_dev *rdev,
 	struct coupling_desc *c_desc = &rdev->coupling_desc;
 	struct regulator_dev **c_rdevs = c_desc->coupled_rdevs;
 	struct regulation_constraints *constraints = rdev->constraints;
-	int max_spread = constraints->max_spread;
+	int max_spread = constraints->max_spread[0];
 	int desired_min_uV = 0, desired_max_uV = INT_MAX;
 	int max_current_uV = 0, min_current_uV = INT_MAX;
 	int highest_min_uV = 0, target_uV, possible_uV;
@@ -3608,6 +3608,12 @@ static int regulator_balance_voltage(struct regulator_dev *rdev,
 	    machine_regulators_coupler->balance_voltage)
 		return machine_regulators_coupler->balance_voltage(
 				machine_regulators_coupler, rdev, state);
+
+	if (n_coupled > 2) {
+		rdev_err(rdev,
+			 "Voltage balancing for multiple regulator couples is unimplemented\n");
+		return -EPERM;
+	}
 
 	for (i = 0; i < n_coupled; i++)
 		c_rdev_done[i] = false;
@@ -4823,11 +4829,6 @@ static int regulator_init_coupling(struct regulator_dev *rdev)
 	/* regulator, which can't change its voltage, can't be coupled */
 	if (!regulator_ops_is_valid(rdev, REGULATOR_CHANGE_VOLTAGE)) {
 		rdev_err(rdev, "voltage operation not allowed\n");
-		return -EPERM;
-	}
-
-	if (rdev->constraints->max_spread <= 0) {
-		rdev_err(rdev, "wrong max_spread value\n");
 		return -EPERM;
 	}
 
