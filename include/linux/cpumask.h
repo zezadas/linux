@@ -633,7 +633,8 @@ static inline int cpumask_parselist_user(const char __user *buf, int len,
  */
 static inline int cpumask_parse(const char *buf, struct cpumask *dstp)
 {
-	unsigned int len = (unsigned int)(strchrnul(buf, '\n') - buf);
+	char *nl = strchr(buf, '\n');
+	unsigned int len = nl ? (unsigned int)(nl - buf) : strlen(buf);
 
 	return bitmap_parse(buf, len, cpumask_bits(dstp), nr_cpumask_bits);
 }
