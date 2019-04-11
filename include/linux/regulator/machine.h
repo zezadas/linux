@@ -19,6 +19,7 @@
 #include <linux/suspend.h>
 
 struct regulator;
+struct regulator_dev;
 
 /*
  * Regulator operation constraint flags. These flags are used to enable
@@ -264,5 +265,23 @@ static inline int regulator_suspend_finish(void)
 {
 	return 0;
 }
+
+/**
+ * struct regulators_coupler - machine-specific regulators coupler
+ *
+ * A custom regulators coupler allows platform to customize coupling
+ * algorithm.
+ *
+ * @balance_voltage: Callback invoked when voltage of a coupled regulator is
+ *                   changing. The callee should perform voltage balancing
+ *                   and change voltage of the coupled regulators.
+ */
+struct regulators_coupler {
+	int (*balance_voltage)(struct regulators_coupler *coupler,
+			       struct regulator_dev *rdev,
+			       suspend_state_t state);
+};
+
+int regulators_coupler_register(struct regulators_coupler *coupler);
 
 #endif
