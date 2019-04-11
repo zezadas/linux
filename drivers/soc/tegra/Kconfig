@@ -133,3 +133,9 @@ config SOC_TEGRA_POWERGATE_BPMP
 	def_bool y
 	depends on PM_GENERIC_DOMAINS
 	depends on TEGRA_BPMP
+
+config SOC_TEGRA20_VOLTAGE_COUPLER
+	bool "Voltage scaling support for Tegra20 SoC's"
+	def_bool y
+	depends on ARCH_TEGRA_2x_SOC
+	depends on REGULATOR
