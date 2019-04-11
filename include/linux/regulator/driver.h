@@ -15,7 +15,7 @@
 #ifndef __LINUX_REGULATOR_DRIVER_H_
 #define __LINUX_REGULATOR_DRIVER_H_
 
-#define MAX_COUPLED		2
+#define MAX_COUPLED		3
 
 #include <linux/device.h>
 #include <linux/notifier.h>
