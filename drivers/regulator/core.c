@@ -59,6 +59,8 @@ static bool has_full_constraints;
 
 static struct dentry *debugfs_root;
 
+static struct regulators_coupler *machine_regulators_coupler;
+
 /*
  * struct regulator_map
  *
@@ -3596,6 +3598,12 @@ static int regulator_balance_voltage(struct regulator_dev *rdev,
 		return -EPERM;
 	}
 
+	if (n_coupled > 1 &&
+	    machine_regulators_coupler &&
+	    machine_regulators_coupler->balance_voltage)
+		return machine_regulators_coupler->balance_voltage(
+				machine_regulators_coupler, rdev, state);
+
 	for (i = 0; i < n_coupled; i++)
 		c_rdev_done[i] = false;
 
@@ -4702,6 +4710,16 @@ static int regulator_register_resolve_supply(struct device *dev, void *data)
 
 	if (regulator_resolve_supply(rdev))
 		rdev_dbg(rdev, "unable to resolve supply\n");
+
+	return 0;
+}
+
+int regulators_coupler_register(struct regulators_coupler *coupler)
+{
+	if (WARN_ON(machine_regulators_coupler))
+		return -EBUSY;
+
+	machine_regulators_coupler = coupler;
 
 	return 0;
 }
