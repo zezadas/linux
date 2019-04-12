@@ -51,6 +51,15 @@ static const unsigned int taac_mant[] = {
 	35,	40,	45,	50,	55,	60,	70,	80,
 };
 
+static u64 legacy_tegra_emmc;
+
+static int __init legacy_tegra_emmc_fn(char *str)
+{
+	legacy_tegra_emmc = simple_strtoull(str, NULL, 0);
+	return 1;
+}
+__setup("legacy_tegra_emmc=", legacy_tegra_emmc_fn);
+
 #define UNSTUFF_BITS(resp,start,size)					\
 	({								\
 		const int __size = size;				\
@@ -409,7 +418,7 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 
 		/* Cards with density > 2GiB are sector addressed */
 		if (card->ext_csd.sectors > (2u * 1024 * 1024 * 1024) / 512) {
-			if (card->host->caps & MMC_CAP_NONREMOVABLE) {
+			if (legacy_tegra_emmc && (card->host->caps & MMC_CAP_NONREMOVABLE)) {
  				/*
 				 * Size is in 256K chunks, i.e. 512 sectors each.
  				 * This algorithm is defined and used by NVIDIA,
