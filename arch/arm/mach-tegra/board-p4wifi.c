@@ -457,15 +457,7 @@ static void p4_check_hwrev(void)
 
 	pr_info("%s: system_rev = %d (gpio value = 0x%02x)\n", __func__, system_rev, value);
 }
-
-#include <soc/tegra/pmc.h>
-
-
-#define GPIO_ACCESSORY_EN	70 // TEGRA_GPIO_PI6
-#define GPIO_V_ACCESSORY_5V	25  // TEGRA_GPIO_PD1
-#define GPIO_OTG_EN		143 // TEGRA_GPIO_PR7
-#define GPIO_CP_ON		115 //TEGRA_GPIO_PO3
-#define GPIO_CP_RST		185 // TEGRA_GPIO_PX1
+subsys_initcall(p4_check_hwrev);
 
 void __init p4wifi_machine_init(void)
 {
@@ -479,16 +471,4 @@ void __init p4wifi_machine_init(void)
 	p4_check_hwrev();
 
 	register_reboot_notifier(&p3_reboot_notifier);
-
-	tegra_powergate_power_off(TEGRA_POWERGATE_PCIE);
-
-	gpio_direction_output(GPIO_ACCESSORY_EN, 0);
-	gpio_direction_input(GPIO_V_ACCESSORY_5V);
-	pr_info("%s: accessory gpio %s\n", __func__,
-		gpio_get_value(GPIO_V_ACCESSORY_5V)==0 ? "disabled" : "enabled");
-
-	gpio_direction_output(GPIO_OTG_EN, 0);
-
-	gpio_set_value(GPIO_CP_ON, 0);
-	gpio_set_value(GPIO_CP_RST, 0);
 }

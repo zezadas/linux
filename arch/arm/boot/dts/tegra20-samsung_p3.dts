@@ -597,6 +597,66 @@
 	gpio: gpio@6000d000 {
 		compatible = "nvidia,tegra20-gpio";
 
+		accessory-enable {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(I, 6) GPIO_ACTIVE_HIGH>;
+			output-low;
+		};
+
+		accessory-5v {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(D, 1) GPIO_ACTIVE_HIGH>;
+			input;
+		};
+
+		otg-enable {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(R, 7) GPIO_ACTIVE_HIGH>;
+			output-low;
+		};
+
+		cp-on {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(O, 3) GPIO_ACTIVE_HIGH>;
+			output-low;
+		};
+
+		cp-rst {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(X, 1) GPIO_ACTIVE_HIGH>;
+			output-low;
+		};
+
+		hw-rev-0 {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(B, 1) GPIO_ACTIVE_HIGH>;
+			input;
+		};
+
+		hw-rev-1 {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(K, 7) GPIO_ACTIVE_HIGH>;
+			input;
+		};
+
+		hw-rev-2 {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(U, 4) GPIO_ACTIVE_HIGH>;
+			input;
+		};
+
+		hw-rev-3 {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(G, 0) GPIO_ACTIVE_HIGH>;
+			input;
+		};
+
+		hw-rev-4 {
+			gpio-hog;
+			gpios = <TEGRA_GPIO(G, 1) GPIO_ACTIVE_HIGH>;
+			input;
+		};
+
 		/*
 		 * TODO:
 		 * Must touch this gpio for sound to work.
