@@ -664,29 +664,6 @@ static int tps6586x_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
-static int __maybe_unused tps6586x_i2c_suspend(struct device *dev)
-{
-	struct tps6586x *tps6586x = dev_get_drvdata(dev);
-
-	if (tps6586x->client->irq)
-		disable_irq(tps6586x->client->irq);
-
-	return 0;
-}
-
-static int __maybe_unused tps6586x_i2c_resume(struct device *dev)
-{
-	struct tps6586x *tps6586x = dev_get_drvdata(dev);
-
-	if (tps6586x->client->irq)
-		enable_irq(tps6586x->client->irq);
-
-	return 0;
-}
-
-static SIMPLE_DEV_PM_OPS(tps6586x_pm_ops, tps6586x_i2c_suspend,
-			 tps6586x_i2c_resume);
-
 static const struct i2c_device_id tps6586x_id_table[] = {
 	{ "tps6586x", 0 },
 	{ },
