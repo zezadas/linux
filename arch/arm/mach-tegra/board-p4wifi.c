@@ -390,11 +390,11 @@ static struct notifier_block p3_reboot_notifier = {
 * System revision
 *****************************************************************************/
 
-#define GPIO_HW_REV0		9  /* TEGRA_GPIO_PB1 */
-#define GPIO_HW_REV1		87 /* TEGRA_GPIO_PK7 */
-#define GPIO_HW_REV2		50 /* TEGRA_GPIO_PG2 */
-#define GPIO_HW_REV3		48 /* TEGRA_GPIO_PG0 */
-#define GPIO_HW_REV4		49 /* TEGRA_GPIO_PG1 */
+#define GPIO_HW_REV0		9	/* TEGRA_GPIO_PB1 */
+#define GPIO_HW_REV1		87	/* TEGRA_GPIO_PK7 */
+#define GPIO_HW_REV2		164	/* TEGRA_GPIO_PU4 */
+#define GPIO_HW_REV3		48	/* TEGRA_GPIO_PG0 */
+#define GPIO_HW_REV4		49	/* TEGRA_GPIO_PG1 */
 
 struct board_revision {
 	unsigned int value;
@@ -402,10 +402,11 @@ struct board_revision {
 	char string[20];
 };
 
-/* We'll enumerate board revision from 10
+/*
+ * We'll enumerate board revision from 10
  * to avoid a confliction with revision numbers of P3
-*/
-struct board_revision p4_board_rev[] = {
+ */
+static struct __init board_revision p4_board_rev[] = {
 	{10, 0x16, "Rev00"},
 	{11, 0x01, "Rev01"},
 	{12, 0x02, "Rev02" },
@@ -413,51 +414,41 @@ struct board_revision p4_board_rev[] = {
 	{14, 0x04, "Rev04" },
 };
 
-static void p4_check_hwrev(void)
+static int __init p4wifi_init_hwrev(void)
 {
 	unsigned int value, rev_no, i;
 	struct board_revision *board_rev;
 
+	if (!of_machine_is_compatible("nvidia,samsung_p3"))
+		return 0;
+
 	board_rev = p4_board_rev;
 	rev_no = ARRAY_SIZE(p4_board_rev);
 
-	gpio_request(GPIO_HW_REV0, "GPIO_HW_REV0");
-	gpio_request(GPIO_HW_REV1, "GPIO_HW_REV1");
-	gpio_request(GPIO_HW_REV2, "GPIO_HW_REV2");
-	gpio_request(GPIO_HW_REV3, "GPIO_HW_REV3");
-	gpio_request(GPIO_HW_REV4, "GPIO_HW_REV4");
-
-	gpio_direction_input(GPIO_HW_REV0);
-	gpio_direction_input(GPIO_HW_REV1);
-	gpio_direction_input(GPIO_HW_REV2);
-	gpio_direction_input(GPIO_HW_REV3);
-	gpio_direction_input(GPIO_HW_REV4);
-
 	value = gpio_get_value(GPIO_HW_REV0) |
-			(gpio_get_value(GPIO_HW_REV1)<<1) |
-			(gpio_get_value(GPIO_HW_REV2)<<2) |
-			(gpio_get_value(GPIO_HW_REV3)<<3) |
-			(gpio_get_value(GPIO_HW_REV4)<<4);
-
-	gpio_free(GPIO_HW_REV0);
-	gpio_free(GPIO_HW_REV1);
-	gpio_free(GPIO_HW_REV2);
-	gpio_free(GPIO_HW_REV3);
-	gpio_free(GPIO_HW_REV4);
+		(gpio_get_value(GPIO_HW_REV1)<<1) |
+		(gpio_get_value(GPIO_HW_REV2)<<2) |
+		(gpio_get_value(GPIO_HW_REV3)<<3) |
+		(gpio_get_value(GPIO_HW_REV4)<<4);
 
 	for (i = 0; i < rev_no; i++) {
 		if (board_rev[i].gpio_value == value)
 			break;
 	}
 
-	system_rev = (i == rev_no) ? board_rev[rev_no-1].value : board_rev[i].value;
+	if (i >= rev_no) {
+		pr_warn("%s: Valid revision NOT found!\n", __func__);
+		pr_warn("%s: Latest one will be assigned!\n", __func__);
+		i = rev_no - 1;
+	}
 
-	if (i == rev_no)
-		pr_warn("%s: Valid revision NOT found! Latest one will be assigned!\n", __func__);
+	system_rev = board_rev[i].value;;
+	pr_info("%s: system_rev = %d (gpio value = 0x%02x)\n", __func__,
+		system_rev, value);
 
-	pr_info("%s: system_rev = %d (gpio value = 0x%02x)\n", __func__, system_rev, value);
+	return 0;
 }
-subsys_initcall(p4_check_hwrev);
+fs_initcall(p4wifi_init_hwrev);
 
 void __init p4wifi_machine_init(void)
 {
@@ -465,10 +456,7 @@ void __init p4wifi_machine_init(void)
 	tegra_ram_console_debug_init_mem(0x2E600000, 0x00100000);
 	tegra_ram_console_debug_init();
 
-
 	p4_release_bootloader_fb();
-
-	p4_check_hwrev();
 
 	register_reboot_notifier(&p3_reboot_notifier);
 }
