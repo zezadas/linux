@@ -1411,10 +1411,8 @@
 		keep-power-in-suspend;
 		non-removable;
 
-		wakeup-source;
-
 		mmc-pwrseq = <&sdhci3_pwrseq>;
-		
+
 		brcmf: wifi@1 {
 			compatible = "brcm,bcm4329-fmac";
 			interrupt-parent = <&gpio>;
