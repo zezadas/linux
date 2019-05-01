@@ -17,6 +17,7 @@
 #include <linux/module.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_qos.h>
 #include <linux/sort.h>
 #include <linux/types.h>
 
@@ -321,6 +322,7 @@ struct tegra_emc {
 	struct device *dev;
 	struct tegra_mc *mc;
 	struct completion clk_handshake_complete;
+	struct notifier_block qos_nb;
 	struct notifier_block clk_nb;
 	struct clk *clk;
 	void __iomem *regs;
@@ -827,6 +829,35 @@ static int emc_clk_change_notify(struct notifier_block *nb,
 	return notifier_from_errno(err);
 }
 
+static int tegra_emc_pm_qos_request_notify(struct notifier_block *nb,
+					   unsigned long memory_bandwidth,
+					   void *data)
+{
+	struct tegra_emc *emc = container_of(nb, struct tegra_emc, qos_nb);
+	unsigned long long max_rate;
+	unsigned long long rate;
+	int err;
+
+	/* get maximum possible rate */
+	max_rate = emc->timings[emc->num_timings - 1].rate;
+
+	/* DDR: 8 bytes per clock, 1 Mbit/s: 125000 B/s, EMC: 2x BUS rate */
+	rate = (unsigned long long)memory_bandwidth * (125000 / 8 * 2);
+
+	/* clamp rate to maximum possible */
+	rate = min(rate, max_rate);
+
+	err = clk_set_min_rate(emc->clk, rate);
+	if (err)
+		notifier_from_errno(err);
+
+	err = clk_set_rate(emc->clk, rate);
+	if (err)
+		notifier_from_errno(err);
+
+	return NOTIFY_DONE;
+}
+
 static int load_one_timing_from_dt(struct tegra_emc *emc,
 				   struct emc_timing *timing,
 				   struct device_node *node)
@@ -1092,6 +1123,7 @@ static int tegra_emc_probe(struct platform_device *pdev)
 
 	init_completion(&emc->clk_handshake_complete);
 	emc->clk_nb.notifier_call = emc_clk_change_notify;
+	emc->qos_nb.notifier_call = tegra_emc_pm_qos_request_notify;
 	emc->dev = &pdev->dev;
 
 	err = emc_load_timings_from_dt(emc, np);
@@ -1136,8 +1168,17 @@ static int tegra_emc_probe(struct platform_device *pdev)
 		goto unset_cb;
 	}
 
+	err = pm_qos_add_notifier(PM_QOS_MEMORY_BANDWIDTH, &emc->qos_nb);
+	if (err) {
+		dev_err(&pdev->dev, "failed to register QoS notifier: %d\n",
+			err);
+		goto unreg_clk_notifier;
+	}
+
 	return 0;
 
+unreg_clk_notifier:
+	clk_notifier_unregister(emc->clk, &emc->clk_nb);
 unset_cb:
 	tegra30_clk_set_emc_round_callback(NULL, NULL);
 
