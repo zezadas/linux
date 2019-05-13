@@ -124,6 +124,7 @@
 			no-map;
 		};
 
+/*
 		ramoops: ramoops@be900000 {
 			compatible = "ramoops";
 			reg = <0xbe900000 0x00100000>;
@@ -132,6 +133,7 @@
 			ftrace-size	= <0x00020000>;
 			pmsg-size	= <0x00020000>;
 		};
+*/
 	};
 
 	ram_console {
