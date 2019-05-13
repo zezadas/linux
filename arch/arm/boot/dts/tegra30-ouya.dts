@@ -1427,6 +1427,13 @@
 		status = "okay";
 		bus-width = <8>;
 
+		/*
+		 * Downstream kernel limits sdhci clock unless EMC is at max
+		 * clock rate. There is no dynamic frequency mechanism for
+		 * sdhci clock so always set it to the lowest limit.
+		 */
+		/* max-frequency = <41000000>; */
+
 		keep-power-in-suspend;
 		mmc-ddr-1_8v;
 		non-removable;
